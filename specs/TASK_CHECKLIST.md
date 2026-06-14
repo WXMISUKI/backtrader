@@ -109,14 +109,17 @@
 | 7.5 | 实现回测报告生成 | P1 | ✅ | - | BacktestResult.summary() |
 | 7.6 | 编写回测测试 | P1 | ✅ | - | test_backtest.py (6 tests passed) |
 
-## Phase 3: 高级功能 (远期)
+## Phase 3: 高级功能 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE3_ADVANCED.md` ✅ 已完成
 
 | # | 任务 | 优先级 | 状态 | 负责 | 备注 |
 |---|------|--------|------|------|------|
-| 6.1 | 实时监控 Skill | P2 | ⬜ | - | |
-| 6.2 | 智能选股 Skill | P2 | ⬜ | - | |
-| 6.3 | 报告生成 Skill | P3 | ⬜ | - | |
-| 6.4 | 模拟交易 | P3 | ⬜ | - | |
+| 6.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE3_ADVANCED.md |
+| 6.1 | 实现智能选股 Skill | P2 | ✅ | - | stock-selector |
+| 6.2 | 实现报告生成 Skill | P3 | ✅ | - | stock-report |
+| 6.3 | 实现模拟交易 Skill | P3 | ✅ | - | stock-simulator |
+| 6.4 | 编写测试 | P1 | ✅ | - | test_advanced.py (21 tests passed) |
 
 ---
 
@@ -136,6 +139,9 @@
 | 0.10 | 策略框架模块 | 2026-06-14 | Signal/Bar/Strategy/Registry/MACross (31 tests passed) |
 | 0.11 | 内置策略模块 | 2026-06-14 | MACD/RSI/BOLL/Composite (47 tests passed) |
 | 0.12 | 回测集成模块 | 2026-06-14 | BacktestEngine/Adapter/Result (6 tests passed) |
+| 0.13 | 智能选股模块 | 2026-06-14 | StockScreener/screen_stocks |
+| 0.14 | 报告生成模块 | 2026-06-14 | ReportGenerator |
+| 0.15 | 模拟交易模块 | 2026-06-14 | TradingSimulator (21 tests passed) |
 
 ---
 
