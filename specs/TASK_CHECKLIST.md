@@ -121,6 +121,31 @@
 | 6.3 | 实现模拟交易 Skill | P3 | ✅ | - | stock-simulator |
 | 6.4 | 编写测试 | P1 | ✅ | - | test_advanced.py (21 tests passed) |
 
+## Phase 4: 智能投顾系统 (待开发)
+
+**SDD规格文档**: `specs/SDD_PHASE4_ADVISOR.md` ✅ 已完成
+
+### Sprint 8: 基本面和市场分析 (本周)
+
+**SDD规格文档**: `specs/SDD_PHASE4_ADVISOR.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 8.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE4_ADVISOR.md |
+| 8.1 | 实现基本面分析器 | P0 | ✅ | - | stock-fundamental/analyzer.py |
+| 8.2 | 实现市场分析器 | P0 | ✅ | - | stock-market/analyzer.py |
+| 8.3 | 实现股票推荐器 | P0 | ✅ | - | stock-recommender/recommender.py |
+| 8.4 | 编写测试 | P1 | ✅ | - | test_phase4.py (29 tests passed) |
+
+### Sprint 9: 长短线策略 (待开发)
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 9.1 | 实现长线策略 | P0 | ⬜ | - | stock-strategy/long_term.py |
+| 9.2 | 实现短线策略 | P0 | ⬜ | - | stock-strategy/short_term.py |
+| 9.3 | 策略回测验证 | P1 | ⬜ | - | |
+| 9.4 | 编写测试 | P1 | ⬜ | - | |
+
 ---
 
 ## 已完成任务归档
@@ -142,6 +167,9 @@
 | 0.13 | 智能选股模块 | 2026-06-14 | StockScreener/screen_stocks |
 | 0.14 | 报告生成模块 | 2026-06-14 | ReportGenerator |
 | 0.15 | 模拟交易模块 | 2026-06-14 | TradingSimulator (21 tests passed) |
+| 0.16 | 基本面分析模块 | 2026-06-14 | FundamentalAnalyzer (29 tests passed) |
+| 0.17 | 市场分析模块 | 2026-06-14 | MarketAnalyzer |
+| 0.18 | 股票推荐模块 | 2026-06-14 | StockRecommender (长线/短线/风险匹配) |
 
 ---
 
