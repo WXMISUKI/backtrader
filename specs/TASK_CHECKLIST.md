@@ -95,16 +95,19 @@
 | 6.4 | 实现综合策略 | P2 | ✅ | - | composite.py |
 | 6.5 | 编写策略测试 | P1 | ✅ | - | test_strategies.py (47 tests passed) |
 
-### Sprint 7: 回测集成 (第三周)
+### Sprint 7: 回测集成 (本周)
+
+**SDD规格文档**: `specs/SDD_BACKTEST_INTEGRATION.md` ✅ 已完成
 
 | # | 任务 | 优先级 | 状态 | 负责 | 备注 |
 |---|------|--------|------|------|------|
-| 7.1 | 实现回测数据适配器 | P0 | ⬜ | - | |
-| 7.2 | 实现策略适配器 | P0 | ⬜ | - | |
-| 7.3 | 实现回测结果分析器 | P0 | ⬜ | - | |
-| 7.4 | 实现参数优化器 | P2 | ⬜ | - | |
-| 7.5 | 实现回测报告生成 | P1 | ⬜ | - | |
-| 7.6 | 编写回测测试 | P1 | ⬜ | - | |
+| 7.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_BACKTEST_INTEGRATION.md |
+| 7.1 | 实现回测数据适配器 | P0 | ✅ | - | adapter.py |
+| 7.2 | 实现策略适配器 | P0 | ✅ | - | adapter.py |
+| 7.3 | 实现回测结果分析器 | P0 | ✅ | - | engine.py |
+| 7.4 | 实现回测引擎 | P0 | ✅ | - | engine.py |
+| 7.5 | 实现回测报告生成 | P1 | ✅ | - | BacktestResult.summary() |
+| 7.6 | 编写回测测试 | P1 | ✅ | - | test_backtest.py (6 tests passed) |
 
 ## Phase 3: 高级功能 (远期)
 
@@ -132,6 +135,7 @@
 | 0.9 | 个股分析模块 | 2026-06-14 | StockData/StockAnalyzer/analyze (18 tests passed) |
 | 0.10 | 策略框架模块 | 2026-06-14 | Signal/Bar/Strategy/Registry/MACross (31 tests passed) |
 | 0.11 | 内置策略模块 | 2026-06-14 | MACD/RSI/BOLL/Composite (47 tests passed) |
+| 0.12 | 回测集成模块 | 2026-06-14 | BacktestEngine/Adapter/Result (6 tests passed) |
 
 ---
 
