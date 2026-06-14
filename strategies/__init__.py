@@ -12,6 +12,7 @@
 - macd_strategy.py: MACD 策略
 - rsi_strategy.py: RSI 策略
 - boll_strategy.py: 布林带策略
+- composite.py: 综合策略
 
 使用示例:
     # 使用注册表创建策略
@@ -20,7 +21,7 @@
 
     # 使用便捷函数
     from strategies import get_strategy
-    strategy = get_strategy("ma_cross", {'fast_period': 5})
+    strategy = get_strategy("macd", {'fast_period': 12})
 
     # 列出所有策略
     from strategies import list_strategies
@@ -40,6 +41,10 @@ from .registry import (
 
 # 导入内置策略 (触发注册)
 from .ma_cross import MACrossStrategy
+from .macd_strategy import MACDStrategy
+from .rsi_strategy import RSIStrategy
+from .boll_strategy import BollStrategy
+from .composite import CompositeStrategy
 
 # 模块版本
 __version__ = '1.0.0'
@@ -60,4 +65,8 @@ __all__ = [
 
     # 内置策略
     'MACrossStrategy',
+    'MACDStrategy',
+    'RSIStrategy',
+    'BollStrategy',
+    'CompositeStrategy',
 ]

@@ -82,15 +82,18 @@
 | 5.5 | 实现双均线策略 | P0 | ✅ | - | ma_cross.py |
 | 5.6 | 编写框架测试 | P1 | ✅ | - | test_strategies.py (31 tests passed) |
 
-### Sprint 6: 内置策略 (下周)
+### Sprint 6: 内置策略 (本周)
+
+**SDD规格文档**: `specs/SDD_BUILTIN_STRATEGIES.md` ✅ 已完成
 
 | # | 任务 | 优先级 | 状态 | 负责 | 备注 |
 |---|------|--------|------|------|------|
-| 6.1 | 实现 MACD 策略 | P0 | ⬜ | - | macd_strategy.py |
-| 6.2 | 实现 RSI 策略 | P1 | ⬜ | - | rsi_strategy.py |
-| 6.3 | 实现布林带策略 | P1 | ⬜ | - | boll_strategy.py |
-| 6.4 | 实现综合策略 | P2 | ⬜ | - | composite.py |
-| 6.5 | 编写策略测试 | P1 | ⬜ | - | |
+| 6.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_BUILTIN_STRATEGIES.md |
+| 6.1 | 实现 MACD 策略 | P0 | ✅ | - | macd_strategy.py |
+| 6.2 | 实现 RSI 策略 | P1 | ✅ | - | rsi_strategy.py |
+| 6.3 | 实现布林带策略 | P1 | ✅ | - | boll_strategy.py |
+| 6.4 | 实现综合策略 | P2 | ✅ | - | composite.py |
+| 6.5 | 编写策略测试 | P1 | ✅ | - | test_strategies.py (47 tests passed) |
 
 ### Sprint 7: 回测集成 (第三周)
 
@@ -128,6 +131,7 @@
 | 0.8 | 信号系统模块 | 2026-06-14 | 买卖信号/强度计算/SignalGenerator (21 tests passed) |
 | 0.9 | 个股分析模块 | 2026-06-14 | StockData/StockAnalyzer/analyze (18 tests passed) |
 | 0.10 | 策略框架模块 | 2026-06-14 | Signal/Bar/Strategy/Registry/MACross (31 tests passed) |
+| 0.11 | 内置策略模块 | 2026-06-14 | MACD/RSI/BOLL/Composite (47 tests passed) |
 
 ---
 

@@ -238,6 +238,14 @@ class TestStrategyRegistry:
         """每个测试前清除注册"""
         StrategyRegistry.clear()
 
+    def teardown_method(self):
+        """每个测试后重新注册内置策略"""
+        # 重新导入内置策略以触发注册
+        import strategies.ma_cross
+        import strategies.macd_strategy
+        import strategies.rsi_strategy
+        import strategies.boll_strategy
+
     def test_register(self):
         """测试注册"""
         @StrategyRegistry.register("test")
@@ -359,6 +367,209 @@ class TestMACrossStrategy:
         hold_signals = [s for s in signals if s.is_hold]
 
         assert len(buy_signals) + len(sell_signals) + len(hold_signals) == len(sample_df)
+
+
+# ==================== MACDStrategy 测试 ====================
+
+class TestMACDStrategy:
+    """MACDStrategy 测试"""
+
+    def test_initialization(self):
+        """测试初始化"""
+        from strategies import MACDStrategy
+        strategy = MACDStrategy({
+            'fast_period': 12,
+            'slow_period': 26,
+            'signal_period': 9
+        })
+        assert strategy.fast_period == 12
+        assert strategy.slow_period == 26
+        assert strategy.signal_period == 9
+
+    def test_default_params(self):
+        """测试默认参数"""
+        from strategies import MACDStrategy
+        strategy = MACDStrategy()
+        assert strategy.fast_period == 12
+        assert strategy.slow_period == 26
+        assert strategy.signal_period == 9
+
+    def test_on_bar(self, sample_df):
+        """测试处理 K 线"""
+        from strategies import MACDStrategy
+        strategy = MACDStrategy()
+        bar = Bar(sample_df, index=50)
+        signal = strategy.on_bar(bar)
+        assert isinstance(signal, Signal)
+
+    def test_backtest(self, sample_df):
+        """测试回测"""
+        from strategies import MACDStrategy
+        strategy = MACDStrategy()
+        signals = []
+
+        for i in range(len(sample_df)):
+            bar = Bar(sample_df, index=i)
+            signal = strategy.on_bar(bar)
+            signals.append(signal)
+
+        assert len(signals) == len(sample_df)
+
+
+# ==================== RSIStrategy 测试 ====================
+
+class TestRSIStrategy:
+    """RSIStrategy 测试"""
+
+    def test_initialization(self):
+        """测试初始化"""
+        from strategies import RSIStrategy
+        strategy = RSIStrategy({
+            'period': 14,
+            'overbought': 70,
+            'oversold': 30
+        })
+        assert strategy.period == 14
+        assert strategy.overbought == 70
+        assert strategy.oversold == 30
+
+    def test_default_params(self):
+        """测试默认参数"""
+        from strategies import RSIStrategy
+        strategy = RSIStrategy()
+        assert strategy.period == 14
+        assert strategy.overbought == 70
+        assert strategy.oversold == 30
+
+    def test_on_bar(self, sample_df):
+        """测试处理 K 线"""
+        from strategies import RSIStrategy
+        strategy = RSIStrategy()
+        bar = Bar(sample_df, index=50)
+        signal = strategy.on_bar(bar)
+        assert isinstance(signal, Signal)
+
+    def test_backtest(self, sample_df):
+        """测试回测"""
+        from strategies import RSIStrategy
+        strategy = RSIStrategy()
+        signals = []
+
+        for i in range(len(sample_df)):
+            bar = Bar(sample_df, index=i)
+            signal = strategy.on_bar(bar)
+            signals.append(signal)
+
+        assert len(signals) == len(sample_df)
+
+
+# ==================== BollStrategy 测试 ====================
+
+class TestBollStrategy:
+    """BollStrategy 测试"""
+
+    def test_initialization(self):
+        """测试初始化"""
+        from strategies import BollStrategy
+        strategy = BollStrategy({
+            'period': 20,
+            'std_dev': 2.0
+        })
+        assert strategy.period == 20
+        assert strategy.std_dev == 2.0
+
+    def test_default_params(self):
+        """测试默认参数"""
+        from strategies import BollStrategy
+        strategy = BollStrategy()
+        assert strategy.period == 20
+        assert strategy.std_dev == 2.0
+
+    def test_on_bar(self, sample_df):
+        """测试处理 K 线"""
+        from strategies import BollStrategy
+        strategy = BollStrategy()
+        bar = Bar(sample_df, index=50)
+        signal = strategy.on_bar(bar)
+        assert isinstance(signal, Signal)
+
+    def test_backtest(self, sample_df):
+        """测试回测"""
+        from strategies import BollStrategy
+        strategy = BollStrategy()
+        signals = []
+
+        for i in range(len(sample_df)):
+            bar = Bar(sample_df, index=i)
+            signal = strategy.on_bar(bar)
+            signals.append(signal)
+
+        assert len(signals) == len(sample_df)
+
+
+# ==================== CompositeStrategy 测试 ====================
+
+class TestCompositeStrategy:
+    """CompositeStrategy 测试"""
+
+    def test_initialization(self):
+        """测试初始化"""
+        from strategies import CompositeStrategy, MACrossStrategy, MACDStrategy, RSIStrategy
+
+        # 确保策略已注册
+        StrategyRegistry.register("ma_cross")(MACrossStrategy)
+        StrategyRegistry.register("macd")(MACDStrategy)
+        StrategyRegistry.register("rsi")(RSIStrategy)
+
+        strategy = CompositeStrategy({
+            'strategies': ['ma_cross', 'macd', 'rsi'],
+            'min_agreement': 2
+        })
+        assert len(strategy.sub_strategies) == 3
+        assert strategy.min_agreement == 2
+
+    def test_on_bar(self, sample_df):
+        """测试处理 K 线"""
+        from strategies import CompositeStrategy
+        strategy = CompositeStrategy({
+            'strategies': ['ma_cross', 'macd'],
+            'min_agreement': 1
+        })
+        bar = Bar(sample_df, index=50)
+        signal = strategy.on_bar(bar)
+        assert isinstance(signal, Signal)
+
+    def test_backtest(self, sample_df):
+        """测试回测"""
+        from strategies import CompositeStrategy
+        strategy = CompositeStrategy({
+            'strategies': ['ma_cross', 'macd'],
+            'min_agreement': 1
+        })
+        signals = []
+
+        for i in range(len(sample_df)):
+            bar = Bar(sample_df, index=i)
+            signal = strategy.on_bar(bar)
+            signals.append(signal)
+
+        assert len(signals) == len(sample_df)
+
+    def test_reset(self, sample_df):
+        """测试重置"""
+        from strategies import CompositeStrategy
+        strategy = CompositeStrategy({
+            'strategies': ['ma_cross', 'macd'],
+            'min_agreement': 1
+        })
+
+        # 执行一些操作
+        bar = Bar(sample_df, index=50)
+        strategy.on_bar(bar)
+
+        # 重置
+        strategy.reset()
+        assert strategy.position == 0
 
 
 # ==================== 运行测试 ====================
