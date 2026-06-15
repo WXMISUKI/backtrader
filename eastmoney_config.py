@@ -5,8 +5,12 @@
 使用前需要先从浏览器获取 Cookie
 """
 
-# 东方财富 Cookie（需要定期更新）
-EASTMONEY_COOKIES = {
+from __future__ import annotations
+
+import os
+import requests
+
+_DEFAULT_EASTMONEY_COOKIES = {
     "wsc_checkuser_ok": "1",
     "websitepoptg_api_time": "1781405857968",
     "st_sp": "2026-06-14%2010%3A57%3A37",
@@ -24,6 +28,39 @@ EASTMONEY_COOKIES = {
     "gviem": "MzDbV1b6rfOeDd8K8AkLP9b6e",
     "JSESSIONID": "8B78078AF69B86B3F97251681B658604"
 }
+
+
+def _parse_cookie_string(cookie_str: str) -> dict:
+    """解析浏览器导出的 Cookie 字符串。"""
+    cookies = {}
+    for chunk in cookie_str.split(";"):
+        part = chunk.strip()
+        if not part or "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        cookies[key.strip()] = value.strip()
+    return cookies
+
+
+def _load_cookies() -> dict:
+    """加载 cookie，优先使用环境变量 EASTMONEY_COOKIE。"""
+    cookie_str = os.getenv("EASTMONEY_COOKIE", "").strip()
+    if cookie_str:
+        parsed = _parse_cookie_string(cookie_str)
+        if parsed:
+            return parsed
+    return _DEFAULT_EASTMONEY_COOKIES.copy()
+
+
+def get_eastmoney_session() -> requests.Session:
+    """创建一个不依赖系统代理的 requests Session。"""
+    session = requests.Session()
+    session.trust_env = False
+    return session
+
+
+# 东方财富 Cookie（需要定期更新）
+EASTMONEY_COOKIES = _load_cookies()
 
 # 请求头
 EASTMONEY_HEADERS = {
@@ -82,8 +119,9 @@ def get_stock_hist(symbol="000001", start_date="20260601", end_date="20260614", 
         "end": end_date
     }
 
-    r = requests.get(url, params=params, cookies=EASTMONEY_COOKIES,
-                     headers=EASTMONEY_HEADERS, timeout=30)
+    session = get_eastmoney_session()
+    r = session.get(url, params=params, cookies=EASTMONEY_COOKIES,
+                    headers=EASTMONEY_HEADERS, timeout=30)
 
     if r.status_code != 200:
         raise Exception(f"请求失败: {r.status_code}")
@@ -141,8 +179,9 @@ def get_realtime_quotes(page=1, page_size=10):
         "fields": "f1,f2,f3,f4,f5,f6,f7,f8,f12,f14"
     }
 
-    r = requests.get(url, params=params, cookies=EASTMONEY_COOKIES,
-                     headers=EASTMONEY_HEADERS, timeout=30)
+    session = get_eastmoney_session()
+    r = session.get(url, params=params, cookies=EASTMONEY_COOKIES,
+                    headers=EASTMONEY_HEADERS, timeout=30)
 
     if r.status_code != 200:
         raise Exception(f"请求失败: {r.status_code}")

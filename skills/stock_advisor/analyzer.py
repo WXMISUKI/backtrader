@@ -119,6 +119,7 @@ class AnalysisResult:
             'signal': self.signal,
             'risk': self.risk.to_dict(),
             'recommendation': self.recommendation.to_dict(),
+            'data_source': getattr(self.stock_data, 'source', 'real'),
         }
 
     def summary(self) -> str:
@@ -141,6 +142,7 @@ class AnalysisResult:
             f"{'='*50}\n"
             f"【{s.name}({s.code})】分析报告\n"
             f"{'='*50}\n"
+            f"数据来源: {getattr(s, 'source', 'real')}\n"
             f"当前价格: {s.latest_price:.2f}\n"
             f"数据区间: {s.date_range[0].strftime('%Y-%m-%d')} ~ {s.date_range[1].strftime('%Y-%m-%d')}\n"
             f"{'─'*50}\n"
@@ -235,24 +237,68 @@ class StockAnalyzer:
             return self._data_cache[cache_key]
 
         # 获取数据
-        from core.data.eastmoney_api import get_stock_hist
+        df = None
+        source = "real"
 
-        df = get_stock_hist(
-            stock_code,
-            self.config.start_date,
-            self.config.end_date
-        )
+        try:
+            from core.data.eastmoney_api import get_stock_hist
+
+            df = get_stock_hist(
+                stock_code,
+                self.config.start_date,
+                self.config.end_date
+            )
+            if df is None or len(df) == 0:
+                raise ValueError("空数据")
+        except Exception as exc:
+            print(f"获取 {stock_code} 实时数据失败，使用离线模拟数据: {exc}")
+            df = self._build_fallback_stock_hist(stock_code)
+            source = "mock"
 
         # 获取股票名称
         name = self._get_stock_name(stock_code)
 
         # 创建 StockData
-        stock_data = StockData(stock_code, name, df)
+        stock_data = StockData(stock_code, name, df, source=source)
 
         # 缓存
         self._data_cache[cache_key] = stock_data
 
         return stock_data
+
+    def _build_fallback_stock_hist(self, stock_code: str) -> pd.DataFrame:
+        """
+        构建离线模拟 OHLCV 数据。
+
+        该数据仅用于降级演示与工具链验证，不应被视为真实行情。
+        """
+        seed = int(stock_code) % 10000
+        rng = np.random.default_rng(seed)
+        dates = pd.date_range(
+            end=pd.to_datetime(self.config.end_date),
+            periods=120,
+            freq="B",
+        )
+
+        base_price = 10 + (seed % 500) / 10
+        trend = np.linspace(0, rng.normal(8, 2), len(dates))
+        noise = rng.normal(0, 0.6, len(dates)).cumsum()
+        close = np.maximum(1, base_price + trend + noise)
+        open_ = close + rng.normal(0, 0.25, len(dates))
+        high = np.maximum(open_, close) + np.abs(rng.normal(0.4, 0.15, len(dates)))
+        low = np.minimum(open_, close) - np.abs(rng.normal(0.4, 0.15, len(dates)))
+        volume = rng.integers(1_000_000, 10_000_000, len(dates))
+
+        return pd.DataFrame(
+            {
+                "open": open_,
+                "high": high,
+                "low": low,
+                "close": close,
+                "volume": volume,
+            },
+            index=dates,
+        )
 
     def _get_stock_name(self, stock_code: str) -> str:
         """

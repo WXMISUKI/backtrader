@@ -69,3 +69,8 @@ samples2/
 datas/*.py
 
 .idea/
+
+# Local environment files
+.env
+.env.*
+!.env.example

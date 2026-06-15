@@ -76,6 +76,24 @@ take_profit = rm.calc_take_profit_price(10.0)
 position = rm.calc_position_size(100000, 10.0)  # 10万资金，10元股价
 ```
 
+### 4. 使用智能体接入层
+
+```bash
+python examples/agent_demo.py "请分析 000001，并给出建议"
+```
+
+智能体会优先调用项目现有工具，例如：
+- 个股分析
+- 基本面分析
+- 市场概览
+- 推荐列表
+- 回测结果
+- 风险配置
+
+注意：
+- 需要先在 `.env` 中配置 `ARK_API_KEY`
+- 如果真实行情不可用，系统会自动降级到离线模拟数据，并在结果中标记 `mock`
+
 ## 功能模块
 
 ### 已完成 ✅

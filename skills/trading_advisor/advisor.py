@@ -5,7 +5,7 @@
 
 import pandas as pd
 import numpy as np
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict, is_dataclass
 from typing import List, Dict, Optional
 from datetime import datetime
 
@@ -71,6 +71,34 @@ class TradeDecision:
             ])
 
         return "\n".join(lines)
+
+    def to_dict(self) -> dict:
+        """转换为字典，便于智能体工具输出。"""
+        def _nested(value):
+            if value is None:
+                return None
+            if hasattr(value, "to_dict") and callable(getattr(value, "to_dict")):
+                try:
+                    return value.to_dict()
+                except Exception:
+                    pass
+            if is_dataclass(value):
+                return asdict(value)
+            return str(value)
+
+        return {
+            "action": self.action,
+            "confidence": self.confidence,
+            "reasons": self.reasons,
+            "position_size": self.position_size,
+            "stop_loss": self.stop_loss,
+            "take_profit": self.take_profit,
+            "trend": _nested(self.trend),
+            "entry_signal": _nested(self.entry_signal),
+            "exit_signal": _nested(self.exit_signal),
+            "risk_metrics": _nested(self.risk_metrics),
+            "timestamp": self.timestamp,
+        }
 
 
 class TradingAdvisor:

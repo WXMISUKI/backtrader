@@ -52,6 +52,9 @@ class BacktestResult:
     avg_loss: float = 0.0
     profit_factor: float = 0.0
 
+    # 数据来源
+    data_source: str = "real"
+
     # 交易记录
     trades: List[Dict] = field(default_factory=list)
 
@@ -69,6 +72,7 @@ class BacktestResult:
             f"股票代码: {self.stock_code}\n"
             f"策略名称: {self.strategy_name}\n"
             f"回测区间: {self.start_date} ~ {self.end_date}\n"
+            f"数据来源: {self.data_source}\n"
             f"{'─'*60}\n"
             f"资金信息:\n"
             f"  初始资金: {self.initial_cash:,.2f}\n"
@@ -113,6 +117,7 @@ class BacktestResult:
             'avg_profit': round(self.avg_profit, 2),
             'avg_loss': round(self.avg_loss, 2),
             'profit_factor': round(self.profit_factor, 2),
+            'data_source': self.data_source,
         }
 
 
@@ -165,11 +170,20 @@ class BacktestEngine:
             BacktestResult 回测结果
         """
         # 获取数据
-        from core.data.eastmoney_api import get_stock_hist
-        df = get_stock_hist(stock_code, start_date, end_date)
+        df = None
+        data_source = "real"
+        try:
+            from core.data.eastmoney_api import get_stock_hist
+            df = get_stock_hist(stock_code, start_date, end_date)
+            if df is None or len(df) == 0:
+                raise ValueError("空数据")
+        except Exception as exc:
+            print(f"获取 {stock_code} 实时数据失败，使用离线模拟数据: {exc}")
+            df = self._build_fallback_stock_hist(stock_code, start_date, end_date)
+            data_source = "mock"
 
         # 创建 StockData
-        stock_data = StockData(stock_code, f"股票{stock_code}", df)
+        stock_data = StockData(stock_code, f"股票{stock_code}", df, source=data_source)
 
         # 创建 backtrader 引擎
         cerebro = bt.Cerebro()
@@ -206,7 +220,7 @@ class BacktestEngine:
         sharpe = strat.analyzers.sharpe.get_analysis()
         drawdown = strat.analyzers.drawdown.get_analysis()
         trades = strat.analyzers.trades.get_analysis()
-        returns = strat.analyzers.returnss.get_analysis()
+        returns = strat.analyzers.returns.get_analysis()
 
         # 计算胜率
         total_trades = trades.total.total if hasattr(trades, 'total') else 0
@@ -241,9 +255,42 @@ class BacktestEngine:
             avg_profit=avg_profit,
             avg_loss=avg_loss,
             profit_factor=profit_factor,
+            data_source=data_source,
         )
 
         return result
+
+    def _build_fallback_stock_hist(self, stock_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """
+        构建离线模拟 OHLCV 数据。
+        """
+        seed = int(stock_code) % 10000
+        rng = np.random.default_rng(seed)
+        dates = pd.date_range(
+            end=pd.to_datetime(end_date),
+            periods=120,
+            freq="B",
+        )
+
+        base_price = 10 + (seed % 500) / 10
+        trend = np.linspace(0, rng.normal(8, 2), len(dates))
+        noise = rng.normal(0, 0.6, len(dates)).cumsum()
+        close = np.maximum(1, base_price + trend + noise)
+        open_ = close + rng.normal(0, 0.25, len(dates))
+        high = np.maximum(open_, close) + np.abs(rng.normal(0.4, 0.15, len(dates)))
+        low = np.minimum(open_, close) - np.abs(rng.normal(0.4, 0.15, len(dates)))
+        volume = rng.integers(1_000_000, 10_000_000, len(dates))
+
+        return pd.DataFrame(
+            {
+                "open": open_,
+                "high": high,
+                "low": low,
+                "close": close,
+                "volume": volume,
+            },
+            index=dates,
+        )
 
 
 def run_backtest(

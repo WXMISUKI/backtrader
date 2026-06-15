@@ -117,6 +117,7 @@ setuptools.setup(
     # $ pip install -e .[dev,test]
     extras_require={
         'plotting':  ['matplotlib'],
+        'agent': ['openai', 'python-dotenv'],
     },
 
     # If there are data files included in your packages that need to be

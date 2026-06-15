@@ -16,7 +16,12 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from eastmoney_config import EASTMONEY_COOKIES, EASTMONEY_HEADERS, EASTMONEY_API_BASE
+from eastmoney_config import (
+    EASTMONEY_COOKIES,
+    EASTMONEY_HEADERS,
+    EASTMONEY_API_BASE,
+    get_eastmoney_session,
+)
 
 
 def get_stock_hist(
@@ -68,8 +73,9 @@ def get_stock_hist(
         "end": end_date
     }
 
-    r = requests.get(url, params=params, cookies=EASTMONEY_COOKIES,
-                     headers=EASTMONEY_HEADERS, timeout=30)
+    session = get_eastmoney_session()
+    r = session.get(url, params=params, cookies=EASTMONEY_COOKIES,
+                    headers=EASTMONEY_HEADERS, timeout=30)
 
     if r.status_code != 200:
         raise Exception(f"请求失败: {r.status_code}")

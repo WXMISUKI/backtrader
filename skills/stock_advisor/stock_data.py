@@ -30,7 +30,7 @@ class StockData:
         >>> print(stock.signals)
     """
 
-    def __init__(self, code: str, name: str, df: pd.DataFrame):
+    def __init__(self, code: str, name: str, df: pd.DataFrame, source: str = "real"):
         """
         初始化股票数据
 
@@ -50,6 +50,7 @@ class StockData:
 
         self.code = code
         self.name = name
+        self.source = source
         self.df = df.copy()
 
         # 确保索引是 datetime 类型
@@ -224,6 +225,7 @@ class StockData:
         return {
             'code': self.code,
             'name': self.name,
+            'source': self.source,
             'latest_price': self.latest_price,
             'data_points': self.data_points,
             'date_range': f"{self.date_range[0].strftime('%Y-%m-%d')} ~ {self.date_range[1].strftime('%Y-%m-%d')}",
@@ -235,6 +237,7 @@ class StockData:
         """生成摘要"""
         return (
             f"股票: {self.name}({self.code})\n"
+            f"数据来源: {self.source}\n"
             f"最新价: {self.latest_price:.2f}\n"
             f"数据点: {self.data_points}\n"
             f"日期范围: {self.date_range[0].strftime('%Y-%m-%d')} ~ {self.date_range[1].strftime('%Y-%m-%d')}\n"

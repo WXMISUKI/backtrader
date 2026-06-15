@@ -3,7 +3,7 @@
 综合技术面、基本面、趋势判断，提供精准的买卖时机建议
 """
 
-from .advisor import TradingAdvisor, TradeDecision
+from .advisor import TradingAdvisor, TradeDecision, create_advisor, analyze_stock
 from .trend_detector import TrendDetector, TrendInfo, TrendType
 from .entry_exit import EntryExitTiming, EntrySignal, ExitSignal
 from .position_manager import PositionManager
@@ -15,6 +15,8 @@ __all__ = [
     # 核心决策
     'TradingAdvisor',
     'TradeDecision',
+    'create_advisor',
+    'analyze_stock',
 
     # 趋势检测
     'TrendDetector',

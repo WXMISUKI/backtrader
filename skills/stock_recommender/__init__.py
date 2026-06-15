@@ -22,7 +22,8 @@ from .recommender import (
     StockRecommender,
     StockRecommendation,
     recommend_long_term,
-    recommend_short_term
+    recommend_short_term,
+    recommend_by_risk
 )
 
 from .ml_recommender import (
@@ -48,6 +49,7 @@ __all__ = [
     'StockRecommendation',
     'recommend_long_term',
     'recommend_short_term',
+    'recommend_by_risk',
 
     # 基于机器学习的推荐
     'MLRecommender',

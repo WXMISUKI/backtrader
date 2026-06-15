@@ -340,6 +340,20 @@ def recommend_short_term(top_n: int = 5) -> List[StockRecommendation]:
     return recommender.recommend_short_term(top_n)
 
 
+def recommend_by_risk(risk_level: str = "moderate") -> List[StockRecommendation]:
+    """
+    按风险偏好推荐 (便捷函数)
+
+    参数:
+        risk_level: 风险等级 (conservative/moderate/aggressive)
+
+    返回:
+        推荐结果列表
+    """
+    recommender = StockRecommender()
+    return recommender.recommend_by_risk(risk_level)
+
+
 # 测试代码
 if __name__ == "__main__":
     print("=" * 60)

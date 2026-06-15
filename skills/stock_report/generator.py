@@ -15,6 +15,7 @@ import json
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from dataclasses import asdict
+import pandas as pd
 
 
 class ReportGenerator:
