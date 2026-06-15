@@ -134,8 +134,8 @@ class EntryExitTiming:
 
         total_strength = min(1.0, total_strength + trend_bonus)
 
-        # 决定是否入场
-        can_enter = len(signals) >= 3 and total_strength >= 0.5
+        # 决定是否入场（至少2个信号，且强度>=0.3）
+        can_enter = len(signals) >= 2 and total_strength >= 0.3
 
         return EntrySignal(
             can_enter=can_enter,

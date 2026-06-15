@@ -255,11 +255,14 @@ class TestRiskController:
         """测试移动止损"""
         controller = RiskController('moderate')
 
-        # 盈利10%，从高点回撤6%
-        assert controller.should_trail_stop(104, 100, 110) == True
+        # 盈利4% (104/100 - 1 = 4%)，不满足10%条件
+        assert controller.should_trail_stop(104, 100, 110) == False
 
-        # 盈利不足
-        assert controller.should_trail_stop(104, 100, 105) == False
+        # 盈利15% (115/100 - 1 = 15%)，从高点120回撤4.2% ((120-115)/120 = 4.2%)
+        assert controller.should_trail_stop(115, 100, 120) == False
+
+        # 盈利15% (115/100 - 1 = 15%)，从高点122回撤5.7% ((122-115)/122 = 5.7%)
+        assert controller.should_trail_stop(115, 100, 122) == True
 
     def test_check_daily_loss_limit(self):
         """测试日内亏损限制"""
