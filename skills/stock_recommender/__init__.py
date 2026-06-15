@@ -31,7 +31,16 @@ from .ml_recommender import (
     train_ml_model
 )
 
-__version__ = '1.0.0'
+from .online_learner import (
+    OnlineLearner,
+    IncrementalStandardScaler,
+    ModelManager,
+    ModelVersion,
+    create_online_learner,
+    create_model_manager
+)
+
+__version__ = '1.1.0'
 
 __all__ = [
     # 基于规则的推荐
@@ -44,4 +53,12 @@ __all__ = [
     'MLRecommender',
     'MLPrediction',
     'train_ml_model',
+
+    # 在线学习
+    'OnlineLearner',
+    'IncrementalStandardScaler',
+    'ModelManager',
+    'ModelVersion',
+    'create_online_learner',
+    'create_model_manager',
 ]
