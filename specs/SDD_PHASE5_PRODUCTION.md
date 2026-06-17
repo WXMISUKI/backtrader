@@ -226,6 +226,14 @@ class StockOrchestrator:
 
 为真实数据链路增加缓存、校验、重试和降级能力，确保上层模块稳定工作。
 
+#### 当前实现状态
+
+- 已新增 `core/data/governance.py`
+- 已实现 `CacheManager`
+- 已实现 `DataQualityChecker`
+- 已实现 `DataSnapshot`
+- 已通过 `core/data/__init__.py` 对外导出
+
 #### 核心能力
 
 | 能力 | 说明 |
@@ -245,7 +253,7 @@ class DataSnapshot:
 class DataQualityChecker:
     """数据质量校验器"""
 
-class DataCacheManager:
+class CacheManager:
     """数据缓存管理器"""
 ```
 
@@ -378,8 +386,8 @@ class AuditLogger:
 
 ### 7.2 数据治理
 
-- [ ] 实现数据缓存层
-- [ ] 实现数据质量校验
+- [x] 实现数据缓存层
+- [x] 实现数据质量校验
 - [ ] 实现真实数据降级策略
 
 ### 7.3 模型治理
@@ -479,7 +487,7 @@ class AuditLogger:
 |--------|---------|------|
 | Phase 5 SDD 草案 | `specs/SDD_PHASE5_PRODUCTION.md` | ✅ |
 | 统一编排器 | `core/orchestrator.py` | ✅ |
-| 数据治理模块 | `core/data/cache/` `core/data/quality/` | ⬜ |
+| 数据治理模块 | `core/data/governance.py` | ✅ |
 | 模型治理模块 | `core/model/` | ⬜ |
 | 监控与告警模块 | `core/observability/` | ⬜ |
 | Phase 5 测试 | `tests/test_phase5.py` | ⬜ |
