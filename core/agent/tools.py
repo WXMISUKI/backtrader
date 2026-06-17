@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import json
 from typing import Any, Callable, Dict, List
 
-from .serialization import build_tool_payload
+from .serialization import build_tool_payload, serialize_value
 
 
 @dataclass(frozen=True)
@@ -76,6 +76,18 @@ class ProjectToolRegistry:
 
 def _tool_response(name: str, data: Any, summary: str = "") -> dict:
     return build_tool_payload(name, data, summary)
+
+
+def _wrap_governed_data(data: Any, *, source: str, is_degraded: bool = False, reason: str = "", quality: dict | None = None, meta: dict | None = None) -> dict:
+    """统一包装治理信息。"""
+    return {
+        "data_source": source,
+        "is_degraded": is_degraded,
+        "reason": reason,
+        "quality": quality or {},
+        "meta": meta or {},
+        "payload": serialize_value(data),
+    }
 
 
 def _register_project_tools(registry: ProjectToolRegistry) -> None:
@@ -166,10 +178,14 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda _params: _tool_response(
                 "get_market_overview",
-                {
-                    "data_source": "mock",
-                    "overview": get_market_overview().to_dict(),
-                },
+                _wrap_governed_data(
+                    get_market_overview().to_dict(),
+                    source="mock",
+                    is_degraded=False,
+                    reason="market overview currently uses mock baseline data",
+                    quality={"ok": True, "reason": "ok"},
+                    meta={"data_kind": "market_overview"},
+                ),
                 "已返回市场概览。",
             ),
         )
@@ -188,14 +204,19 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda params: _tool_response(
                 "recommend_long_term",
-                {
-                    "mode": "long_term",
-                    "risk_profile": "moderate",
-                    "data_source": "mock",
-                    "recommendations": [
-                        item.to_dict() for item in recommend_long_term(int(params.get("top_n", 5)))
-                    ],
-                },
+                _wrap_governed_data(
+                    {
+                        "mode": "long_term",
+                        "risk_profile": "moderate",
+                        "recommendations": [
+                            item.to_dict() for item in recommend_long_term(int(params.get("top_n", 5)))
+                        ],
+                    },
+                    source="mock",
+                    reason="recommendation currently uses mock baseline data",
+                    quality={"ok": True, "reason": "ok"},
+                    meta={"data_kind": "recommendation"},
+                ),
                 "已生成长线推荐列表。",
             ),
         )
@@ -214,14 +235,19 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda params: _tool_response(
                 "recommend_short_term",
-                {
-                    "mode": "short_term",
-                    "risk_profile": "aggressive",
-                    "data_source": "mock",
-                    "recommendations": [
-                        item.to_dict() for item in recommend_short_term(int(params.get("top_n", 5)))
-                    ],
-                },
+                _wrap_governed_data(
+                    {
+                        "mode": "short_term",
+                        "risk_profile": "aggressive",
+                        "recommendations": [
+                            item.to_dict() for item in recommend_short_term(int(params.get("top_n", 5)))
+                        ],
+                    },
+                    source="mock",
+                    reason="recommendation currently uses mock baseline data",
+                    quality={"ok": True, "reason": "ok"},
+                    meta={"data_kind": "recommendation"},
+                ),
                 "已生成短线推荐列表。",
             ),
         )
@@ -241,17 +267,22 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda params: _tool_response(
                 "recommend_by_risk",
-                {
-                    "mode": "risk_aware",
-                    "risk_profile": params.get("risk_profile", "moderate"),
-                    "data_source": "mock",
-                    "recommendations": [
-                        item.to_dict()
-                        for item in recommend_by_risk(params.get("risk_profile", "moderate"))[
-                            : int(params.get("top_n", 5))
-                        ]
-                    ],
-                },
+                _wrap_governed_data(
+                    {
+                        "mode": "risk_aware",
+                        "risk_profile": params.get("risk_profile", "moderate"),
+                        "recommendations": [
+                            item.to_dict()
+                            for item in recommend_by_risk(params.get("risk_profile", "moderate"))[
+                                : int(params.get("top_n", 5))
+                            ]
+                        ],
+                    },
+                    source="mock",
+                    reason="recommendation currently uses mock baseline data",
+                    quality={"ok": True, "reason": "ok"},
+                    meta={"data_kind": "recommendation"},
+                ),
                 "已生成风险匹配推荐列表。",
             ),
         )
@@ -409,10 +440,13 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda params: _tool_response(
                 "get_risk_profile",
-                {
-                    "data_source": "config",
-                    "profile": get_risk_manager(params.get("risk_profile", "moderate")).get_profile_summary(),
-                },
+                _wrap_governed_data(
+                    get_risk_manager(params.get("risk_profile", "moderate")).get_profile_summary(),
+                    source="config",
+                    reason="risk profile comes from config",
+                    quality={"ok": True, "reason": "ok"},
+                    meta={"data_kind": "risk_profile"},
+                ),
                 "已返回风险配置摘要。",
             ),
         )

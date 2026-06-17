@@ -223,7 +223,8 @@ class StockOrchestrator:
         result = self._dispatch(action=action, tool_name=tool_name, arguments=arguments)
         payload = result.get("data")
         quality = self.quality.check_dict(payload) if isinstance(payload, dict) else {"ok": True, "reason": "ok"}
-        is_degraded = result.get("data_source") == "mock"
+        governance = dict(result.get("meta", {}).get("governance", {}))
+        is_degraded = governance.get("data_source") == "mock" or result.get("data_source") == "mock"
 
         governed_payload = {
             **result,
@@ -233,6 +234,7 @@ class StockOrchestrator:
                 "cache_ttl": cache_ttl,
                 "cache_hit": False,
                 "is_degraded": is_degraded,
+                **governance,
             },
         }
         self.cache.set(cache_key, governed_payload, ttl=cache_ttl)

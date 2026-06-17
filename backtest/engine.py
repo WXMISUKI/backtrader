@@ -118,6 +118,7 @@ class BacktestResult:
             'avg_loss': round(self.avg_loss, 2),
             'profit_factor': round(self.profit_factor, 2),
             'data_source': self.data_source,
+            'governance': getattr(self, 'governance', {}),
         }
 
 
@@ -268,6 +269,12 @@ class BacktestEngine:
             profit_factor=profit_factor,
             data_source=data_source,
         )
+        result.governance = {
+            "data_source": data_source,
+            "quality": quality,
+            "reason": reason,
+            "is_degraded": data_source != "real",
+        }
 
         return result
 
