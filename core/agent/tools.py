@@ -90,6 +90,23 @@ def _wrap_governed_data(data: Any, *, source: str, is_degraded: bool = False, re
     }
 
 
+def _wrap_tool_result(tool_name: str, data: Any, summary: str = "", *, source: str | None = None, is_degraded: bool = False, reason: str = "", quality: dict | None = None, meta: dict | None = None) -> dict:
+    """统一构造智能体工具结果。"""
+    wrapped = data
+    if isinstance(data, dict) and {"data_source", "payload"}.issubset(data.keys()):
+        wrapped = data
+    elif source is not None or is_degraded or reason or quality or meta:
+        wrapped = _wrap_governed_data(
+            data,
+            source=source or "unknown",
+            is_degraded=is_degraded,
+            reason=reason,
+            quality=quality,
+            meta=meta,
+        )
+    return build_tool_payload(tool_name, wrapped, summary)
+
+
 def _register_project_tools(registry: ProjectToolRegistry) -> None:
     from backtest import run_backtest
     from core.data.real_provider import get_financial_indicators
@@ -178,15 +195,16 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda _params: _tool_response(
                 "get_market_overview",
-                _wrap_governed_data(
+                _wrap_tool_result(
+                    "get_market_overview",
                     get_market_overview().to_dict(),
+                    "已返回市场概览。",
                     source="mock",
                     is_degraded=False,
                     reason="market overview currently uses mock baseline data",
                     quality={"ok": True, "reason": "ok"},
                     meta={"data_kind": "market_overview"},
                 ),
-                "已返回市场概览。",
             ),
         )
     )
@@ -204,7 +222,8 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda params: _tool_response(
                 "recommend_long_term",
-                _wrap_governed_data(
+                _wrap_tool_result(
+                    "recommend_long_term",
                     {
                         "mode": "long_term",
                         "risk_profile": "moderate",
@@ -212,12 +231,12 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                             item.to_dict() for item in recommend_long_term(int(params.get("top_n", 5)))
                         ],
                     },
+                    "已生成长线推荐列表。",
                     source="mock",
                     reason="recommendation currently uses mock baseline data",
                     quality={"ok": True, "reason": "ok"},
                     meta={"data_kind": "recommendation"},
                 ),
-                "已生成长线推荐列表。",
             ),
         )
     )
@@ -235,7 +254,8 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda params: _tool_response(
                 "recommend_short_term",
-                _wrap_governed_data(
+                _wrap_tool_result(
+                    "recommend_short_term",
                     {
                         "mode": "short_term",
                         "risk_profile": "aggressive",
@@ -243,12 +263,12 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                             item.to_dict() for item in recommend_short_term(int(params.get("top_n", 5)))
                         ],
                     },
+                    "已生成短线推荐列表。",
                     source="mock",
                     reason="recommendation currently uses mock baseline data",
                     quality={"ok": True, "reason": "ok"},
                     meta={"data_kind": "recommendation"},
                 ),
-                "已生成短线推荐列表。",
             ),
         )
     )
@@ -267,7 +287,8 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda params: _tool_response(
                 "recommend_by_risk",
-                _wrap_governed_data(
+                _wrap_tool_result(
+                    "recommend_by_risk",
                     {
                         "mode": "risk_aware",
                         "risk_profile": params.get("risk_profile", "moderate"),
@@ -278,12 +299,12 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                             ]
                         ],
                     },
+                    "已生成风险匹配推荐列表。",
                     source="mock",
                     reason="recommendation currently uses mock baseline data",
                     quality={"ok": True, "reason": "ok"},
                     meta={"data_kind": "recommendation"},
                 ),
-                "已生成风险匹配推荐列表。",
             ),
         )
     )
@@ -304,13 +325,20 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda params: _tool_response(
                 "screen_stocks",
-                [item.to_dict() for item in screen_stocks(
+                _wrap_tool_result(
+                    "screen_stocks",
+                    [item.to_dict() for item in screen_stocks(
                     ma_cross=bool(params.get("ma_cross", False)),
                     rsi_oversold=bool(params.get("rsi_oversold", False)),
                     macd_cross=bool(params.get("macd_cross", False)),
                     risk_profile=params.get("risk_profile", "moderate"),
                 )],
-                "已完成选股筛选。",
+                    "已完成选股筛选。",
+                    source="mock",
+                    reason="screening currently uses mock baseline data",
+                    quality={"ok": True, "reason": "ok"},
+                    meta={"data_kind": "screening"},
+                ),
             ),
         )
     )
@@ -332,15 +360,20 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda params: _tool_response(
                 "generate_stock_report",
-                generate_stock_report(
+                _wrap_tool_result(
+                    "generate_stock_report",
+                    generate_stock_report(
                     analyze_stock(
                         params["stock_code"],
                         risk_profile=params.get("risk_profile", "moderate"),
                         start_date=params.get("start_date", "20260101"),
                         end_date=params.get("end_date", "20260614"),
                     )
+                    ),
+                    "已生成个股分析报告。",
+                    source="analysis",
+                    meta={"data_kind": "report"},
                 ),
-                "已生成个股分析报告。",
             ),
         )
     )
@@ -362,7 +395,9 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda params: _tool_response(
                 "analyze_trading_decision",
-                analyze_trading_stock(
+                _wrap_tool_result(
+                    "analyze_trading_decision",
+                    analyze_trading_stock(
                     analyze_stock(
                         params["stock_code"],
                         risk_profile=params.get("risk_profile", "moderate"),
@@ -371,8 +406,11 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                     ).stock_data.df,
                     stock_code=params["stock_code"],
                     risk_profile=params.get("risk_profile", "moderate"),
-                ).summary(),
-                "已生成交易决策摘要。",
+                    ).summary(),
+                    "已生成交易决策摘要。",
+                    source="analysis",
+                    meta={"data_kind": "trading_decision"},
+                ),
             ),
         )
     )
@@ -395,14 +433,19 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda params: _tool_response(
                 "run_backtest",
-                run_backtest(
+                _wrap_tool_result(
+                    "run_backtest",
+                    run_backtest(
                     stock_code=params["stock_code"],
                     strategy_name=params["strategy_name"],
                     start_date=params.get("start_date", "20260101"),
                     end_date=params.get("end_date", "20260614"),
                     initial_cash=float(params.get("initial_cash", 100000)),
-                ).to_dict(),
-                "已完成回测。",
+                    ).to_dict(),
+                    "已完成回测。",
+                    source="real",
+                    meta={"data_kind": "backtest"},
+                ),
             ),
         )
     )
@@ -421,8 +464,13 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda params: _tool_response(
                 "get_financial_indicators",
-                get_financial_indicators(params["stock_code"]).to_dict(),
-                "已返回财务指标。",
+                _wrap_tool_result(
+                    "get_financial_indicators",
+                    get_financial_indicators(params["stock_code"]).to_dict(),
+                    "已返回财务指标。",
+                    source="real",
+                    meta={"data_kind": "financial_indicators"},
+                ),
             ),
         )
     )
@@ -440,14 +488,15 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             },
             handler=lambda params: _tool_response(
                 "get_risk_profile",
-                _wrap_governed_data(
+                _wrap_tool_result(
+                    "get_risk_profile",
                     get_risk_manager(params.get("risk_profile", "moderate")).get_profile_summary(),
+                    "已返回风险配置摘要。",
                     source="config",
                     reason="risk profile comes from config",
                     quality={"ok": True, "reason": "ok"},
                     meta={"data_kind": "risk_profile"},
                 ),
-                "已返回风险配置摘要。",
             ),
         )
     )
