@@ -239,27 +239,37 @@ class StockAnalyzer:
         # 获取数据
         df = None
         source = "real"
+        quality = {}
+        reason = "ok"
 
         try:
-            from core.data.eastmoney_api import get_stock_hist
+            from core.data.eastmoney_api import fetch_stock_hist_governed
 
-            df = get_stock_hist(
+            governed = fetch_stock_hist_governed(
                 stock_code,
                 self.config.start_date,
                 self.config.end_date
             )
-            if df is None or len(df) == 0:
-                raise ValueError("空数据")
+            df = governed["payload"]
+            source = governed.get("data_source", "real")
+            quality = governed.get("quality", {})
+            reason = governed.get("reason", "ok")
         except Exception as exc:
             print(f"获取 {stock_code} 实时数据失败，使用离线模拟数据: {exc}")
             df = self._build_fallback_stock_hist(stock_code)
             source = "mock"
+            reason = str(exc)
 
         # 获取股票名称
         name = self._get_stock_name(stock_code)
 
         # 创建 StockData
         stock_data = StockData(stock_code, name, df, source=source)
+        stock_data.data_governance = {
+            "data_source": source,
+            "quality": quality,
+            "reason": reason,
+        }
 
         # 缓存
         self._data_cache[cache_key] = stock_data

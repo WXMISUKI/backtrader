@@ -24,6 +24,8 @@ try:
 except ImportError:
     HAS_AKSHARE = False
 
+from .governance import build_snapshot, DataQualityChecker
+
 
 @dataclass
 class FinancialIndicators:
@@ -94,6 +96,7 @@ class RealDataProvider:
         self.cache_ttl = cache_ttl
         self._cache = {}
         self._cache_time = {}
+        self._quality = DataQualityChecker()
 
     def _get_cache(self, key: str) -> Optional[Any]:
         """获取缓存"""
@@ -161,6 +164,36 @@ class RealDataProvider:
         except Exception as e:
             print(f"获取 {stock_code} 财务指标失败: {e}")
             return FinancialIndicators(stock_code=stock_code)
+
+    def get_financial_indicators_governed(self, stock_code: str) -> dict:
+        """
+        获取治理后的财务指标快照。
+
+        返回结果保留财务指标，同时补充来源、质量和降级原因。
+        """
+        cached = self._get_cache(f"governed_indicators_{stock_code}")
+        if cached is not None:
+            return cached
+
+        indicators = self.get_financial_indicators(stock_code)
+        payload = indicators.to_dict()
+        is_degraded = all(
+            payload.get(field, 0) == 0
+            for field in ("eps", "roe", "debt_ratio", "current_ratio")
+        )
+
+        snapshot = build_snapshot(
+            name=f"financial_indicators:{stock_code}",
+            payload=payload,
+            source="real" if not is_degraded else "mock",
+            degraded=is_degraded,
+            reason="" if not is_degraded else "financial indicators unavailable or empty fallback",
+        )
+        snapshot.data_source = snapshot.source
+        snapshot.quality = self._quality.check_dict(payload)
+        governed = snapshot.to_dict()
+        self._set_cache(f"governed_indicators_{stock_code}", governed)
+        return governed
 
     def get_financial_abstract(self, stock_code: str) -> pd.DataFrame:
         """

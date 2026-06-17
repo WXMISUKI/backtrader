@@ -104,16 +104,20 @@
 - 已实现 `DataSnapshot`
 - 已实现 `build_snapshot`
 - 已支持来源、降级和缓存命中标记
+- 已支持 `data_source`、`quality` 和 `meta` 扩展字段
 
 建议字段：
 
 - `name`
 - `source`
+- `data_source`
 - `fetched_at`
 - `is_degraded`
 - `cache_hit`
 - `payload`
 - `reason`
+- `quality`
+- `meta`
 
 ---
 
@@ -170,9 +174,13 @@ class DataSnapshot:
 
 - `core/data/governance.py`
 - `core/data/__init__.py`
+- `core/data/eastmoney_api.py`
+- `core/data/real_provider.py`
 
 ### 验证结果
 
 - 缓存读写正常
 - 质量检查正常
 - 快照生成正常
+- 行情治理入口可用
+- 基本面治理入口可用

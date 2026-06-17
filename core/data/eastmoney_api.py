@@ -3,13 +3,14 @@
 """
 东方财富 API 数据获取模块
 
-封装东方财富 API，提供股票数据获取功能
+封装东方财富 API，提供股票数据获取功能。
+同时提供治理后的统一入口，便于上层读取 data_source / quality / reason。
 """
 
 import requests
 import pandas as pd
 import numpy as np
-from typing import Optional
+from typing import Optional, Tuple, Any, Dict
 
 # 导入配置
 import sys
@@ -22,6 +23,7 @@ from eastmoney_config import (
     EASTMONEY_API_BASE,
     get_eastmoney_session,
 )
+from .governance import build_snapshot, DataQualityChecker
 
 
 def get_stock_hist(
@@ -103,6 +105,95 @@ def get_stock_hist(
     df.set_index("date", inplace=True)
 
     return df
+
+
+def fetch_stock_hist_governed(
+    symbol: str = "000001",
+    start_date: str = "20260601",
+    end_date: str = "20260614",
+    period: str = "daily",
+    adjust: str = "qfq",
+) -> dict:
+    """
+    获取治理后的行情快照。
+
+    返回值保留原始行情数据，同时补充质量、降级和来源信息。
+    """
+    checker = DataQualityChecker()
+    data_source = "real"
+    reason = "ok"
+
+    try:
+        df = get_stock_hist(
+            symbol=symbol,
+            start_date=start_date,
+            end_date=end_date,
+            period=period,
+            adjust=adjust,
+        )
+        quality = checker.check_ohlcv_dataframe(df)
+        if not quality.get("ok"):
+            raise ValueError(quality.get("reason", "quality check failed"))
+    except Exception as exc:
+        df = _build_fallback_stock_hist(symbol, end_date=end_date)
+        data_source = "mock"
+        reason = str(exc)
+        quality = checker.check_ohlcv_dataframe(df)
+
+    snapshot = build_snapshot(
+        name=f"stock_hist:{symbol}",
+        payload=df,
+        source=data_source,
+        degraded=data_source != "real",
+        reason=reason,
+    )
+    snapshot.quality = quality
+    snapshot.data_source = data_source
+    snapshot.meta.update(
+        {
+            "symbol": symbol,
+            "start_date": start_date,
+            "end_date": end_date,
+            "period": period,
+            "adjust": adjust,
+        }
+    )
+    return snapshot.to_dict()
+
+
+def _build_fallback_stock_hist(stock_code: str, end_date: str = "20260614") -> pd.DataFrame:
+    """
+    构建离线模拟 OHLCV 数据。
+
+    该数据仅用于降级演示与工具链验证，不应被视为真实行情。
+    """
+    seed = int(stock_code) % 10000
+    rng = np.random.default_rng(seed)
+    dates = pd.date_range(
+        end=pd.to_datetime(end_date),
+        periods=120,
+        freq="B",
+    )
+
+    base_price = 10 + (seed % 500) / 10
+    trend = np.linspace(0, rng.normal(8, 2), len(dates))
+    noise = rng.normal(0, 0.6, len(dates)).cumsum()
+    close = np.maximum(1, base_price + trend + noise)
+    open_ = close + rng.normal(0, 0.25, len(dates))
+    high = np.maximum(open_, close) + np.abs(rng.normal(0.4, 0.15, len(dates)))
+    low = np.minimum(open_, close) - np.abs(rng.normal(0.4, 0.15, len(dates)))
+    volume = rng.integers(1_000_000, 10_000_000, len(dates))
+
+    return pd.DataFrame(
+        {
+            "open": open_,
+            "high": high,
+            "low": low,
+            "close": close,
+            "volume": volume,
+        },
+        index=dates,
+    )
 
 
 # 测试代码

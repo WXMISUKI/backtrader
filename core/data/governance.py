@@ -21,19 +21,25 @@ class DataSnapshot:
     name: str
     source: str
     payload: Any
+    data_source: Optional[str] = None
     fetched_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     is_degraded: bool = False
     cache_hit: bool = False
     reason: str = ""
+    quality: Optional[Dict[str, Any]] = None
+    meta: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
             "name": self.name,
             "source": self.source,
+            "data_source": self.data_source or self.source,
             "fetched_at": self.fetched_at,
             "is_degraded": self.is_degraded,
             "cache_hit": self.cache_hit,
             "reason": self.reason,
+            "quality": self.quality or {},
+            "meta": self.meta,
             "payload": self.payload,
         }
 
@@ -77,6 +83,32 @@ class DataQualityChecker:
 
         return {"ok": True, "reason": "ok", "rows": rows, "columns": columns}
 
+    def check_ohlcv_dataframe(self, df) -> dict:
+        """检查行情 DataFrame 是否满足基础 OHLCV 要求。"""
+        result = self.check_dataframe(df)
+        if not result.get("ok"):
+            return result
+
+        required = ["open", "high", "low", "close", "volume"]
+        columns = list(getattr(df, "columns", []))
+        missing = [col for col in required if col not in columns]
+        if missing:
+            return {
+                "ok": False,
+                "reason": f"missing columns: {missing}",
+                "rows": int(getattr(df, "shape", [0])[0] or 0),
+                "columns": columns,
+                "missing": missing,
+            }
+
+        return {
+            "ok": True,
+            "reason": "ok",
+            "rows": int(getattr(df, "shape", [0])[0] or 0),
+            "columns": columns,
+            "missing": [],
+        }
+
     def check_dict(self, data: dict) -> dict:
         if not isinstance(data, dict):
             return {"ok": False, "reason": "not a dict", "keys": []}
@@ -103,4 +135,3 @@ def build_snapshot(
         cache_hit=cache_hit,
         reason=reason,
     )
-

@@ -172,6 +172,8 @@ class StockOrchestrator:
 
     def _dispatch(self, action: str, tool_name: str, arguments: dict) -> dict:
         tool_result = self.tool_registry.dispatch(tool_name, arguments)
+        data = tool_result.get("data")
+        governance = self._infer_governance(tool_result, data)
         return OrchestratorResult(
             ok=bool(tool_result.get("ok", False)),
             action=action,
@@ -179,11 +181,12 @@ class StockOrchestrator:
             category=tool_result.get("category", "analysis"),
             data_source=tool_result.get("data_source"),
             summary=tool_result.get("summary", ""),
-            data=tool_result.get("data"),
+            data=data,
             meta={
                 **tool_result.get("meta", {}),
                 "orchestrator": "StockOrchestrator",
                 "generated_at": datetime.now(timezone.utc).isoformat(),
+                "governance": governance,
             },
         ).to_dict()
 
@@ -234,6 +237,20 @@ class StockOrchestrator:
         }
         self.cache.set(cache_key, governed_payload, ttl=cache_ttl)
         return governed_payload
+
+    def _infer_governance(self, tool_result: dict, data: Any) -> dict:
+        """尽量从工具输出里提取统一治理信息。"""
+        governance = {}
+        if isinstance(data, dict):
+            for key in ("governance", "quality"):
+                value = data.get(key)
+                if isinstance(value, dict):
+                    governance[key] = value
+            if isinstance(data.get("data_source"), str):
+                governance["data_source"] = data.get("data_source")
+        if "data_source" not in governance and isinstance(tool_result.get("data_source"), str):
+            governance["data_source"] = tool_result.get("data_source")
+        return governance
 
     def _extract_stock_code(self, text: str) -> Optional[str]:
         """从自然语言中提取股票代码。"""

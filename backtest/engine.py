@@ -172,18 +172,29 @@ class BacktestEngine:
         # 获取数据
         df = None
         data_source = "real"
+        quality = {}
+        reason = "ok"
         try:
-            from core.data.eastmoney_api import get_stock_hist
-            df = get_stock_hist(stock_code, start_date, end_date)
-            if df is None or len(df) == 0:
-                raise ValueError("空数据")
+            from core.data.eastmoney_api import fetch_stock_hist_governed
+
+            governed = fetch_stock_hist_governed(stock_code, start_date, end_date)
+            df = governed["payload"]
+            data_source = governed.get("data_source", "real")
+            quality = governed.get("quality", {})
+            reason = governed.get("reason", "ok")
         except Exception as exc:
             print(f"获取 {stock_code} 实时数据失败，使用离线模拟数据: {exc}")
             df = self._build_fallback_stock_hist(stock_code, start_date, end_date)
             data_source = "mock"
+            reason = str(exc)
 
         # 创建 StockData
         stock_data = StockData(stock_code, f"股票{stock_code}", df, source=data_source)
+        stock_data.data_governance = {
+            "data_source": data_source,
+            "quality": quality,
+            "reason": reason,
+        }
 
         # 创建 backtrader 引擎
         cerebro = bt.Cerebro()
