@@ -46,6 +46,14 @@
 | 统一降级 | 工具失败时可回退到受控结果 |
 | 统一追踪 | 保留工具名、类别、来源与时间戳 |
 
+### 2.3 当前实现状态
+
+- 已实现 `core/orchestrator.py`
+- 已实现 `StockOrchestrator`
+- 已实现 `route()` 自然语言路由入口
+- 已支持 `analyze / recommend / market_overview / risk_profile / backtest / report`
+- 已能提取 6 位股票代码并做默认路由
+
 ---
 
 ## 3. 范围
@@ -115,6 +123,9 @@ class StockOrchestrator:
 
     def report(self, stock_code: str, risk_profile: str = "moderate") -> dict:
         """生成报告。"""
+
+    def route(self, user_input: str, **kwargs) -> dict:
+        """根据自然语言意图路由到最合适的能力。"""
 ```
 
 ---
@@ -174,6 +185,24 @@ class StockOrchestrator:
 - 数据来源明确
 - mock 降级明确
 - 不影响现有工具直接调用
+- 可根据自然语言直接路由到对应能力
+- 可自动提取股票代码并兜底默认策略
+
+---
+
+## 10. 实现归档
+
+### 已完成
+
+- `core/orchestrator.py`
+- `examples/orchestrator_demo.py`
+
+### 验证结果
+
+- 推荐路由正常
+- 分析路由正常
+- 市场路由正常
+- 回测路由正常
 
 ---
 
@@ -184,4 +213,3 @@ class StockOrchestrator:
 | 逻辑重复 | 与现有工具层重叠 | 只做编排，不重做算法 |
 | 输出漂移 | 各工具返回不一致 | 统一信封和序列化 |
 | 降级隐藏 | 用户误以为是真实数据 | 强制显式标记 data_source |
-

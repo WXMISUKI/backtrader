@@ -189,6 +189,7 @@ Phase 5 需要将现有能力暴露为统一的智能体工具，而不是让模
 - 已新增 `core/orchestrator.py`
 - 已实现 `StockOrchestrator`
 - 已实现 `create_stock_orchestrator`
+- 已支持自然语言路由入口 `route()`
 - 已支持 `analyze / recommend / market_overview / risk_profile / backtest / report`
 - 统一编排器通过现有工具注册表复用项目能力，不重复实现底层算法
 
@@ -381,7 +382,7 @@ class AuditLogger:
 ### 7.1 编排层
 
 - [x] 实现 `StockOrchestrator`
-- [ ] 统一分析输入输出结构
+- [x] 统一分析输入输出结构
 - [ ] 支持规则与模型融合
 
 ### 7.2 数据治理

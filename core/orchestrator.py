@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import re
 from typing import Any, Dict, Optional
 
 from .agent import build_default_tool_registry
@@ -111,6 +112,47 @@ class StockOrchestrator:
             },
         )
 
+    def route(self, user_input: str, **kwargs) -> dict:
+        """
+        根据自然语言意图路由到最合适的能力。
+
+        该入口用于智能体或上层控制器直接调用。
+        """
+        text = user_input.strip()
+        lower = text.lower()
+        stock_code = self._extract_stock_code(text)
+        risk_profile = kwargs.get("risk_profile", "moderate")
+
+        if any(keyword in text for keyword in ["回测", "backtest"]):
+            return self._dispatch(
+                action="backtest",
+                tool_name="run_backtest",
+                arguments={
+                    "stock_code": stock_code or kwargs.get("stock_code", "000001"),
+                    "strategy_name": kwargs.get("strategy_name", "ma_cross"),
+                    "start_date": kwargs.get("start_date", "20260101"),
+                    "end_date": kwargs.get("end_date", "20260614"),
+                    "initial_cash": kwargs.get("initial_cash", 100000),
+                },
+            )
+
+        if any(keyword in text for keyword in ["市场", "大盘", "行情"]) or "market" in lower:
+            return self.market_overview()
+
+        if any(keyword in text for keyword in ["风控", "仓位", "风险"]):
+            return self.risk_profile(risk_profile=risk_profile)
+
+        if any(keyword in text for keyword in ["报告", "report"]):
+            return self.report(stock_code=stock_code or kwargs.get("stock_code", "000001"), risk_profile=risk_profile)
+
+        if any(keyword in text for keyword in ["推荐", "适合", "买什么", "买哪些", "配置"]):
+            return self.recommend(risk_profile=risk_profile, top_n=int(kwargs.get("top_n", 5)))
+
+        if any(keyword in text for keyword in ["分析", "建议", "买", "卖"]):
+            return self.analyze(stock_code=stock_code or kwargs.get("stock_code", "000001"), risk_profile=risk_profile)
+
+        return self.recommend(risk_profile=risk_profile, top_n=int(kwargs.get("top_n", 5)))
+
     def _dispatch(self, action: str, tool_name: str, arguments: dict) -> dict:
         tool_result = self.tool_registry.dispatch(tool_name, arguments)
         return OrchestratorResult(
@@ -128,8 +170,14 @@ class StockOrchestrator:
             },
         ).to_dict()
 
+    def _extract_stock_code(self, text: str) -> Optional[str]:
+        """从自然语言中提取股票代码。"""
+        match = re.search(r"\b\d{6}\b", text)
+        if match:
+            return match.group(0)
+        return None
+
 
 def create_stock_orchestrator(tool_registry=None) -> StockOrchestrator:
     """创建统一编排器。"""
     return StockOrchestrator(tool_registry=tool_registry)
-
