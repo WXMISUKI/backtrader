@@ -184,6 +184,14 @@ Phase 5 需要将现有能力暴露为统一的智能体工具，而不是让模
 
 统一封装分析入口，负责串联数据获取、特征计算、规则分析、ML 推荐、风险控制和结果输出。
 
+#### 当前实现状态
+
+- 已新增 `core/orchestrator.py`
+- 已实现 `StockOrchestrator`
+- 已实现 `create_stock_orchestrator`
+- 已支持 `analyze / recommend / market_overview / risk_profile / backtest / report`
+- 统一编排器通过现有工具注册表复用项目能力，不重复实现底层算法
+
 #### 核心接口
 
 ```python
@@ -310,6 +318,13 @@ class AuditLogger:
 
 将分析结果、推荐结果、回测结果和模拟交易结果统一输出为结构化格式。
 
+#### 当前实现状态
+
+- `core/agent/serialization.py` 已实现统一工具信封
+- 已包含 `tool / category / data_source / summary / data / meta`
+- 已支持根据工具名推断分类
+- 已支持从结果中尽量推断来源字段
+
 #### 输出类型
 
 | 类型 | 用途 |
@@ -357,7 +372,7 @@ class AuditLogger:
 
 ### 7.1 编排层
 
-- [ ] 实现 `StockOrchestrator`
+- [x] 实现 `StockOrchestrator`
 - [ ] 统一分析输入输出结构
 - [ ] 支持规则与模型融合
 
@@ -463,7 +478,7 @@ class AuditLogger:
 | 交付物 | 文件路径 | 状态 |
 |--------|---------|------|
 | Phase 5 SDD 草案 | `specs/SDD_PHASE5_PRODUCTION.md` | ✅ |
-| 统一编排器 | `skills/stock-orchestrator/` | ⬜ |
+| 统一编排器 | `core/orchestrator.py` | ✅ |
 | 数据治理模块 | `core/data/cache/` `core/data/quality/` | ⬜ |
 | 模型治理模块 | `core/model/` | ⬜ |
 | 监控与告警模块 | `core/observability/` | ⬜ |

@@ -7,3 +7,4 @@ Core 目录包含系统的核心功能模块
 - risk: 风险控制
 - agent: 智能体编排和工具接入
 """
+from .orchestrator import StockOrchestrator, create_stock_orchestrator
