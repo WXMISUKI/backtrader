@@ -53,6 +53,9 @@
 - 已实现 `route()` 自然语言路由入口
 - 已支持 `analyze / recommend / market_overview / risk_profile / backtest / report`
 - 已能提取 6 位股票代码并做默认路由
+- 已接入 `CacheManager` 与 `DataQualityChecker`
+- 已支持按能力缓存和质量标记
+- 已支持缓存命中返回统一结构
 
 ---
 
@@ -187,6 +190,9 @@ class StockOrchestrator:
 - 不影响现有工具直接调用
 - 可根据自然语言直接路由到对应能力
 - 可自动提取股票代码并兜底默认策略
+- 可对重复调用走缓存并返回来源标记
+- 可在结果中暴露质量检查结果
+- 缓存命中与首轮结果结构一致
 
 ---
 
@@ -196,6 +202,7 @@ class StockOrchestrator:
 
 - `core/orchestrator.py`
 - `examples/orchestrator_demo.py`
+- `core/data/governance.py`
 
 ### 验证结果
 
@@ -203,6 +210,8 @@ class StockOrchestrator:
 - 分析路由正常
 - 市场路由正常
 - 回测路由正常
+- 缓存路由正常
+- 质量检查正常
 
 ---
 

@@ -192,6 +192,7 @@ Phase 5 需要将现有能力暴露为统一的智能体工具，而不是让模
 - 已支持自然语言路由入口 `route()`
 - 已支持 `analyze / recommend / market_overview / risk_profile / backtest / report`
 - 统一编排器通过现有工具注册表复用项目能力，不重复实现底层算法
+- 已接入 `core/data/governance.py` 作为缓存与质量标记层
 
 #### 核心接口
 
