@@ -249,6 +249,21 @@
 | 20.6 | 编写归档文档 | P1 | ✅ | - | ARCHIVE_PHASE20_PORTFOLIO_HEALTH_CHECK.md |
 | 20.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
+## Phase 21: 复盘报告标准工作流 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE21_REVIEW_REPORT.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 21.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE21_REVIEW_REPORT.md |
+| 21.1 | 新增复盘报告模板 | P0 | ✅ | - | `core/agent/workflow_templates.py` |
+| 21.2 | 扩展协作规划支持复盘回放 | P0 | ✅ | - | `core/agent/collaboration.py` |
+| 21.3 | 扩展意图路由识别复盘报告 | P0 | ✅ | - | `core/agent/routing.py` |
+| 21.4 | 扩展能力目录推荐路径 | P1 | ✅ | - | `core/agent/capability_directory.py` |
+| 21.5 | 确认统一输出与审计字段 | P1 | ✅ | - | 复用现有 schema |
+| 21.6 | 编写归档文档 | P1 | ✅ | - | ARCHIVE_PHASE21_REVIEW_REPORT.md |
+| 21.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
 ---
 
 ## 已完成任务归档

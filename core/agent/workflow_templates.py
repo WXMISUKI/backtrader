@@ -124,6 +124,56 @@ WORKFLOW_TEMPLATES: List[WorkflowTemplate] = [
         ],
     ),
     WorkflowTemplate(
+        id="review_report",
+        name="复盘报告模板",
+        description="先回放工作流和决策会话，再结合学习统计输出复盘报告。",
+        priority=92,
+        keywords=["复盘", "复盘报告", "总结", "回顾", "review", "post mortem", "这次表现", "这次执行效果"],
+        trigger_intents=["review_report", "workflow", "report"],
+        task_specs=[
+            {
+                "id": "workflow_replay",
+                "intent": "workflow_replay",
+                "tool": "get_workflow_replay",
+                "role": "replay_analyst",
+                "description": "先回放工作流执行过程，确认关键步骤与结果。",
+                "priority": 10,
+            },
+            {
+                "id": "session_replay",
+                "intent": "decision_session_replay",
+                "tool": "get_decision_session_replay",
+                "role": "session_analyst",
+                "description": "再回看决策会话，补充用户反馈与会话轨迹。",
+                "priority": 20,
+            },
+            {
+                "id": "workflow_stats",
+                "intent": "workflow_learning_stats",
+                "tool": "get_workflow_learning_stats",
+                "role": "learning_analyst",
+                "description": "查看工作流学习统计，提炼可复用经验。",
+                "priority": 30,
+            },
+            {
+                "id": "session_stats",
+                "intent": "decision_session_stats",
+                "tool": "get_decision_session_stats",
+                "role": "learning_analyst",
+                "description": "查看会话统计，提炼反馈采纳与复盘结论。",
+                "priority": 40,
+            },
+            {
+                "id": "report",
+                "intent": "report",
+                "tool": "generate_stock_report",
+                "role": "report_writer",
+                "description": "整理复盘报告并输出统一结构化结果。",
+                "priority": 90,
+            },
+        ],
+    ),
+    WorkflowTemplate(
         id="market_risk_analysis",
         name="市场风控分析模板",
         description="先看市场和风控，再做个股分析并输出报告。",
@@ -433,6 +483,8 @@ def _build_arguments(intent: str, *, stock_code: str, risk_profile: str) -> dict
     if intent == "pre_market_overview":
         return {}
     if intent == "portfolio_health_check":
+        return {}
+    if intent == "review_report":
         return {}
     if intent == "risk_profile":
         return {"risk_profile": risk_profile}

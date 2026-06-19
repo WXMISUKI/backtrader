@@ -30,6 +30,7 @@ _ROLE_BY_INTENT = {
     "report": "report_writer",
     "backtest": "backtest_executor",
     "portfolio_health_check": "portfolio_auditor",
+    "review_report": "review_analyst",
 }
 
 _STAGE_BY_INTENT = {
@@ -44,6 +45,7 @@ _STAGE_BY_INTENT = {
     "recommend": 42,
     "backtest": 60,
     "portfolio_health_check": 35,
+    "review_report": 88,
     "report": 90,
 }
 
@@ -60,6 +62,7 @@ _DESCRIPTION_BY_INTENT = {
     "report": "整理最终结构化报告。",
     "backtest": "对策略进行回测复验。",
     "portfolio_health_check": "对组合或策略进行健康检查。",
+    "review_report": "生成复盘报告，整理回放、会话反馈和学习统计。",
 }
 
 
@@ -355,6 +358,9 @@ def _build_arguments(intent: str, source_arguments: dict) -> dict:
         arguments.setdefault("start_date", "20260101")
         arguments.setdefault("end_date", "20260614")
         arguments.setdefault("initial_cash", 100000)
+    elif intent == "review_report":
+        arguments.setdefault("workflow_id", "")
+        arguments.setdefault("session_id", "")
     elif intent == "report":
         arguments.setdefault("stock_code", "000001")
     elif intent in {"analyze_stock", "fundamental"}:

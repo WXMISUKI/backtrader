@@ -48,6 +48,13 @@ ROUTE_RULES = [
         "confidence": 0.99,
     },
     {
+        "intent": "review_report",
+        "tool": "execute_workflow",
+        "priority": 109,
+        "keywords": ["复盘", "复盘报告", "总结", "回顾", "review", "post mortem", "这次表现", "这次执行效果"],
+        "confidence": 0.98,
+    },
+    {
         "intent": "capability_directory",
         "tool": "list_project_capabilities",
         "priority": 115,
@@ -316,8 +323,10 @@ def _build_arguments(intent: str, stock_code: str, risk_profile: str) -> dict:
     if intent == "report":
         return {
             "stock_code": stock_code or "000001",
-            "risk_profile": risk_profile,
-        }
+        "risk_profile": risk_profile,
+    }
+    if intent == "review_report":
+        return {}
     if intent == "fundamental":
         return {"stock_code": stock_code or "000001"}
     if intent in {"recommend_long_term", "recommend_short_term"}:
