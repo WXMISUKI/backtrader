@@ -326,6 +326,7 @@ class StockOrchestrator:
         result = self.route(user_input, **kwargs)
 
         decision = self._build_decision_summary(route=route, result=result)
+        decision_summary = self._build_decision_summary_payload(result=result, decision=decision)
         session = create_decision_session(
             scenario=str(route.get("intent", "workflow") or "workflow"),
             objective=user_input,
@@ -351,6 +352,15 @@ class StockOrchestrator:
             "tool": result.get("tool", tool_name),
             "summary": result.get("summary", ""),
             "decision": decision,
+            "decision_summary": decision_summary,
+            "结论": decision_summary["结论"],
+            "依据": decision_summary["依据"],
+            "风险": decision_summary["风险"],
+            "下一步动作": decision_summary["下一步动作"],
+            "conclusion": decision_summary["conclusion"],
+            "basis": decision_summary["basis"],
+            "risk": decision_summary["risk"],
+            "next_action": decision_summary["next_action"],
             "data_source": result.get("data_source"),
             "session_id": session.get("session_id", ""),
             "workflow_id": result.get("meta", {}).get("workflow_id", ""),
@@ -371,23 +381,22 @@ class StockOrchestrator:
     def answer_decision_summary(self, user_input: str, **kwargs) -> dict:
         """统一决策入口的业务摘要版本。"""
         result = self.answer_decision_request(user_input, **kwargs)
-        decision = result.get("decision", {}) if isinstance(result, dict) else {}
+        decision = result.get("decision_summary", result.get("decision", {})) if isinstance(result, dict) else {}
         return {
             "ok": bool(result.get("ok", False)),
             "tool": result.get("tool", "answer_decision_request"),
             "scenario": result.get("scenario", "workflow"),
             "summary": result.get("summary", ""),
-            "decision": {
-                "结论": decision.get("结论", decision.get("conclusion", "")),
-                "依据": decision.get("依据", decision.get("basis", [])),
-                "风险": decision.get("风险", decision.get("risk")),
-                "下一步动作": decision.get("下一步动作", decision.get("next_action", "查看会话并决定是否采纳")),
-                "conclusion": decision.get("conclusion", decision.get("结论", "")),
-                "basis": decision.get("basis", decision.get("依据", [])),
-                "risk": decision.get("risk", decision.get("风险")),
-                "next_action": decision.get("next_action", decision.get("下一步动作", "查看会话并决定是否采纳")),
-                "confidence": decision.get("confidence"),
-            },
+            "decision_summary": decision,
+            "decision": decision,
+            "结论": decision.get("结论", decision.get("conclusion", "")),
+            "依据": decision.get("依据", decision.get("basis", [])),
+            "风险": decision.get("风险", decision.get("risk")),
+            "下一步动作": decision.get("下一步动作", decision.get("next_action", "查看会话并决定是否采纳")),
+            "conclusion": decision.get("conclusion", decision.get("结论", "")),
+            "basis": decision.get("basis", decision.get("依据", [])),
+            "risk": decision.get("risk", decision.get("风险")),
+            "next_action": decision.get("next_action", decision.get("下一步动作", "查看会话并决定是否采纳")),
             "data_source": result.get("data_source"),
             "session_id": result.get("session_id", ""),
             "workflow_id": result.get("workflow_id", ""),
@@ -700,6 +709,36 @@ class StockOrchestrator:
             "risk": risk,
             "next_action": next_action,
             "confidence": confidence,
+        }
+
+    def _build_decision_summary_payload(self, *, result: dict, decision: dict) -> dict:
+        """构造对外统一的四段式摘要。"""
+        data = result.get("data", {}) if isinstance(result, dict) else {}
+        summary = str(result.get("summary", ""))
+        conclusion = decision.get("conclusion", decision.get("结论", summary or "已完成决策。"))
+        basis = decision.get("basis", decision.get("依据", []))
+        risk = decision.get("risk", decision.get("风险"))
+        next_action = decision.get("next_action", decision.get("下一步动作", "查看会话并决定是否采纳"))
+        confidence = decision.get("confidence")
+        data_source = result.get("data_source")
+        return {
+            "结论": conclusion,
+            "依据": basis[:5] if isinstance(basis, list) else basis,
+            "风险": risk,
+            "下一步动作": next_action,
+            "conclusion": conclusion,
+            "basis": basis[:5] if isinstance(basis, list) else basis,
+            "risk": risk,
+            "next_action": next_action,
+            "confidence": confidence,
+            "data_source": data_source,
+            "summary": summary,
+            "tool": result.get("tool", ""),
+            "scenario": result.get("scenario", ""),
+            "session_id": result.get("session_id", ""),
+            "workflow_id": result.get("workflow_id", ""),
+            "route_audit_id": result.get("route_audit_id", ""),
+            "raw_data": data,
         }
 
     def _infer_next_action(self, *, route: dict, result: dict) -> str:

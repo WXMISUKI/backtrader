@@ -49,6 +49,15 @@ class StockAgentRuntime:
             audit_logger=self.audit_logger,
         ).answer_decision_request(question, **kwargs)
 
+    def answer_decision_summary(self, question: str, **kwargs) -> dict:
+        """统一决策的四段式摘要入口。"""
+        from core.orchestrator import StockOrchestrator
+
+        return StockOrchestrator(
+            tool_registry=self.client.tool_registry,
+            audit_logger=self.audit_logger,
+        ).answer_decision_summary(question, **kwargs)
+
     def list_project_capabilities(self) -> dict:
         """查看项目能力目录。"""
         return self.client.tool_registry.dispatch("list_project_capabilities", {})

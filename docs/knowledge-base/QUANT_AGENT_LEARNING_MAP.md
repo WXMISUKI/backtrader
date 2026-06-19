@@ -1176,3 +1176,32 @@
 2. 再围绕这些高价值点做小步优化，而不是继续扩展新入口
 3. 如果后续要增强，只优先改统一输出、路由和模板，而不是把系统拆得更碎
 4. 继续坚持“规格 - 实现 - 归档”的节奏，确保每次改动都能回收到可复用经验里
+
+---
+
+## 32. 本阶段新增沉淀：统一决策摘要收紧
+
+### 32.1 我们确认的原则
+
+- 决策结果最重要的不是长文本，而是四段式摘要
+- 对私人私用场景，先让结果更好看懂，比继续堆细节更有价值
+- 摘要收紧必须保持兼容，不能破坏已有 `decision` 结构和调用方式
+
+### 32.2 本阶段落地内容
+
+- 新增 `specs/SDD_PHASE26_DECISION_OUTPUT_SHARPENING.md`
+- `StockOrchestrator.answer_decision_request()` 新增 `decision_summary` 和四段式顶层字段
+- `StockOrchestrator.answer_decision_summary()` 返回更短、更直接的摘要结果
+- `StockAgentRuntime.answer_decision_summary()` 暴露运行时入口
+- `core/agent/client.py` 的系统提示收紧为四段式摘要优先
+- `examples/api_demo.py` 先打印四段式摘要，再打印完整结果
+- `README_QUANT.md` 补充四段式摘要说明
+
+### 32.3 对下一阶段的建议
+
+下一阶段最值得继续做的是：
+
+1. 先在真实使用里看 `decision_summary` 是否已经足够直接
+2. 如果后续还要继续优化，也优先围绕摘要表达，不要再拆更多入口
+3. 保持 `decision` 兼容字段，避免影响已有脚本和工具调用
+4. 继续坚持“规格 - 实现 - 归档”的节奏，把每轮优化都沉淀成可复用标准

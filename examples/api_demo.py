@@ -68,6 +68,19 @@ def _print_json(title: str, payload: dict) -> None:
     print(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
 
 
+def _print_decision_summary(payload: dict) -> None:
+    summary = payload.get("decision_summary") if isinstance(payload, dict) else None
+    if not isinstance(summary, dict):
+        summary = payload.get("decision") if isinstance(payload, dict) else None
+    if not isinstance(summary, dict):
+        return
+    print("\n== decision_summary ==")
+    print(f"结论: {summary.get('结论', summary.get('conclusion', ''))}")
+    print(f"依据: {summary.get('依据', summary.get('basis', []))}")
+    print(f"风险: {summary.get('风险', summary.get('risk', ''))}")
+    print(f"下一步动作: {summary.get('下一步动作', summary.get('next_action', ''))}")
+
+
 def main() -> int:
     args = build_parser().parse_args()
     base_url = f"http://{args.host}:{args.port}"
@@ -85,6 +98,7 @@ def main() -> int:
             },
         )
         _print_json("decision", decision)
+        _print_decision_summary(decision)
 
         if args.submit_feedback:
             session_id = str(decision.get("session_id", "") or "").strip()

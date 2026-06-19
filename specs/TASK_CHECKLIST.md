@@ -324,6 +324,21 @@
 | 25.7 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE25_FEEDBACK_INSIGHTS.md` |
 | 25.8 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
+## Phase 26: 统一决策摘要收紧 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE26_DECISION_OUTPUT_SHARPENING.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 26.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE26_DECISION_OUTPUT_SHARPENING.md |
+| 26.1 | 强化统一决策返回摘要 | P0 | ✅ | - | `core/orchestrator.py` |
+| 26.2 | 暴露简化摘要运行时入口 | P0 | ✅ | - | `core/agent/runtime.py` |
+| 26.3 | 收紧智能体输出提示 | P1 | ✅ | - | `core/agent/client.py` |
+| 26.4 | 更新联调用例展示 | P1 | ✅ | - | `examples/api_demo.py` |
+| 26.5 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 26.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE26_DECISION_OUTPUT_SHARPENING.md` |
+| 26.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
 ---
 
 ## 已完成任务归档
