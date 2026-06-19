@@ -34,6 +34,13 @@ class IntentRoute:
 
 ROUTE_RULES = [
     {
+        "intent": "standard_workflow_portal",
+        "tool": "answer_decision_request",
+        "priority": 114,
+        "keywords": ["标准工作流", "总入口", "统一入口", "标准入口", "工作流总入口", "快速投入生产", "最短路径"],
+        "confidence": 0.99,
+    },
+    {
         "intent": "pre_market_overview",
         "tool": "execute_workflow",
         "priority": 112,
@@ -326,6 +333,8 @@ def _build_arguments(intent: str, stock_code: str, risk_profile: str) -> dict:
         "risk_profile": risk_profile,
     }
     if intent == "review_report":
+        return {}
+    if intent == "standard_workflow_portal":
         return {}
     if intent == "fundamental":
         return {"stock_code": stock_code or "000001"}

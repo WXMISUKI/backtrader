@@ -264,6 +264,21 @@
 | 21.6 | 编写归档文档 | P1 | ✅ | - | ARCHIVE_PHASE21_REVIEW_REPORT.md |
 | 21.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
+## Phase 22: 标准工作流总入口与统一输出收口 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE22_STANDARD_WORKFLOW_PORTAL.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 22.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE22_STANDARD_WORKFLOW_PORTAL.md |
+| 22.1 | 扩展路由识别标准工作流总入口 | P0 | ✅ | - | `core/agent/routing.py` |
+| 22.2 | 扩展编排器支持统一决策入口路由 | P0 | ✅ | - | `core/orchestrator.py` |
+| 22.3 | 扩展运行时与客户端入口推荐 | P1 | ✅ | - | `core/agent/client.py` / `core/agent/runtime.py` |
+| 22.4 | 修正统一输出分类语义 | P1 | ✅ | - | `core/agent/serialization.py` / `core/agent/tools.py` |
+| 22.5 | 扩展能力目录推荐路径 | P1 | ✅ | - | `core/agent/capability_directory.py` |
+| 22.6 | 编写归档文档 | P1 | ✅ | - | ARCHIVE_PHASE22_STANDARD_WORKFLOW_PORTAL.md |
+| 22.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
 ---
 
 ## 已完成任务归档

@@ -167,6 +167,8 @@ class ArkAgentClient:
         """根据路由结果选择首轮工具。"""
         if route.get("tool") == "list_project_capabilities" and "list_project_capabilities" in self.tool_registry.list_tools():
             return "list_project_capabilities"
+        if route.get("tool") == "answer_decision_request" and "answer_decision_request" in self.tool_registry.list_tools():
+            return "answer_decision_request"
         if should_plan_collaboration(route):
             if "execute_workflow" in self.tool_registry.list_tools():
                 return "execute_workflow"

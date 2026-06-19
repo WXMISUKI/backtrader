@@ -50,10 +50,10 @@ CAPABILITY_ITEMS: List[CapabilityItem] = [
         category="decision",
         primary_tool="answer_decision_request",
         support_tools=["plan_collaboration", "execute_workflow"],
-        when_to_use=["用户希望快速得到可直接使用的业务结果", "问题需要自动路由和统一输出"],
+        when_to_use=["用户希望快速得到可直接使用的业务结果", "问题需要自动路由和统一输出", "用户需要标准工作流总入口"],
         fallback_tools=["plan_collaboration", "execute_workflow"],
         output_contract=["ok", "tool", "category", "data_source", "summary", "data", "meta"],
-        notes="当前项目最适合优先推荐的对外入口。",
+        notes="当前项目最适合优先推荐的对外入口，也是标准工作流总入口。",
     ),
     CapabilityItem(
         id="workflow.execution",
@@ -183,6 +183,7 @@ def list_capability_directory() -> dict:
     """返回能力目录快照。"""
     high_value_paths = [
         "answer_decision_request -> 统一决策",
+        "answer_decision_request -> 标准工作流总入口",
         "execute_workflow -> 复杂需求串联",
         "execute_workflow -> 盘前概览",
         "execute_workflow -> 组合体检",
@@ -196,6 +197,7 @@ def list_capability_directory() -> dict:
     recommended_path = [
         "先问清目标",
         "再走统一决策或工作流",
+        "标准工作流优先走 answer_decision_request",
         "复杂场景优先工作流",
         "开放式提问优先风险匹配推荐",
     ]

@@ -178,6 +178,11 @@ class StockOrchestrator:
                 user_input,
                 risk_profile=arguments.get("risk_profile", kwargs.get("risk_profile", "moderate")),
             )
+        elif tool_name == "answer_decision_request":
+            result = self.execute_workflow(
+                user_input,
+                risk_profile=arguments.get("risk_profile", kwargs.get("risk_profile", "moderate")),
+            )
         elif tool_name == "execute_workflow":
             result = self.execute_workflow(
                 user_input,
