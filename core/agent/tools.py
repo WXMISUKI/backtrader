@@ -13,6 +13,7 @@ import json
 from typing import Any, Callable, Dict, List
 
 from .collaboration import build_collaboration_plan
+from .template_metrics import get_workflow_template_stats
 from .workflow_templates import list_workflow_templates
 from .workflow import execute_collaboration_workflow
 from .serialization import build_tool_payload, serialize_value
@@ -176,6 +177,25 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                 "list_workflow_templates",
                 {"templates": list_workflow_templates()},
                 "已返回标准工作流模板列表。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="get_workflow_template_stats",
+            description="查看标准工作流模板的命中统计、最近命中和选择来源分布。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20},
+                },
+                "additionalProperties": False,
+            },
+            handler=lambda params: _tool_response(
+                "get_workflow_template_stats",
+                get_workflow_template_stats(int(params.get("limit", 20) or 20)),
+                "已返回标准工作流模板统计。",
             ),
         )
     )

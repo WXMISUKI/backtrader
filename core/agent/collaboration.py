@@ -12,6 +12,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Sequence
 
 from .routing import IntentRoute, parse_intent
+from .template_metrics import record_workflow_template_usage
 from .workflow_templates import build_template_task_specs, select_workflow_template
 
 
@@ -86,6 +87,7 @@ class CollaborationPlan:
     template_id: str = ""
     template_name: str = ""
     template_reason: str = ""
+    template_score: float = 0.0
     template_hit: bool = False
     tasks: List[CollaborationTask] = field(default_factory=list)
     execution_order: List[str] = field(default_factory=list)
@@ -149,6 +151,7 @@ def build_collaboration_plan(user_input: str, *, default_risk_profile: str = "mo
     template_id = str(template.get("id", "")) if template else ""
     template_name = str(template.get("name", "")) if template else ""
     template_reason = str(template.get("template_reason", "")) if template else ""
+    template_score = float(template.get("template_score", 0.0) or 0.0) if template else 0.0
     primary_from_tasks = bool(ordered_tasks) and (template_hit or route_dict.get("tool") == "execute_workflow")
     resolved_primary_intent = ordered_tasks[0].intent if primary_from_tasks else route_dict.get("intent", "")
     resolved_primary_tool = ordered_tasks[0].tool if primary_from_tasks else route_dict.get("tool", "")
@@ -170,6 +173,17 @@ def build_collaboration_plan(user_input: str, *, default_risk_profile: str = "mo
     if not template_hit and route_dict.get("tool") == "execute_workflow" and ordered_tasks:
         primary_reason = f"执行工作流后拆解为 {ordered_tasks[0].intent} 等业务任务"
 
+    if template_hit and template:
+        record_workflow_template_usage(
+            template=template,
+            route=route_dict,
+            objective=user_input,
+            selected_by=str(template.get("selected_by", "") or "route"),
+            mode=mode,
+            task_count=len(ordered_tasks),
+            score=template_score,
+        )
+
     return CollaborationPlan(
         objective=user_input,
         mode=mode,
@@ -180,6 +194,7 @@ def build_collaboration_plan(user_input: str, *, default_risk_profile: str = "mo
         template_id=template_id,
         template_name=template_name,
         template_reason=template_reason,
+        template_score=template_score,
         template_hit=template_hit,
         tasks=ordered_tasks,
         execution_order=execution_order,
@@ -196,6 +211,7 @@ def build_collaboration_plan(user_input: str, *, default_risk_profile: str = "mo
             "template_id": template_id,
             "template_name": template_name,
             "template_reason": template_reason,
+            "template_score": template_score,
             "template_hit": template_hit,
         },
     )

@@ -59,6 +59,7 @@ class WorkflowExecutionResult:
     template_id: str = ""
     template_name: str = ""
     template_reason: str = ""
+    template_score: float = 0.0
     template_hit: bool = False
     is_degraded: bool = False
     primary_ok: bool = True
@@ -106,6 +107,7 @@ class WorkflowExecutor:
                 "template_id": plan.template_id,
                 "template_name": plan.template_name,
                 "template_reason": plan.template_reason,
+                "template_score": plan.template_score,
                 "template_hit": plan.template_hit,
             },
         )
@@ -179,6 +181,7 @@ class WorkflowExecutor:
             template_id=plan.template_id,
             template_name=plan.template_name,
             template_reason=plan.template_reason,
+            template_score=plan.template_score,
             template_hit=plan.template_hit,
             is_degraded=is_degraded,
             primary_ok=primary_ok,
@@ -195,6 +198,7 @@ class WorkflowExecutor:
                 "template_id": plan.template_id,
                 "template_name": plan.template_name,
                 "template_reason": plan.template_reason,
+                "template_score": plan.template_score,
                 "template_hit": plan.template_hit,
             },
         ).to_dict()
@@ -222,6 +226,7 @@ class WorkflowExecutor:
                 "template_id": plan.template_id,
                 "template_name": plan.template_name,
                 "template_reason": plan.template_reason,
+                "template_score": plan.template_score,
                 "template_hit": plan.template_hit,
             },
         )
@@ -247,6 +252,7 @@ class WorkflowExecutor:
         tool_payload["meta"]["template_id"] = plan.template_id
         tool_payload["meta"]["template_name"] = plan.template_name
         tool_payload["meta"]["template_reason"] = plan.template_reason
+        tool_payload["meta"]["template_score"] = plan.template_score
         tool_payload["meta"]["template_hit"] = plan.template_hit
         tool_payload["meta"]["execution_engine"] = "WorkflowExecutor"
         tool_payload["meta"]["step_audit_ids"] = step_audit_ids

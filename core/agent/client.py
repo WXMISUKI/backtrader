@@ -184,6 +184,7 @@ class ArkAgentClient:
                 "template_id": plan.template_id,
                 "template_name": plan.template_name,
                 "template_reason": plan.template_reason,
+                "template_score": plan.template_score,
                 "template_hit": plan.template_hit,
             },
         )
@@ -217,6 +218,7 @@ class ArkAgentClient:
                     "template_id": result.get("data", {}).get("template_id") or result.get("meta", {}).get("template_id"),
                     "template_name": result.get("data", {}).get("template_name") or result.get("meta", {}).get("template_name"),
                     "template_reason": result.get("data", {}).get("template_reason") or result.get("meta", {}).get("template_reason"),
+                    "template_score": result.get("data", {}).get("template_score") or result.get("meta", {}).get("template_score"),
                     "template_hit": result.get("data", {}).get("template_hit", result.get("meta", {}).get("template_hit", False)),
                 },
             )

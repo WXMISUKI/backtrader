@@ -11,6 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
+from .template_metrics import record_workflow_template_usage
+
 
 @dataclass(frozen=True)
 class WorkflowTemplate:
@@ -19,6 +21,7 @@ class WorkflowTemplate:
     id: str
     name: str
     description: str
+    priority: int = 0
     keywords: List[str] = field(default_factory=list)
     trigger_intents: List[str] = field(default_factory=list)
     task_specs: List[Dict[str, Any]] = field(default_factory=list)
@@ -28,6 +31,7 @@ class WorkflowTemplate:
             "id": self.id,
             "name": self.name,
             "description": self.description,
+            "priority": self.priority,
             "keywords": list(self.keywords),
             "trigger_intents": list(self.trigger_intents),
             "task_specs": [dict(spec) for spec in self.task_specs],
@@ -39,6 +43,7 @@ WORKFLOW_TEMPLATES: List[WorkflowTemplate] = [
         id="market_risk_analysis",
         name="市场风控分析模板",
         description="先看市场和风控，再做个股分析并输出报告。",
+        priority=90,
         keywords=["市场", "风控", "分析", "报告"],
         trigger_intents=["analyze_stock", "market_overview", "risk_profile", "report"],
         task_specs=[
@@ -80,6 +85,7 @@ WORKFLOW_TEMPLATES: List[WorkflowTemplate] = [
         id="recommendation_validation",
         name="推荐验证模板",
         description="先推荐，再回测，再输出验证报告。",
+        priority=80,
         keywords=["推荐", "回测", "验证"],
         trigger_intents=["recommend", "recommend_long_term", "recommend_short_term", "backtest", "report"],
         task_specs=[
@@ -121,6 +127,7 @@ WORKFLOW_TEMPLATES: List[WorkflowTemplate] = [
         id="screening_research",
         name="选股研究模板",
         description="先选股，再做基本面和风控分析，最后输出报告。",
+        priority=70,
         keywords=["选股", "筛选", "基本面"],
         trigger_intents=["screen_stocks", "fundamental", "risk_profile", "report"],
         task_specs=[
@@ -173,16 +180,24 @@ def select_workflow_template(user_input: str, route: Optional[dict] = None) -> O
     intent = str(route.get("intent", ""))
     tool = str(route.get("tool", ""))
 
-    template, selected_by = _choose_by_keywords(text, intent, tool)
-    if template is None and tool == "generate_stock_report" and _contains_any(text, ["市场", "风控"]):
-        template = _template_by_id("market_risk_analysis")
-        selected_by = "report_hint"
+    candidates = _rank_templates(text, intent, tool, route)
+    if candidates:
+        candidates.sort(key=lambda item: (item["score"], item["priority"], item["template"].id), reverse=True)
+        chosen = candidates[0]
+        template = chosen["template"]
+        selected_by = chosen["selected_by"]
+        template_score = chosen["score"]
+    else:
+        template = None
+        selected_by = ""
+        template_score = 0.0
 
     if template is not None:
         payload = template.to_dict()
         payload["template_hit"] = True
         payload["selected_by"] = selected_by or "route"
-        payload["template_reason"] = _build_template_reason(template, intent, tool, route, text, selected_by)
+        payload["template_score"] = template_score
+        payload["template_reason"] = _build_template_reason(template, intent, tool, route, text, selected_by, template_score)
         return payload
 
     return None
@@ -203,21 +218,73 @@ def build_template_task_specs(template: dict, *, route: Optional[dict] = None, d
     return task_specs
 
 
-def _choose_by_keywords(text: str, intent: str, tool: str) -> tuple[Optional[WorkflowTemplate], str]:
-    if intent in {"recommend", "recommend_long_term", "recommend_short_term", "backtest"}:
-        return _template_by_id("recommendation_validation"), "intent"
-    if intent in {"screen_stocks", "fundamental"}:
-        return _template_by_id("screening_research"), "intent"
-    if intent in {"analyze_stock", "market_overview", "risk_profile"}:
-        return _template_by_id("market_risk_analysis"), "intent"
+def _rank_templates(text: str, intent: str, tool: str, route: dict) -> list[dict]:
+    ranked: list[dict] = []
+    matched_terms = list(route.get("matched_terms") or [])
+    candidate_intents = [str(item.get("intent", "")) for item in route.get("candidates", []) or []]
 
-    if _contains_any(text, ["推荐", "回测", "验证"]):
-        return _template_by_id("recommendation_validation"), "keywords"
-    if _contains_any(text, ["选股", "筛选", "基本面"]):
-        return _template_by_id("screening_research"), "keywords"
-    if _contains_any(text, ["市场", "风控", "分析", "报告"]):
-        return _template_by_id("market_risk_analysis"), "keywords"
-    return None, ""
+    for template in WORKFLOW_TEMPLATES:
+        score, selected_by = _score_template(template, text, intent, tool, matched_terms, candidate_intents)
+        if score > 0:
+            ranked.append(
+                {
+                    "template": template,
+                    "score": score,
+                    "selected_by": selected_by,
+                    "priority": template.priority,
+                }
+            )
+    return ranked
+
+
+def _score_template(
+    template: WorkflowTemplate,
+    text: str,
+    intent: str,
+    tool: str,
+    matched_terms: List[str],
+    candidate_intents: List[str],
+) -> tuple[float, str]:
+    score = float(template.priority)
+    reasons: List[str] = []
+    strong_signal_count = 0
+
+    intent_matches = [item for item in template.trigger_intents if item == intent or item in candidate_intents]
+    if intent_matches:
+        score += 120
+        reasons.append("intent")
+        strong_signal_count += 1
+
+    keyword_matches = [keyword for keyword in template.keywords if keyword in text]
+    if keyword_matches:
+        score += 20 * len(keyword_matches)
+        reasons.append("keywords")
+        strong_signal_count += 1
+
+    route_matches = [term for term in matched_terms if term in template.keywords]
+    if route_matches:
+        score += 10 * len(route_matches)
+        reasons.append("matched_terms")
+        strong_signal_count += 1
+
+    if tool == "execute_workflow":
+        score += 15
+        reasons.append("workflow")
+
+    if tool == "generate_stock_report" and "report" in template.trigger_intents:
+        score += 8
+        reasons.append("report_hint")
+        strong_signal_count += 1
+
+    if tool in {spec.get("tool") for spec in template.task_specs}:
+        score += 25
+        reasons.append("tool")
+        strong_signal_count += 1
+
+    if not reasons or strong_signal_count == 0:
+        return 0.0, ""
+
+    return score, reasons[0]
 
 
 def _template_by_id(template_id: str) -> WorkflowTemplate:
@@ -238,19 +305,20 @@ def _build_template_reason(
     route: dict,
     text: str,
     selected_by: str,
+    template_score: float,
 ) -> str:
     matched_terms = route.get("matched_terms") or []
     if selected_by == "intent":
-        return f"命中意图 {intent}，使用模板《{template.name}》。"
+        return f"命中意图 {intent}，使用模板《{template.name}》，评分 {template_score:.1f}。"
     if selected_by == "report_hint":
-        return f"报告请求同时包含市场/风控语义，使用模板《{template.name}》。"
+        return f"报告请求同时包含市场/风控语义，使用模板《{template.name}》，评分 {template_score:.1f}。"
     if matched_terms:
-        return f"命中关键词 {', '.join(str(term) for term in matched_terms[:3])}，使用模板《{template.name}》。"
+        return f"命中关键词 {', '.join(str(term) for term in matched_terms[:3])}，使用模板《{template.name}》，评分 {template_score:.1f}。"
     if tool == "execute_workflow" or intent == "workflow":
-        return f"工作流请求使用模板《{template.name}》。"
+        return f"工作流请求使用模板《{template.name}》，评分 {template_score:.1f}。"
     if _contains_any(text, list(template.keywords)):
-        return f"命中模板关键词，使用模板《{template.name}》。"
-    return f"使用模板《{template.name}》。"
+        return f"命中模板关键词，使用模板《{template.name}》，评分 {template_score:.1f}。"
+    return f"使用模板《{template.name}》，评分 {template_score:.1f}。"
 
 
 def _extract_stock_code(route: dict, *, default_stock_code: str) -> str:

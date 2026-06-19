@@ -122,6 +122,7 @@
 - `template_id`
 - `template_name`
 - `template_reason`
+- `template_score`
 - `selected_by`
 - `tasks`
 - `execution_order`
@@ -139,6 +140,22 @@
 - 调试人员快速确认当前模板集合
 - 后续新增模板时保持可发现性
 
+### 4.5 模板优先级
+
+模板本身应具备稳定的基础优先级，用于多个模板同时可命中时的裁决：
+
+- `market_risk_analysis` 优先级最高
+- `recommendation_validation` 次之
+- `screening_research` 再次之
+
+优先级不是唯一依据，最终选择应结合：
+
+- 路由意图
+- 关键词命中
+- 候选意图
+- 工具匹配
+- 模板基础优先级
+
 ---
 
 ## 5. 工作流输出要求
@@ -149,6 +166,7 @@
 - `template_name`
 - `template_reason`
 - `template_hit`
+- `template_score`
 
 同时，模板命中信息应进入工作流审计和结果元数据，便于后续回放和优化。
 
