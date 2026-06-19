@@ -234,6 +234,21 @@
 | 19.6 | 编写归档文档 | P1 | ✅ | - | ARCHIVE_PHASE19_PRE_MARKET_OVERVIEW.md |
 | 19.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
+## Phase 20: 组合体检标准工作流 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE20_PORTFOLIO_HEALTH_CHECK.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 20.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE20_PORTFOLIO_HEALTH_CHECK.md |
+| 20.1 | 新增组合体检模板 | P0 | ✅ | - | `core/agent/workflow_templates.py` |
+| 20.2 | 扩展协作规划支持体检验证 | P0 | ✅ | - | `core/agent/collaboration.py` |
+| 20.3 | 扩展意图路由识别组合体检 | P0 | ✅ | - | `core/agent/routing.py` |
+| 20.4 | 扩展能力目录推荐路径 | P1 | ✅ | - | `core/agent/capability_directory.py` |
+| 20.5 | 确认统一输出与审计字段 | P1 | ✅ | - | 复用现有 schema |
+| 20.6 | 编写归档文档 | P1 | ✅ | - | ARCHIVE_PHASE20_PORTFOLIO_HEALTH_CHECK.md |
+| 20.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
 ---
 
 ## 已完成任务归档

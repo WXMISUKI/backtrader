@@ -41,6 +41,13 @@ ROUTE_RULES = [
         "confidence": 0.99,
     },
     {
+        "intent": "portfolio_health_check",
+        "tool": "execute_workflow",
+        "priority": 111,
+        "keywords": ["组合体检", "组合检查", "组合健康", "策略体检", "持仓体检", "仓位体检", "portfolio health", "portfolio review"],
+        "confidence": 0.99,
+    },
+    {
         "intent": "capability_directory",
         "tool": "list_project_capabilities",
         "priority": 115,
@@ -282,6 +289,8 @@ def _build_arguments(intent: str, stock_code: str, risk_profile: str) -> dict:
     if intent == "workflow":
         return {"risk_profile": risk_profile}
     if intent == "capability_directory":
+        return {}
+    if intent == "portfolio_health_check":
         return {}
     if intent == "backtest":
         return {

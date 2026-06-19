@@ -78,6 +78,17 @@ CAPABILITY_ITEMS: List[CapabilityItem] = [
         notes="第一个标准工作流，适合作为日常固定路径。",
     ),
     CapabilityItem(
+        id="workflow.portfolio_health_check",
+        name="组合体检工作流",
+        category="workflow",
+        primary_tool="execute_workflow",
+        support_tools=["get_market_overview", "get_risk_profile", "get_runtime_health", "run_backtest"],
+        when_to_use=["用户问组合体检、策略体检、组合健康", "需要先看市场、风控、健康和回测验证"],
+        fallback_tools=["plan_collaboration", "answer_decision_request"],
+        output_contract=["ok", "tool", "category", "data_source", "summary", "data", "meta"],
+        notes="第二个标准工作流，适合作为组合/策略健康入口。",
+    ),
+    CapabilityItem(
         id="market.overview",
         name="市场概览",
         category="market",
@@ -162,6 +173,8 @@ def list_capability_directory() -> dict:
     high_value_paths = [
         "answer_decision_request -> 统一决策",
         "execute_workflow -> 复杂需求串联",
+        "execute_workflow -> 盘前概览",
+        "execute_workflow -> 组合体检",
         "recommend_by_risk -> 默认推荐",
         "run_backtest -> 结果验证",
         "get_market_overview -> 市场前置",

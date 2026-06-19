@@ -29,6 +29,7 @@ _ROLE_BY_INTENT = {
     "screen_stocks": "stock_screener",
     "report": "report_writer",
     "backtest": "backtest_executor",
+    "portfolio_health_check": "portfolio_auditor",
 }
 
 _STAGE_BY_INTENT = {
@@ -42,6 +43,7 @@ _STAGE_BY_INTENT = {
     "recommend_short_term": 40,
     "recommend": 42,
     "backtest": 60,
+    "portfolio_health_check": 35,
     "report": 90,
 }
 
@@ -57,6 +59,7 @@ _DESCRIPTION_BY_INTENT = {
     "screen_stocks": "筛选候选股票池。",
     "report": "整理最终结构化报告。",
     "backtest": "对策略进行回测复验。",
+    "portfolio_health_check": "对组合或策略进行健康检查。",
 }
 
 
@@ -359,6 +362,8 @@ def _build_arguments(intent: str, source_arguments: dict) -> dict:
     elif intent in {"recommend", "recommend_long_term", "recommend_short_term"}:
         arguments.setdefault("top_n", 5)
     elif intent == "risk_profile":
+        arguments.setdefault("risk_profile", "moderate")
+    elif intent == "portfolio_health_check":
         arguments.setdefault("risk_profile", "moderate")
     return arguments
 

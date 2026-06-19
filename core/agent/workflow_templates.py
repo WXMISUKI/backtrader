@@ -82,6 +82,48 @@ WORKFLOW_TEMPLATES: List[WorkflowTemplate] = [
         ],
     ),
     WorkflowTemplate(
+        id="portfolio_health_check",
+        name="组合体检模板",
+        description="先看市场、风控和运行健康，再做回测验证组合是否仍然健康。",
+        priority=95,
+        keywords=["组合体检", "组合检查", "组合健康", "策略体检", "持仓体检", "仓位体检", "portfolio health", "portfolio review"],
+        trigger_intents=["portfolio_health_check", "market_overview", "risk_profile", "runtime_health", "backtest"],
+        task_specs=[
+            {
+                "id": "market",
+                "intent": "market_overview",
+                "tool": "get_market_overview",
+                "role": "market_analyst",
+                "description": "先确认当前市场环境是否支持继续持有或执行。",
+                "priority": 10,
+            },
+            {
+                "id": "risk",
+                "intent": "risk_profile",
+                "tool": "get_risk_profile",
+                "role": "risk_guard",
+                "description": "确认组合/策略的风险约束与仓位边界。",
+                "priority": 15,
+            },
+            {
+                "id": "health",
+                "intent": "runtime_health",
+                "tool": "get_runtime_health",
+                "role": "observability_guard",
+                "description": "检查系统运行健康，确认执行链路是否稳定。",
+                "priority": 20,
+            },
+            {
+                "id": "backtest",
+                "intent": "backtest",
+                "tool": "run_backtest",
+                "role": "backtest_executor",
+                "description": "用基准回测验证组合/策略当前是否仍然健康。",
+                "priority": 40,
+            },
+        ],
+    ),
+    WorkflowTemplate(
         id="market_risk_analysis",
         name="市场风控分析模板",
         description="先看市场和风控，再做个股分析并输出报告。",
@@ -356,6 +398,8 @@ def _build_template_reason(
         return f"报告请求同时包含市场/风控语义，使用模板《{template.name}》，评分 {template_score:.1f}。"
     if selected_by == "runtime_health":
         return f"盘前健康检查命中运行健康语义，使用模板《{template.name}》，评分 {template_score:.1f}。"
+    if selected_by == "backtest_hint":
+        return f"体检请求命中回测验证语义，使用模板《{template.name}》，评分 {template_score:.1f}。"
     if matched_terms:
         return f"命中关键词 {', '.join(str(term) for term in matched_terms[:3])}，使用模板《{template.name}》，评分 {template_score:.1f}。"
     if tool == "execute_workflow" or intent == "workflow":
@@ -387,6 +431,8 @@ def _build_arguments(intent: str, *, stock_code: str, risk_profile: str) -> dict
     if intent == "market_overview":
         return {}
     if intent == "pre_market_overview":
+        return {}
+    if intent == "portfolio_health_check":
         return {}
     if intent == "risk_profile":
         return {"risk_profile": risk_profile}
