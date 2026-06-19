@@ -308,6 +308,22 @@
 | 24.5 | 编写归档文档 | P1 | ✅ | - | ARCHIVE_PHASE24_MINIMAL_FEEDBACK_STATS.md |
 | 24.6 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
+## Phase 25: 最小反馈洞察入口 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE25_FEEDBACK_INSIGHTS.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 25.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE25_FEEDBACK_INSIGHTS.md |
+| 25.1 | 扩展会话存储洞察方法 | P0 | ✅ | - | `core/agent/session.py` |
+| 25.2 | 扩展编排器洞察入口 | P0 | ✅ | - | `core/orchestrator.py` |
+| 25.3 | 扩展 HTTP API 洞察接口 | P0 | ✅ | - | `core/api_server.py` |
+| 25.4 | 扩展运行时和工具入口 | P1 | ✅ | - | `core/agent/runtime.py` / `core/agent/tools.py` |
+| 25.5 | 更新联调用例 | P1 | ✅ | - | `examples/api_demo.py` |
+| 25.6 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 25.7 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE25_FEEDBACK_INSIGHTS.md` |
+| 25.8 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
 ---
 
 ## 已完成任务归档

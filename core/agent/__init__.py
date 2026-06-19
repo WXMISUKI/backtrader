@@ -17,7 +17,7 @@ from .workflow import WorkflowExecutionResult, WorkflowExecutor, WorkflowStepRes
 from .task_protocol import TaskPlan, TaskResult, TaskStep, build_task_plan, build_task_result, build_task_step
 from .output_contract import GOVERNANCE_FIELDS, REPLAY_FIELDS, TASK_PROTOCOL_FIELDS, TOOL_OUTPUT_FIELDS
 from .replay import get_workflow_learning_stats, get_workflow_replay
-from .session import create_decision_session, get_decision_session_replay, get_decision_session_stats, submit_decision_feedback
+from .session import create_decision_session, get_decision_feedback_insights, get_decision_session_replay, get_decision_session_stats, submit_decision_feedback
 from .client import ArkAgentClient
 from .runtime import StockAgentRuntime, create_stock_agent_runtime
 from .tools import ProjectToolRegistry, build_default_tool_registry
@@ -63,6 +63,7 @@ __all__ = [
     "submit_decision_feedback",
     "get_decision_session_replay",
     "get_decision_session_stats",
+    "get_decision_feedback_insights",
     "ArkAgentClient",
     "StockAgentRuntime",
     "create_stock_agent_runtime",

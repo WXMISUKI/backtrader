@@ -20,7 +20,7 @@ from .agent.workflow import execute_collaboration_workflow
 from .agent.task_protocol import build_task_plan, build_task_result
 from .agent import build_default_tool_registry
 from .agent.routing import parse_intent
-from .agent.session import create_decision_session, get_decision_session_stats, submit_decision_feedback
+from .agent.session import create_decision_session, get_decision_session_stats, get_decision_session_store, submit_decision_feedback
 from .model import get_model_governance_service
 from .data import CacheManager, DataQualityChecker, build_snapshot
 from .observability import get_observability_service
@@ -483,6 +483,40 @@ class StockOrchestrator:
             meta={"limit": limit},
         )
         return result
+
+    def get_decision_feedback_insights(self, limit: int = 20, *, min_samples: int = 2) -> dict:
+        """查看决策反馈洞察。"""
+        started_at = time.perf_counter()
+        session_store = get_decision_session_store()
+        insights = session_store.get_feedback_insights(limit=limit, min_samples=min_samples)
+        duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
+        self.observability.record_metric(
+            "orchestrator.feedback_insights_count",
+            1,
+            source="StockOrchestrator",
+            category="workflow",
+            labels={"limit": str(limit)},
+            meta={"limit": limit, "min_samples": min_samples},
+        )
+        self.observability.record_latency(
+            "orchestrator.get_decision_feedback_insights",
+            duration_ms,
+            source="StockOrchestrator",
+            category="workflow",
+            labels={"limit": str(limit)},
+            meta={"limit": limit, "min_samples": min_samples},
+        )
+        self.observability.record_runtime_event(
+            "orchestrator.get_decision_feedback_insights",
+            status="ok" if insights.get("ok", False) else "failed",
+            source="StockOrchestrator",
+            category="workflow",
+            duration_ms=duration_ms,
+            data_source=insights.get("data_source"),
+            message=str(insights.get("summary", "")),
+            meta={"limit": limit, "min_samples": min_samples, "workflow_feedback_total": insights.get("data", {}).get("total_feedback")},
+        )
+        return insights
 
     def plan_collaboration(self, user_input: str, **kwargs) -> dict:
         """根据自然语言生成协作计划。"""

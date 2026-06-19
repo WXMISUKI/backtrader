@@ -13,7 +13,7 @@ from typing import Optional
 from .audit import RouteAuditLogger, get_route_audit_logger
 from .client import ArkAgentClient
 from .config import AgentSettings, load_agent_settings
-from .session import create_decision_session, get_decision_session_replay, get_decision_session_stats, submit_decision_feedback
+from .session import create_decision_session, get_decision_feedback_insights, get_decision_session_replay, get_decision_session_stats, submit_decision_feedback
 
 
 class StockAgentRuntime:
@@ -113,6 +113,10 @@ class StockAgentRuntime:
     def get_decision_session_stats(self, limit: int = 20) -> dict:
         """查看决策会话统计。"""
         return get_decision_session_stats(limit=limit)
+
+    def get_decision_feedback_insights(self, limit: int = 20, *, min_samples: int = 2) -> dict:
+        """查看决策反馈洞察。"""
+        return get_decision_feedback_insights(limit=limit, min_samples=min_samples)
 
 
 def create_stock_agent_runtime(settings: Optional[AgentSettings] = None) -> StockAgentRuntime:

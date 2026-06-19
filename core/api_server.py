@@ -3,7 +3,7 @@
 """
 最小 HTTP API 封装。
 
-仅提供统一决策、反馈提交和健康检查三个接口，避免引入额外 Web 框架依赖。
+仅提供统一决策、反馈提交、反馈统计、反馈洞察和健康检查接口，避免引入额外 Web 框架依赖。
 """
 
 from __future__ import annotations
@@ -66,6 +66,19 @@ class AgentAPIHandler(BaseHTTPRequestHandler):
             limit = int(query.get("limit", "20") or 20)
             orchestrator = StockOrchestrator()
             result = orchestrator.get_decision_session_stats(limit=limit)
+            self._write_json(200, result)
+            return
+
+        if parsed.path == "/decision/insights":
+            query = dict()
+            if parsed.query:
+                from urllib.parse import parse_qs
+
+                query = {k: v[-1] for k, v in parse_qs(parsed.query).items() if v}
+            limit = int(query.get("limit", "20") or 20)
+            min_samples = int(query.get("min_samples", "2") or 2)
+            orchestrator = StockOrchestrator()
+            result = orchestrator.get_decision_feedback_insights(limit=limit, min_samples=min_samples)
             self._write_json(200, result)
             return
 

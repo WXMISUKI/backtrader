@@ -16,7 +16,7 @@ from typing import Any, Callable, Dict, List
 from .collaboration import build_collaboration_plan
 from .capability_directory import list_capability_directory
 from .replay import get_workflow_learning_stats, get_workflow_replay
-from .session import create_decision_session, get_decision_session_replay, get_decision_session_stats, submit_decision_feedback
+from .session import create_decision_session, get_decision_feedback_insights, get_decision_session_replay, get_decision_session_stats, submit_decision_feedback
 from .template_metrics import get_workflow_template_stats
 from .workflow_templates import list_workflow_templates
 from .workflow import execute_collaboration_workflow
@@ -208,7 +208,7 @@ def _runtime_tool_response(name: str, data: Any, summary: str = "", *, ok: Optio
 
 def _tool_category(tool_name: str) -> str:
     """推断工具分类，供监控埋点使用。"""
-    if tool_name in {"plan_collaboration", "execute_workflow", "answer_decision_request", "list_workflow_templates", "get_workflow_template_stats", "get_workflow_replay", "get_workflow_learning_stats", "create_decision_session", "submit_decision_feedback", "get_decision_session_replay", "get_decision_session_stats", "list_project_capabilities"}:
+    if tool_name in {"plan_collaboration", "execute_workflow", "answer_decision_request", "list_workflow_templates", "get_workflow_template_stats", "get_workflow_replay", "get_workflow_learning_stats", "create_decision_session", "submit_decision_feedback", "get_decision_session_replay", "get_decision_session_stats", "get_decision_feedback_insights", "list_project_capabilities"}:
         return "workflow"
     if tool_name in {"list_project_tools"}:
         return "knowledge_base"
@@ -563,6 +563,29 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                 "get_decision_session_stats",
                 get_decision_session_stats(int(params.get("limit", 20) or 20)),
                 "已返回决策会话统计。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="get_decision_feedback_insights",
+            description="查看决策反馈洞察，识别最值得优化的意图、工具和高价值路径。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20},
+                    "min_samples": {"type": "integer", "minimum": 1, "maximum": 100, "default": 2},
+                },
+                "additionalProperties": False,
+            },
+            handler=lambda params: _tool_response(
+                "get_decision_feedback_insights",
+                get_decision_feedback_insights(
+                    int(params.get("limit", 20) or 20),
+                    min_samples=int(params.get("min_samples", 2) or 2),
+                ),
+                "已返回决策反馈洞察。",
             ),
         )
     )

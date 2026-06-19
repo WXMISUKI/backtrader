@@ -270,6 +270,164 @@ class DecisionSessionStore:
             },
         }
 
+    def get_feedback_insights(self, limit: int = 20, *, min_samples: int = 2) -> dict:
+        """按意图、工具和场景聚合反馈洞察。"""
+        sessions = _load_jsonl(self.session_path)
+        feedback = _load_jsonl(self.feedback_path)
+        session_lookup = {str(item.get("session_id", "") or ""): item for item in sessions if str(item.get("session_id", "") or "")}
+
+        joined_records: List[dict] = []
+        accepted_count = 0
+        rejected_count = 0
+        rating_total = 0
+        rated_count = 0
+
+        for item in feedback:
+            session_id = str(item.get("session_id", "") or "")
+            session = session_lookup.get(session_id, {})
+            route = session.get("route", {}) if isinstance(session, dict) else {}
+            intent = str(route.get("intent", "") or session.get("scenario", "") or "unknown")
+            tool = str(route.get("tool", "") or "unknown")
+            scenario = str(session.get("scenario", "") or "unknown")
+            accepted = item.get("accepted")
+            rating = item.get("rating")
+
+            if accepted is True:
+                accepted_count += 1
+            elif accepted is False:
+                rejected_count += 1
+
+            if isinstance(rating, (int, float)):
+                rating_total += int(rating)
+                rated_count += 1
+
+            joined_records.append(
+                {
+                    "session_id": session_id,
+                    "workflow_id": str(item.get("workflow_id", "") or session.get("workflow_id", "") or ""),
+                    "intent": intent,
+                    "tool": tool,
+                    "scenario": scenario,
+                    "accepted": accepted,
+                    "rating": rating,
+                    "comment": str(item.get("comment", "") or ""),
+                    "created_at": str(item.get("created_at", "") or ""),
+                }
+            )
+
+        total_feedback = len(feedback)
+        total_bool_feedback = accepted_count + rejected_count
+        accept_rate = round(accepted_count / total_bool_feedback, 4) if total_bool_feedback else 0.0
+        average_rating = round(rating_total / rated_count, 4) if rated_count else 0.0
+
+        def _group_by(field_name: str) -> List[dict]:
+            buckets: Dict[str, dict] = {}
+            for record in joined_records:
+                key = str(record.get(field_name, "") or "unknown")
+                bucket = buckets.setdefault(
+                    key,
+                    {
+                        "name": key,
+                        "total_feedback": 0,
+                        "accepted_count": 0,
+                        "rejected_count": 0,
+                        "unknown_count": 0,
+                        "rating_total": 0,
+                        "rated_count": 0,
+                        "recent_samples": [],
+                    },
+                )
+                bucket["total_feedback"] += 1
+                if record.get("accepted") is True:
+                    bucket["accepted_count"] += 1
+                elif record.get("accepted") is False:
+                    bucket["rejected_count"] += 1
+                else:
+                    bucket["unknown_count"] += 1
+                rating = record.get("rating")
+                if isinstance(rating, (int, float)):
+                    bucket["rating_total"] += int(rating)
+                    bucket["rated_count"] += 1
+                bucket["recent_samples"].append(record)
+
+            rows: List[dict] = []
+            for bucket in buckets.values():
+                bool_total = bucket["accepted_count"] + bucket["rejected_count"]
+                row_accept_rate = round(bucket["accepted_count"] / bool_total, 4) if bool_total else 0.0
+                row_average_rating = round(bucket["rating_total"] / bucket["rated_count"], 4) if bucket["rated_count"] else 0.0
+                rows.append(
+                    {
+                        "name": bucket["name"],
+                        "total_feedback": bucket["total_feedback"],
+                        "accepted_count": bucket["accepted_count"],
+                        "rejected_count": bucket["rejected_count"],
+                        "unknown_count": bucket["unknown_count"],
+                        "accept_rate": row_accept_rate,
+                        "average_rating": row_average_rating,
+                        "sample_size_ok": bucket["total_feedback"] >= min_samples,
+                        "recent_samples": list(reversed(bucket["recent_samples"][-3:])),
+                    }
+                )
+            rows.sort(key=lambda item: (item["total_feedback"], item["accept_rate"], item["name"]), reverse=True)
+            return rows
+
+        by_intent = _group_by("intent")
+        by_tool = _group_by("tool")
+        by_scenario = _group_by("scenario")
+
+        optimization_targets = [
+            row
+            for row in sorted(
+                [row for row in by_intent + by_tool if row["sample_size_ok"]],
+                key=lambda row: (row["accept_rate"], -row["total_feedback"], row["name"]),
+            )
+            if row["accept_rate"] <= accept_rate or row["accept_rate"] <= 0.5
+        ][:10]
+        high_value_paths = [
+            row
+            for row in sorted(
+                [row for row in by_intent + by_tool if row["sample_size_ok"]],
+                key=lambda row: (-row["accept_rate"], -row["total_feedback"], row["name"]),
+            )
+        ][:10]
+
+        recent_samples = list(reversed(joined_records[-limit:]))
+        optimization_notes = []
+        if optimization_targets:
+            for item in optimization_targets[:5]:
+                optimization_notes.append(
+                    f"优先观察 {item['name']}：采纳率 {item['accept_rate']:.2f}，样本 {item['total_feedback']} 条"
+                )
+        else:
+            optimization_notes.append("当前样本较少，先继续积累真实反馈，再判断优化重点。")
+
+        return {
+            "ok": True,
+            "summary": f"已汇总 {total_feedback} 条反馈的洞察。",
+            "data_source": "decision_feedback_insights",
+            "data": {
+                "total_sessions": len(sessions),
+                "total_feedback": total_feedback,
+                "accepted_count": accepted_count,
+                "rejected_count": rejected_count,
+                "accept_rate": accept_rate,
+                "average_rating": average_rating,
+                "by_intent": by_intent[:10],
+                "by_tool": by_tool[:10],
+                "by_scenario": by_scenario[:10],
+                "optimization_targets": optimization_targets,
+                "high_value_paths": high_value_paths,
+                "recent_samples": recent_samples,
+                "workflow_learning": get_workflow_learning_stats(limit=limit).get("data", {}),
+                "optimization_notes": optimization_notes,
+            },
+            "meta": {
+                "generated_at": _utcnow(),
+                "limit": limit,
+                "min_samples": min_samples,
+            },
+        }
+
 
 _DEFAULT_DECISION_SESSION_STORE: Optional[DecisionSessionStore] = None
 
@@ -338,3 +496,8 @@ def get_decision_session_replay(session_id: str) -> dict:
 def get_decision_session_stats(limit: int = 20) -> dict:
     """返回决策会话统计。"""
     return get_decision_session_store().get_session_stats(limit=limit)
+
+
+def get_decision_feedback_insights(limit: int = 20, *, min_samples: int = 2) -> dict:
+    """返回决策反馈洞察。"""
+    return get_decision_session_store().get_feedback_insights(limit=limit, min_samples=min_samples)

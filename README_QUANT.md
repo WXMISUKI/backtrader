@@ -96,12 +96,19 @@ python examples/api_demo.py --host 127.0.0.1 --port 8000 --submit-feedback
 python examples/api_demo.py --host 127.0.0.1 --port 8000 --submit-feedback --show-stats
 ```
 
+如果希望进一步查看反馈洞察，可以加：
+
+```bash
+python examples/api_demo.py --host 127.0.0.1 --port 8000 --show-insights
+```
+
 联调用例会依次检查：
 
 - `GET /health`
 - `POST /decision`
 - 可选 `POST /feedback`
 - 可选 `GET /decision/stats`
+- 可选 `GET /decision/insights`
 
 ### 4. 运行回测示例
 
@@ -129,6 +136,10 @@ curl -X POST http://127.0.0.1:8000/feedback ^
 
 ```bash
 curl "http://127.0.0.1:8000/decision/stats?limit=20"
+```
+
+```bash
+curl "http://127.0.0.1:8000/decision/insights?limit=20&min_samples=2"
 ```
 
 ### 6. 使用风险管理器
@@ -170,6 +181,7 @@ python examples/agent_demo.py "请分析 000001，并给出建议"
 - 需要先在 `.env` 中配置 `ARK_API_KEY`
 - 如果真实行情不可用，系统会自动降级到离线模拟数据，并在结果中标记 `mock`
 - 如果你要联调东方财富真实数据，Cookie 需要保持有效；过期后请重新从官网浏览器中获取
+- 如果你想判断下一步该优先优化什么，先看 `/decision/insights`，再决定是否调整工具或工作流
 
 ## 功能模块
 
