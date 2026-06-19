@@ -293,6 +293,19 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
             ok=evaluation.get("status", "ok") != "critical",
         )
 
+    def _answer_decision_request(params: dict) -> dict:
+        from core.orchestrator import StockOrchestrator
+
+        orchestrator = StockOrchestrator(tool_registry=registry)
+        return _tool_response(
+            "answer_decision_request",
+            orchestrator.answer_decision_request(
+                str(params["user_input"]),
+                risk_profile=params.get("risk_profile", "moderate"),
+            ),
+            "已返回统一决策结果。",
+        )
+
     registry.register(
         ToolSpec(
             name="list_project_tools",
@@ -347,21 +360,7 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                 "required": ["user_input"],
                 "additionalProperties": False,
             },
-            handler=lambda params: _tool_response(
-                "answer_decision_request",
-                _wrap_tool_result(
-                    "answer_decision_request",
-                    __import__("core.orchestrator", fromlist=["StockOrchestrator"]).StockOrchestrator(
-                        tool_registry=registry
-                    ).answer_decision_request(
-                        params["user_input"],
-                        risk_profile=params.get("risk_profile", "moderate"),
-                    ),
-                    "已返回统一决策结果。",
-                    source="workflow",
-                    meta={"data_kind": "decision_request"},
-                ),
-            ),
+            handler=_answer_decision_request,
         )
     )
 
