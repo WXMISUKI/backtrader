@@ -20,7 +20,7 @@ from .agent.workflow import execute_collaboration_workflow
 from .agent.task_protocol import build_task_plan, build_task_result
 from .agent import build_default_tool_registry
 from .agent.routing import parse_intent
-from .agent.session import create_decision_session, submit_decision_feedback
+from .agent.session import create_decision_session, get_decision_session_stats, submit_decision_feedback
 from .model import get_model_governance_service
 from .data import CacheManager, DataQualityChecker, build_snapshot
 from .observability import get_observability_service
@@ -448,6 +448,39 @@ class StockOrchestrator:
                 "workflow_id": result.get("workflow_id", ""),
                 "accepted": result.get("accepted"),
             },
+        )
+        return result
+
+    def get_decision_session_stats(self, limit: int = 20) -> dict:
+        """查看决策会话统计。"""
+        started_at = time.perf_counter()
+        result = get_decision_session_stats(limit=limit)
+        duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
+        self.observability.record_metric(
+            "orchestrator.session_stats_count",
+            1,
+            source="StockOrchestrator",
+            category="workflow",
+            labels={"limit": str(limit)},
+            meta={"limit": limit},
+        )
+        self.observability.record_latency(
+            "orchestrator.get_decision_session_stats",
+            duration_ms,
+            source="StockOrchestrator",
+            category="workflow",
+            labels={"limit": str(limit)},
+            meta={"limit": limit},
+        )
+        self.observability.record_runtime_event(
+            "orchestrator.get_decision_session_stats",
+            status="ok" if result.get("ok", False) else "failed",
+            source="StockOrchestrator",
+            category="workflow",
+            duration_ms=duration_ms,
+            data_source=result.get("data_source"),
+            message=str(result.get("summary", "")),
+            meta={"limit": limit},
         )
         return result
 

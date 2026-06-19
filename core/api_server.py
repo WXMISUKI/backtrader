@@ -57,6 +57,18 @@ class AgentAPIHandler(BaseHTTPRequestHandler):
             )
             return
 
+        if parsed.path == "/decision/stats":
+            query = dict()
+            if parsed.query:
+                from urllib.parse import parse_qs
+
+                query = {k: v[-1] for k, v in parse_qs(parsed.query).items() if v}
+            limit = int(query.get("limit", "20") or 20)
+            orchestrator = StockOrchestrator()
+            result = orchestrator.get_decision_session_stats(limit=limit)
+            self._write_json(200, result)
+            return
+
         self._write_json(404, {"ok": False, "error": "not_found"})
 
     def do_POST(self) -> None:  # noqa: N802 - HTTP handler signature

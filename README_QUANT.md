@@ -90,11 +90,18 @@ python examples/api_demo.py --host 127.0.0.1 --port 8000
 python examples/api_demo.py --host 127.0.0.1 --port 8000 --submit-feedback
 ```
 
+如果希望同时查看最近反馈统计，可以加：
+
+```bash
+python examples/api_demo.py --host 127.0.0.1 --port 8000 --submit-feedback --show-stats
+```
+
 联调用例会依次检查：
 
 - `GET /health`
 - `POST /decision`
 - 可选 `POST /feedback`
+- 可选 `GET /decision/stats`
 
 ### 4. 运行回测示例
 
@@ -118,6 +125,10 @@ curl -X POST http://127.0.0.1:8000/decision ^
 curl -X POST http://127.0.0.1:8000/feedback ^
   -H "Content-Type: application/json" ^
   -d "{\"session_id\":\"your-session-id\",\"workflow_id\":\"your-workflow-id\",\"accepted\":true,\"rating\":5,\"reason\":\"\",\"correction\":\"\",\"comment\":\"示例反馈\"}"
+```
+
+```bash
+curl "http://127.0.0.1:8000/decision/stats?limit=20"
 ```
 
 ### 6. 使用风险管理器

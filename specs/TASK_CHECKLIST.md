@@ -216,7 +216,7 @@
 | 18.3 | 扩展意图路由规则 | P0 | ✅ | - | 能力目录类意图 |
 | 18.4 | 扩展客户端与编排器入口 | P0 | ✅ | - | `ArkAgentClient` / `StockOrchestrator` / `StockAgentRuntime` |
 | 18.5 | 统一输出与分类标记 | P1 | ✅ | - | `knowledge_base` / `workflow` |
-| 18.6 | 编写归档文档 | P1 | ⬜ | - | 待补 |
+| 18.6 | 编写归档文档 | P1 | ✅ | - | ARCHIVE_PHASE18_AGENT_CAPABILITY_DIRECTORY.md |
 | 18.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
 ## Phase 19: 盘前概览标准工作流 (当前)
@@ -293,6 +293,20 @@
 | 23.5 | 更新反馈联调用例 | P1 | ✅ | - | `examples/api_demo.py` |
 | 23.6 | 编写归档文档 | P1 | ✅ | - | ARCHIVE_PHASE23_MINIMAL_FEEDBACK_LOOP.md |
 | 23.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
+## Phase 24: 最小反馈统计入口 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE24_MINIMAL_FEEDBACK_STATS.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 24.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE24_MINIMAL_FEEDBACK_STATS.md |
+| 24.1 | 扩展编排器反馈统计入口 | P0 | ✅ | - | `core/orchestrator.py` |
+| 24.2 | 扩展 HTTP API 统计接口 | P0 | ✅ | - | `core/api_server.py` |
+| 24.3 | 扩展联调用例支持统计查看 | P1 | ✅ | - | `examples/api_demo.py` |
+| 24.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 24.5 | 编写归档文档 | P1 | ✅ | - | ARCHIVE_PHASE24_MINIMAL_FEEDBACK_STATS.md |
+| 24.6 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
 ---
 

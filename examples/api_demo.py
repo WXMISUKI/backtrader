@@ -35,6 +35,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="Submit feedback when decision response contains session_id.",
     )
     parser.add_argument(
+        "--show-stats",
+        action="store_true",
+        help="Fetch /decision/stats after /decision.",
+    )
+    parser.add_argument(
         "--accepted",
         action="store_true",
         help="Feedback accepted flag when --submit-feedback is enabled.",
@@ -96,6 +101,10 @@ def main() -> int:
 
             feedback = _request_json("POST", f"{base_url}/feedback", feedback_payload)
             _print_json("feedback", feedback)
+
+        if args.show_stats:
+            stats = _request_json("GET", f"{base_url}/decision/stats?limit=20")
+            _print_json("decision_stats", stats)
 
         return 0
     except error.URLError as exc:
