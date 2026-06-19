@@ -14,6 +14,7 @@ import time
 from typing import Any, Callable, Dict, List
 
 from .collaboration import build_collaboration_plan
+from .replay import get_workflow_learning_stats, get_workflow_replay
 from .template_metrics import get_workflow_template_stats
 from .workflow_templates import list_workflow_templates
 from .workflow import execute_collaboration_workflow
@@ -205,7 +206,7 @@ def _runtime_tool_response(name: str, data: Any, summary: str = "", *, ok: Optio
 
 def _tool_category(tool_name: str) -> str:
     """推断工具分类，供监控埋点使用。"""
-    if tool_name in {"plan_collaboration", "execute_workflow", "list_workflow_templates", "get_workflow_template_stats"}:
+    if tool_name in {"plan_collaboration", "execute_workflow", "list_workflow_templates", "get_workflow_template_stats", "get_workflow_replay", "get_workflow_learning_stats"}:
         return "workflow"
     if tool_name in {"get_model_governance_status", "evaluate_model_release"}:
         return "model"
@@ -364,6 +365,46 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                 "get_workflow_template_stats",
                 get_workflow_template_stats(int(params.get("limit", 20) or 20)),
                 "已返回标准工作流模板统计。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="get_workflow_replay",
+            description="按 workflow_id 回放任务链路，查看规划、步骤、结果和模板命中。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "workflow_id": {"type": "string", "description": "workflow_id 或回放标识"},
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 200, "default": 100},
+                },
+                "required": ["workflow_id"],
+                "additionalProperties": False,
+            },
+            handler=lambda params: _tool_response(
+                "get_workflow_replay",
+                get_workflow_replay(str(params.get("workflow_id", "") or ""), limit=int(params.get("limit", 100) or 100)),
+                "已返回任务回放结果。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="get_workflow_learning_stats",
+            description="查看任务回放与轻量学习统计，包括模板命中、降级和失败分布。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20},
+                },
+                "additionalProperties": False,
+            },
+            handler=lambda params: _tool_response(
+                "get_workflow_learning_stats",
+                get_workflow_learning_stats(int(params.get("limit", 20) or 20)),
+                "已返回任务学习统计。",
             ),
         )
     )
