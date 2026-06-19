@@ -43,6 +43,22 @@ class StockAgentRuntime:
         """查看最近的路由审计记录。"""
         return self.audit_logger.recent(limit)
 
+    def recent_workflow_events(
+        self,
+        limit: int = 20,
+        *,
+        workflow_id: Optional[str] = None,
+        phase: Optional[str] = None,
+        event_type: Optional[str] = None,
+    ) -> list[dict]:
+        """按工作流维度查看审计记录。"""
+        return self.audit_logger.recent(
+            limit,
+            workflow_id=workflow_id,
+            phase=phase,
+            event_type=event_type,
+        )
+
 
 def create_stock_agent_runtime(settings: Optional[AgentSettings] = None) -> StockAgentRuntime:
     """创建股票智能体运行时。"""

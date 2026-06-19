@@ -202,3 +202,10 @@ class ArkAgentClient:
 4. 轻量验证通过
 5. 形成归档文档
 
+---
+
+## 9. 与其他规格的关系
+
+- `SDD_PHASE5_UNIFIED_WORKFLOW_SCHEMA.md` 负责定义统一字段
+- `SDD_PHASE5_WORKFLOW_AUDIT.md` 负责定义工作流生命周期审计和节点级 fallback
+- 本规格负责定义“如何执行工作流”

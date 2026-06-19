@@ -53,12 +53,24 @@ class RouteAuditRecord:
     data_source: Optional[str] = None
     notes: str = ""
     meta: Dict[str, Any] = field(default_factory=dict)
+    event_type: str = "route"
+    phase: str = "route"
+    workflow_id: Optional[str] = None
+    parent_id: Optional[str] = None
+    step_id: Optional[str] = None
+    status: str = "ok"
 
     def to_dict(self) -> dict:
         return {
             "id": self.id,
             "timestamp": self.timestamp,
             "entrypoint": self.entrypoint,
+            "event_type": self.event_type,
+            "phase": self.phase,
+            "workflow_id": self.workflow_id,
+            "parent_id": self.parent_id,
+            "step_id": self.step_id,
+            "status": self.status,
             "input_text": self.input_text,
             "intent": self.intent,
             "tool": self.tool,
@@ -89,6 +101,12 @@ class RouteAuditLogger:
         entrypoint: str,
         input_text: str,
         route: Any,
+        event_type: str = "route",
+        phase: str = "route",
+        workflow_id: Optional[str] = None,
+        parent_id: Optional[str] = None,
+        step_id: Optional[str] = None,
+        status: str = "ok",
         data_source: Optional[str] = None,
         notes: str = "",
         meta: Optional[Dict[str, Any]] = None,
@@ -102,6 +120,12 @@ class RouteAuditLogger:
             id=str(uuid.uuid4()),
             timestamp=datetime.now(timezone.utc).isoformat(),
             entrypoint=entrypoint,
+            event_type=event_type,
+            phase=phase,
+            workflow_id=workflow_id,
+            parent_id=parent_id,
+            step_id=step_id,
+            status=status,
             input_text=input_text,
             intent=str(route_dict.get("intent", "")),
             tool=str(route_dict.get("tool", "")),
@@ -126,11 +150,27 @@ class RouteAuditLogger:
 
         return payload
 
-    def recent(self, limit: int = 20) -> list[dict]:
+    def recent(
+        self,
+        limit: int = 20,
+        *,
+        event_type: Optional[str] = None,
+        workflow_id: Optional[str] = None,
+        phase: Optional[str] = None,
+    ) -> list[dict]:
         """返回最近的路由记录，最新的在前。"""
         with self._lock:
             items = list(self._records)
-        return list(reversed(items[-limit:]))
+        filtered = []
+        for item in items:
+            if event_type and item.get("event_type") != event_type:
+                continue
+            if workflow_id and item.get("workflow_id") != workflow_id:
+                continue
+            if phase and item.get("phase") != phase:
+                continue
+            filtered.append(item)
+        return list(reversed(filtered[-limit:]))
 
 
 _DEFAULT_ROUTE_AUDIT_LOGGER: Optional[RouteAuditLogger] = None
@@ -142,4 +182,3 @@ def get_route_audit_logger() -> RouteAuditLogger:
     if _DEFAULT_ROUTE_AUDIT_LOGGER is None:
         _DEFAULT_ROUTE_AUDIT_LOGGER = RouteAuditLogger()
     return _DEFAULT_ROUTE_AUDIT_LOGGER
-

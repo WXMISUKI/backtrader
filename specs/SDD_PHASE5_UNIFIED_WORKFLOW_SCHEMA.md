@@ -142,3 +142,10 @@
 3. 轻量验证通过
 4. 形成归档文档
 
+---
+
+## 7. 与其他规格的关系
+
+- `SDD_PHASE5_WORKFLOW_EXECUTION.md` 负责定义执行器行为
+- `SDD_PHASE5_WORKFLOW_AUDIT.md` 负责定义 workflow 生命周期审计
+- 本规格负责定义执行结果与审计之间共享的字段结构

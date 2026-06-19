@@ -173,6 +173,8 @@ class ArkAgentClient:
             entrypoint="agent.plan_collaboration",
             input_text=user_input,
             route=plan.route,
+            event_type="workflow_plan",
+            phase="plan",
             data_source=plan.data_source,
             notes=f"mode={plan.mode}",
             meta={
@@ -199,6 +201,10 @@ class ArkAgentClient:
                 entrypoint="agent.execute_workflow",
                 input_text=user_input,
                 route=result.get("data", {}).get("plan", {}).get("route", {}),
+                event_type="workflow_result",
+                phase="result",
+                workflow_id=result.get("meta", {}).get("workflow_id"),
+                status="degraded" if result.get("meta", {}).get("is_degraded") else "ok",
                 data_source=result.get("data_source"),
                 notes=f"workflow_id={result.get('meta', {}).get('workflow_id', '')}",
                 meta={
@@ -212,3 +218,19 @@ class ArkAgentClient:
     def parse_intent(self, user_input: str) -> dict:
         """解析自然语言并返回结构化路由结果。"""
         return parse_intent(user_input, default_risk_profile=self.settings.default_risk_profile).to_dict()
+
+    def recent_workflow_events(
+        self,
+        limit: int = 20,
+        *,
+        workflow_id: Optional[str] = None,
+        phase: Optional[str] = None,
+        event_type: Optional[str] = None,
+    ) -> list[dict]:
+        """按工作流维度查看审计记录。"""
+        return self.audit_logger.recent(
+            limit,
+            workflow_id=workflow_id,
+            phase=phase,
+            event_type=event_type,
+        )

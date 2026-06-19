@@ -250,6 +250,8 @@ class StockOrchestrator:
             entrypoint="orchestrator.plan_collaboration",
             input_text=user_input,
             route=plan.route,
+            event_type="workflow_plan",
+            phase="plan",
             data_source=plan.data_source,
             notes=f"mode={plan.mode}",
             meta={
@@ -387,6 +389,22 @@ class StockOrchestrator:
     def recent_routes(self, limit: int = 20) -> list[dict]:
         """查看最近的路由审计记录。"""
         return self.audit_logger.recent(limit)
+
+    def recent_workflow_events(
+        self,
+        limit: int = 20,
+        *,
+        workflow_id: Optional[str] = None,
+        phase: Optional[str] = None,
+        event_type: Optional[str] = None,
+    ) -> list[dict]:
+        """按工作流维度查看审计记录。"""
+        return self.audit_logger.recent(
+            limit,
+            workflow_id=workflow_id,
+            phase=phase,
+            event_type=event_type,
+        )
 
 
 def create_stock_orchestrator(tool_registry=None) -> StockOrchestrator:
