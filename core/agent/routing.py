@@ -34,6 +34,13 @@ class IntentRoute:
 
 ROUTE_RULES = [
     {
+        "intent": "capability_directory",
+        "tool": "list_project_capabilities",
+        "priority": 115,
+        "keywords": ["项目能做什么", "这个项目能做什么", "项目现在能做什么", "能力目录", "工具目录", "能力清单", "有哪些能力", "有哪些功能", "能做什么", "下一步最该做什么", "下一阶段最该做什么", "该先用哪个入口", "入口推荐"],
+        "confidence": 0.99,
+    },
+    {
         "intent": "runtime_health_eval",
         "tool": "evaluate_runtime_health",
         "priority": 105,
@@ -267,6 +274,8 @@ def _build_reason(chosen: dict, candidates: list[dict]) -> str:
 def _build_arguments(intent: str, stock_code: str, risk_profile: str) -> dict:
     if intent == "workflow":
         return {"risk_profile": risk_profile}
+    if intent == "capability_directory":
+        return {}
     if intent == "backtest":
         return {
             "stock_code": stock_code or "000001",

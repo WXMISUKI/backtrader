@@ -49,6 +49,10 @@ class StockAgentRuntime:
             audit_logger=self.audit_logger,
         ).answer_decision_request(question, **kwargs)
 
+    def list_project_capabilities(self) -> dict:
+        """查看项目能力目录。"""
+        return self.client.tool_registry.dispatch("list_project_capabilities", {})
+
     def recent_routes(self, limit: int = 20) -> list[dict]:
         """查看最近的路由审计记录。"""
         return self.audit_logger.recent(limit)

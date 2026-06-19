@@ -122,8 +122,10 @@ def build_tool_payload(tool_name: str, data: Any, summary: str = "") -> dict:
 
 def _infer_category(tool_name: str) -> str:
     """根据工具名推断分类。"""
-    if tool_name in {"plan_collaboration", "execute_workflow", "list_workflow_templates", "get_workflow_template_stats"}:
+    if tool_name in {"plan_collaboration", "execute_workflow", "list_workflow_templates", "get_workflow_template_stats", "list_project_capabilities"}:
         return "workflow"
+    if tool_name in {"list_project_tools"}:
+        return "knowledge_base"
     if tool_name in {"get_model_governance_status", "evaluate_model_release"}:
         return "model"
     if tool_name in {"run_backtest"}:

@@ -31,6 +31,7 @@ DEFAULT_SYSTEM_PROMPT = """你是一个中文股票量化投顾智能体。
 如果同一个问题里同时包含多个分析、回测、风控或报告目标，请优先调用 plan_collaboration 先生成协作计划，再决定后续工具调用顺序。
 如果同一个问题里同时包含多个分析、回测、风控或报告目标，并且工具可用，请优先调用 execute_workflow 直接执行完整协作工作流。
 如果用户希望快速得到一个可直接使用的业务结果，请优先调用 answer_decision_request 作为统一决策入口。
+如果用户在问“项目能做什么”“有哪些能力”“该先用哪个入口”这类问题，请优先调用 list_project_capabilities。
 
 回答要求：
 - 使用中文
@@ -164,6 +165,8 @@ class ArkAgentClient:
 
     def _infer_preferred_tool_from_route(self, route: dict) -> str:
         """根据路由结果选择首轮工具。"""
+        if route.get("tool") == "list_project_capabilities" and "list_project_capabilities" in self.tool_registry.list_tools():
+            return "list_project_capabilities"
         if should_plan_collaboration(route):
             if "execute_workflow" in self.tool_registry.list_tools():
                 return "execute_workflow"

@@ -14,6 +14,7 @@ import time
 from typing import Any, Callable, Dict, List
 
 from .collaboration import build_collaboration_plan
+from .capability_directory import list_capability_directory
 from .replay import get_workflow_learning_stats, get_workflow_replay
 from .session import create_decision_session, get_decision_session_replay, get_decision_session_stats, submit_decision_feedback
 from .template_metrics import get_workflow_template_stats
@@ -207,8 +208,10 @@ def _runtime_tool_response(name: str, data: Any, summary: str = "", *, ok: Optio
 
 def _tool_category(tool_name: str) -> str:
     """推断工具分类，供监控埋点使用。"""
-    if tool_name in {"plan_collaboration", "execute_workflow", "answer_decision_request", "list_workflow_templates", "get_workflow_template_stats", "get_workflow_replay", "get_workflow_learning_stats", "create_decision_session", "submit_decision_feedback", "get_decision_session_replay", "get_decision_session_stats"}:
+    if tool_name in {"plan_collaboration", "execute_workflow", "answer_decision_request", "list_workflow_templates", "get_workflow_template_stats", "get_workflow_replay", "get_workflow_learning_stats", "create_decision_session", "submit_decision_feedback", "get_decision_session_replay", "get_decision_session_stats", "list_project_capabilities"}:
         return "workflow"
+    if tool_name in {"list_project_tools"}:
+        return "knowledge_base"
     if tool_name in {"get_model_governance_status", "evaluate_model_release"}:
         return "model"
     if tool_name in {"run_backtest"}:
@@ -319,6 +322,23 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                 "list_project_tools",
                 {"tools": registry.list_tools()},
                 "已返回项目工具列表。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="list_project_capabilities",
+            description="查看当前项目面向智能体的能力目录、推荐路径和回退路径。适合回答项目能做什么、该先用哪个入口、下一步该怎么走。",
+            parameters={
+                "type": "object",
+                "properties": {},
+                "additionalProperties": False,
+            },
+            handler=lambda _params: _tool_response(
+                "list_project_capabilities",
+                list_capability_directory(),
+                "已返回项目能力目录。",
             ),
         )
     )

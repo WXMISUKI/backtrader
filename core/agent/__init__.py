@@ -9,6 +9,7 @@
 
 from .config import AgentSettings, load_agent_settings
 from .audit import RouteAuditLogger, RouteAuditRecord, get_route_audit_logger
+from .capability_directory import CAPABILITY_DIRECTORY_VERSION, CAPABILITY_ITEMS, CapabilityItem, build_capability_lookup, list_capability_directory
 from .collaboration import CollaborationPlan, CollaborationTask, build_collaboration_plan, should_plan_collaboration
 from .workflow_templates import WorkflowTemplate, build_template_task_specs, list_workflow_templates, select_workflow_template
 from .template_metrics import get_workflow_template_stats, record_workflow_template_usage
@@ -27,6 +28,11 @@ __all__ = [
     "RouteAuditLogger",
     "RouteAuditRecord",
     "get_route_audit_logger",
+    "CapabilityItem",
+    "CAPABILITY_DIRECTORY_VERSION",
+    "CAPABILITY_ITEMS",
+    "build_capability_lookup",
+    "list_capability_directory",
     "CollaborationPlan",
     "CollaborationTask",
     "build_collaboration_plan",

@@ -191,6 +191,34 @@
 | 16.1 | 更新 README curl 示例 | P0 | ✅ | - | README_QUANT.md |
 | 16.2 | 轻量验证 | P1 | ⬜ | - | 待执行 |
 
+## Phase 17: 东方财富真实联调脚本 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE17_EASTMONEY_LIVE_CHECK.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 17.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE17_EASTMONEY_LIVE_CHECK.md |
+| 17.1 | 实现真实联调脚本 | P0 | ✅ | - | examples/eastmoney_live_check.py |
+| 17.2 | 支持 cookie 注入 | P0 | ✅ | - | `--cookie` / `--cookie-file` / `EASTMONEY_COOKIE` |
+| 17.3 | 历史行情验证 | P0 | ✅ | - | get_stock_hist / fetch_stock_hist_governed |
+| 17.4 | 实时行情验证 | P0 | ✅ | - | get_realtime_quotes |
+| 17.5 | 用户本机验证 | P1 | ✅ | - | 已验证通过 |
+
+## Phase 18: 智能体能力目录与自动路由升级 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE18_AGENT_CAPABILITY_DIRECTORY.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 18.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE18_AGENT_CAPABILITY_DIRECTORY.md |
+| 18.1 | 实现能力目录数据结构 | P0 | ✅ | - | `core/agent/capability_directory.py` |
+| 18.2 | 注册能力目录工具入口 | P0 | ✅ | - | `list_project_capabilities` |
+| 18.3 | 扩展意图路由规则 | P0 | ✅ | - | 能力目录类意图 |
+| 18.4 | 扩展客户端与编排器入口 | P0 | ✅ | - | `ArkAgentClient` / `StockOrchestrator` / `StockAgentRuntime` |
+| 18.5 | 统一输出与分类标记 | P1 | ✅ | - | `knowledge_base` / `workflow` |
+| 18.6 | 编写归档文档 | P1 | ⬜ | - | 待补 |
+| 18.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
 ---
 
 ## 已完成任务归档

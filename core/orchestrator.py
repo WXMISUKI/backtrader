@@ -14,6 +14,7 @@ import time
 from typing import Any, Dict, Optional
 
 from .agent.audit import RouteAuditLogger, get_route_audit_logger
+from .agent.capability_directory import list_capability_directory
 from .agent.collaboration import build_collaboration_plan, should_plan_collaboration
 from .agent.workflow import execute_collaboration_workflow
 from .agent.task_protocol import build_task_plan, build_task_result
@@ -182,6 +183,20 @@ class StockOrchestrator:
                 user_input,
                 risk_profile=arguments.get("risk_profile", kwargs.get("risk_profile", "moderate")),
             )
+        elif tool_name == "list_project_capabilities":
+            result = {
+                "ok": True,
+                "action": "capability_directory",
+                "tool": "list_project_capabilities",
+                "category": "workflow",
+                "data_source": "knowledge_base",
+                "summary": "已返回项目能力目录。",
+                "data": list_capability_directory(),
+                "meta": {
+                    "orchestrator": "StockOrchestrator",
+                    "generated_at": datetime.now(timezone.utc).isoformat(),
+                },
+            }
         elif tool_name == "get_runtime_health":
             result = self._dispatch(
                 action="observability",
