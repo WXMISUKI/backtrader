@@ -17,6 +17,7 @@ from .template_metrics import get_workflow_template_stats
 from .workflow_templates import list_workflow_templates
 from .workflow import execute_collaboration_workflow
 from .serialization import build_tool_payload, serialize_value
+from core.model import get_model_governance_service
 
 
 @dataclass(frozen=True)
@@ -196,6 +197,53 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                 "get_workflow_template_stats",
                 get_workflow_template_stats(int(params.get("limit", 20) or 20)),
                 "已返回标准工作流模板统计。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="get_model_governance_status",
+            description="查看当前模型治理状态、稳定版本、特征清单和最近治理事件。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "model_name": {"type": "string", "description": "可选的模型名称"},
+                },
+                "additionalProperties": False,
+            },
+            handler=lambda params: _tool_response(
+                "get_model_governance_status",
+                get_model_governance_service().get_status(params.get("model_name") or None),
+                "已返回模型治理状态。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="evaluate_model_release",
+            description="根据指标和阈值评估模型是否可以发布。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "model_name": {"type": "string", "description": "模型名称"},
+                    "version": {"type": "string", "description": "模型版本"},
+                    "metrics": {"type": "object", "description": "模型评估指标"},
+                    "thresholds": {"type": "object", "description": "发布阈值"},
+                },
+                "required": ["model_name", "version"],
+                "additionalProperties": False,
+            },
+            handler=lambda params: _tool_response(
+                "evaluate_model_release",
+                get_model_governance_service().evaluate_release(
+                    params["model_name"],
+                    params["version"],
+                    metrics=params.get("metrics", {}) or {},
+                    thresholds=params.get("thresholds", {}) or {},
+                ),
+                "已完成模型发布评估。",
             ),
         )
     )

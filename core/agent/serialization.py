@@ -120,6 +120,8 @@ def _infer_category(tool_name: str) -> str:
     """根据工具名推断分类。"""
     if tool_name in {"plan_collaboration", "execute_workflow", "list_workflow_templates", "get_workflow_template_stats"}:
         return "workflow"
+    if tool_name in {"get_model_governance_status", "evaluate_model_release"}:
+        return "model"
     if tool_name in {"run_backtest"}:
         return "backtest"
     if tool_name in {"recommend_long_term", "recommend_short_term", "recommend_by_risk"}:

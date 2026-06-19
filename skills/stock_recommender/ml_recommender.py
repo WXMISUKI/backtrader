@@ -35,6 +35,7 @@ except ImportError:
 
 from skills.stock_fundamental import FundamentalAnalyzer
 from core.data.real_provider import RealDataProvider
+from core.model import FeatureManifest, build_feature_manifest, get_model_governance_service
 
 
 @dataclass
@@ -99,6 +100,8 @@ class MLRecommender:
         self.fundamental_analyzer = FundamentalAnalyzer()
         self.real_provider = RealDataProvider()
         self.feature_names = []
+        self.last_train_metrics = {}
+        self.feature_manifest = None
 
     def prepare_features(self, stock_codes: List[str] = None) -> Tuple[pd.DataFrame, pd.Series]:
         """
@@ -226,6 +229,24 @@ class MLRecommender:
         # 评估模型
         train_score = self.model.score(X_train, y_train)
         test_score = self.model.score(X_test, y_test)
+        self.last_train_metrics = {
+            "train_r2": float(train_score),
+            "test_r2": float(test_score),
+            "n_samples": int(len(X)),
+            "n_features": int(len(X.columns)),
+            "model_type": self.model_type,
+        }
+        self.feature_manifest = build_feature_manifest(
+            name=f"ml_recommender:{self.model_type}",
+            features=self.feature_names,
+            version="v1",
+            description="ML 推荐器特征清单",
+            source="ml_recommender",
+            meta={
+                "model_type": self.model_type,
+                "feature_count": len(self.feature_names),
+            },
+        )
 
         print(f"训练集 R²: {train_score:.4f}")
         print(f"测试集 R²: {test_score:.4f}")
@@ -362,8 +383,28 @@ class MLRecommender:
                 pickle.dump({
                     'model': self.model,
                     'scaler': self.scaler,
-                    'feature_names': self.feature_names
+                    'feature_names': self.feature_names,
+                    'last_train_metrics': self.last_train_metrics,
+                    'feature_manifest': self.feature_manifest.to_dict() if self.feature_manifest else None,
                 }, f)
+            if self.feature_manifest is None and self.feature_names:
+                self.feature_manifest = build_feature_manifest(
+                    name=f"ml_recommender:{self.model_type}",
+                    features=self.feature_names,
+                    version="v1",
+                    description="ML 推荐器特征清单",
+                    source="ml_recommender",
+                )
+            get_model_governance_service().register_model(
+                model_name="ml_recommender",
+                version=self.model_type,
+                status="draft",
+                artifact_path=path,
+                metrics=self.last_train_metrics or {},
+                thresholds={},
+                feature_manifest=self.feature_manifest.to_dict() if self.feature_manifest else {},
+                notes="saved from MLRecommender.save_model",
+            )
             print(f"模型已保存到: {path}")
 
     def load_model(self, path: str = "ml_model.pkl"):
@@ -374,7 +415,40 @@ class MLRecommender:
                 self.model = data['model']
                 self.scaler = data['scaler']
                 self.feature_names = data['feature_names']
+                self.last_train_metrics = data.get('last_train_metrics', {})
+                feature_manifest = data.get('feature_manifest')
+                self.feature_manifest = FeatureManifest(**feature_manifest) if feature_manifest else None
             print(f"模型已从 {path} 加载")
+
+    def get_feature_manifest(self) -> dict:
+        """返回特征清单。"""
+        if self.feature_manifest is not None:
+            return self.feature_manifest.to_dict()
+        return {
+            "manifest_id": "",
+            "name": f"ml_recommender:{self.model_type}",
+            "version": "v1",
+            "features": list(self.feature_names),
+            "feature_hash": "",
+            "description": "ML 推荐器特征清单",
+            "source": "ml_recommender",
+            "created_at": "",
+            "meta": {
+                "model_type": self.model_type,
+                "feature_count": len(self.feature_names),
+            },
+        }
+
+    def get_governance_snapshot(self) -> dict:
+        """返回模型治理快照。"""
+        return {
+            "model_name": "ml_recommender",
+            "model_type": self.model_type,
+            "has_model": self.model is not None,
+            "feature_count": len(self.feature_names),
+            "feature_manifest": self.get_feature_manifest(),
+            "last_train_metrics": dict(self.last_train_metrics or {}),
+        }
 
 
 # 便捷函数

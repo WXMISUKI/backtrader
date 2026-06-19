@@ -62,6 +62,13 @@ ROUTE_RULES = [
         "confidence": 0.96,
     },
     {
+        "intent": "model_governance",
+        "tool": "get_model_governance_status",
+        "priority": 85,
+        "keywords": ["模型", "版本", "特征", "门禁", "回滚"],
+        "confidence": 0.95,
+    },
+    {
         "intent": "report",
         "tool": "generate_stock_report",
         "priority": 70,
@@ -204,6 +211,11 @@ def _collect_matched_terms(lower_input: str, raw_input: str) -> list[str]:
         "风控",
         "仓位",
         "风险",
+        "模型",
+        "版本",
+        "特征",
+        "门禁",
+        "回滚",
         "报告",
         "基本面",
         "长线",
@@ -243,6 +255,8 @@ def _build_arguments(intent: str, stock_code: str, risk_profile: str) -> dict:
             "initial_cash": 100000,
         }
     if intent == "market_overview":
+        return {}
+    if intent == "model_governance":
         return {}
     if intent == "risk_profile":
         return {"risk_profile": risk_profile}

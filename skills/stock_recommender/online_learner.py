@@ -11,6 +11,8 @@ from datetime import datetime
 from typing import Optional, Dict, List, Any
 from dataclasses import dataclass, asdict
 
+from core.model import FeatureManifest, build_feature_manifest, get_model_governance_service
+
 
 @dataclass
 class ModelVersion:
@@ -128,6 +130,7 @@ class OnlineLearner:
         self.version = 0
         self.history: List[ModelVersion] = []
         self._total_samples = 0
+        self.feature_manifest: Optional[FeatureManifest] = None
 
     def _create_model(self):
         """创建增量学习模型"""
@@ -183,6 +186,8 @@ class OnlineLearner:
             'n_samples': len(X),
             'total_samples': self._total_samples
         }
+
+        self.feature_manifest = self.get_feature_manifest()
 
         # 记录版本
         version_info = ModelVersion(
@@ -241,7 +246,8 @@ class OnlineLearner:
             'history': [asdict(v) for v in self.history],
             'total_samples': self._total_samples,
             'model_type': self.model_type,
-            'learning_rate': self.learning_rate
+            'learning_rate': self.learning_rate,
+            'feature_manifest': self.feature_manifest.to_dict() if self.feature_manifest else None,
         }
 
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -266,12 +272,32 @@ class OnlineLearner:
         self._total_samples = state['total_samples']
         self.model_type = state['model_type']
         self.learning_rate = state['learning_rate']
+        feature_manifest = state.get('feature_manifest')
+        self.feature_manifest = FeatureManifest(**feature_manifest) if feature_manifest else self.get_feature_manifest()
 
     def get_feature_importance(self) -> Optional[np.ndarray]:
         """获取特征重要性 (仅适用于线性模型)"""
         if hasattr(self.model, 'coef_'):
             return self.model.coef_
         return None
+
+    def get_feature_manifest(self) -> FeatureManifest:
+        """构建在线学习器的特征清单。"""
+        feature_count = 0
+        if self.scaler is not None and getattr(self.scaler, "mean", None) is not None:
+            feature_count = len(self.scaler.mean)
+        features = [f"feature_{index + 1}" for index in range(feature_count)]
+        return build_feature_manifest(
+            name=f"online_learner:{self.model_type}",
+            features=features,
+            version="v1",
+            description="在线学习器特征清单",
+            source="online_learner",
+            meta={
+                "model_type": self.model_type,
+                "feature_count": feature_count,
+            },
+        )
 
 
 class ModelManager:
@@ -343,6 +369,16 @@ class ModelManager:
         self.versions[version] = version_info
         self._next_version += 1
         self._save_versions()
+        get_model_governance_service().register_model(
+            model_name="online_learner",
+            version=version,
+            status="draft",
+            artifact_path=model_path,
+            metrics=model.get_metrics(),
+            thresholds={},
+            feature_manifest=model.get_feature_manifest().to_dict() if hasattr(model, "get_feature_manifest") else {},
+            notes=description,
+        )
 
         return version
 

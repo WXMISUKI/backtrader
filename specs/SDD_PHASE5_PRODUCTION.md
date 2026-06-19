@@ -290,6 +290,14 @@ class ModelEvaluator:
     """模型评估与发布门禁"""
 ```
 
+#### 当前实现状态
+
+- 已新增 `core/model/governance.py`
+- 已提供模型特征清单、模型记录、发布评估和回滚能力
+- `MLRecommender` 与 `OnlineLearner` 已开始回写治理元数据
+- 智能体工具可查询模型治理状态并执行发布评估
+- 推荐与在线学习保存流程可复用统一治理存储
+
 ---
 
 ### 5.4 监控与告警模块
@@ -441,10 +449,10 @@ class WorkflowExecutor:
 
 ### 7.3 模型治理
 
-- [ ] 实现模型注册表
-- [ ] 实现特征登记
-- [ ] 实现模型评估门禁
-- [ ] 实现回滚机制
+- [x] 实现模型注册表
+- [x] 实现特征登记
+- [x] 实现模型评估门禁
+- [x] 实现回滚机制
 
 ### 7.4 运行保障
 
@@ -534,6 +542,16 @@ class WorkflowExecutor:
 | 回放分析 | P1 | 读取最近命中与原因 |
 | 模板归档 | P1 | 沉淀模板选择经验 |
 
+### Sprint 18: 模型治理与发布门禁
+
+| 任务 | 优先级 | 说明 |
+|------|--------|------|
+| 特征清单 | P0 | 固定训练特征和顺序 |
+| 模型注册 | P0 | 记录版本、指标和产物路径 |
+| 发布评估 | P0 | 基于阈值判断是否可发布 |
+| 稳定版本 | P0 | 标记可用稳定版本 |
+| 回滚 | P1 | 恢复到最近稳定版本 |
+
 ---
 
 ## 9. 质量门槛
@@ -577,7 +595,7 @@ class WorkflowExecutor:
 | Phase 5 SDD 草案 | `specs/SDD_PHASE5_PRODUCTION.md` | ✅ |
 | 统一编排器 | `core/orchestrator.py` | ✅ |
 | 数据治理模块 | `core/data/governance.py` | ✅ |
-| 模型治理模块 | `core/model/` | ⬜ |
+| 模型治理模块 | `core/model/` | ✅ |
 | 监控与告警模块 | `core/observability/` | ⬜ |
 | Phase 5 测试 | `tests/test_phase5.py` | ⬜ |
 

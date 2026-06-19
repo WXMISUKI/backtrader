@@ -17,6 +17,7 @@ from .agent.collaboration import build_collaboration_plan, should_plan_collabora
 from .agent.workflow import execute_collaboration_workflow
 from .agent import build_default_tool_registry
 from .agent.routing import parse_intent
+from .model import get_model_governance_service
 from .data import CacheManager, DataQualityChecker, build_snapshot
 
 
@@ -207,6 +208,8 @@ class StockOrchestrator:
                 cache_key="route:screen_stocks",
                 cache_ttl=300,
             )
+        elif tool_name == "get_model_governance_status":
+            result = self.model_governance_status(model_name=arguments.get("model_name"))
         elif tool_name == "analyze_stock":
             result = self.analyze(
                 stock_code=arguments.get("stock_code", kwargs.get("stock_code", "000001")),
@@ -404,6 +407,26 @@ class StockOrchestrator:
             workflow_id=workflow_id,
             phase=phase,
             event_type=event_type,
+        )
+
+    def model_governance_status(self, model_name: Optional[str] = None) -> dict:
+        """查看模型治理状态。"""
+        return get_model_governance_service().get_status(model_name)
+
+    def evaluate_model_release(
+        self,
+        model_name: str,
+        version: str,
+        *,
+        metrics: Optional[dict] = None,
+        thresholds: Optional[dict] = None,
+    ) -> dict:
+        """评估模型是否可发布。"""
+        return get_model_governance_service().evaluate_release(
+            model_name,
+            version,
+            metrics=metrics,
+            thresholds=thresholds,
         )
 
 
