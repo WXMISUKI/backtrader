@@ -67,6 +67,17 @@ CAPABILITY_ITEMS: List[CapabilityItem] = [
         notes="适合复杂问题的主执行路径。",
     ),
     CapabilityItem(
+        id="workflow.pre_market_overview",
+        name="盘前概览工作流",
+        category="workflow",
+        primary_tool="execute_workflow",
+        support_tools=["get_market_overview", "get_risk_profile", "get_runtime_health", "recommend_by_risk"],
+        when_to_use=["用户问盘前、开盘前、早盘准备", "需要先看市场、风控和系统健康"],
+        fallback_tools=["plan_collaboration", "answer_decision_request"],
+        output_contract=["ok", "tool", "category", "data_source", "summary", "data", "meta"],
+        notes="第一个标准工作流，适合作为日常固定路径。",
+    ),
+    CapabilityItem(
         id="market.overview",
         name="市场概览",
         category="market",
@@ -199,4 +210,3 @@ def build_capability_lookup() -> Dict[str, CapabilityItem]:
         for tool_name in item.fallback_tools:
             lookup.setdefault(tool_name, item)
     return lookup
-

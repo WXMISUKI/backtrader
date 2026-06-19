@@ -40,6 +40,48 @@ class WorkflowTemplate:
 
 WORKFLOW_TEMPLATES: List[WorkflowTemplate] = [
     WorkflowTemplate(
+        id="pre_market_overview",
+        name="盘前概览模板",
+        description="盘前先看市场环境、风控约束、运行健康和风险匹配推荐摘要。",
+        priority=100,
+        keywords=["盘前", "盘前概览", "开盘前", "早盘", "早盘准备", "今日盘前"],
+        trigger_intents=["pre_market_overview", "market_overview", "risk_profile", "runtime_health", "recommend"],
+        task_specs=[
+            {
+                "id": "market",
+                "intent": "market_overview",
+                "tool": "get_market_overview",
+                "role": "market_analyst",
+                "description": "先确认盘前市场环境和情绪信息。",
+                "priority": 10,
+            },
+            {
+                "id": "risk",
+                "intent": "risk_profile",
+                "tool": "get_risk_profile",
+                "role": "risk_guard",
+                "description": "先确认当日风险约束和仓位边界。",
+                "priority": 15,
+            },
+            {
+                "id": "health",
+                "intent": "runtime_health",
+                "tool": "get_runtime_health",
+                "role": "observability_guard",
+                "description": "检查系统运行健康，确认是否存在异常。",
+                "priority": 20,
+            },
+            {
+                "id": "recommend",
+                "intent": "recommend",
+                "tool": "recommend_by_risk",
+                "role": "portfolio_advisor",
+                "description": "给出风险匹配的盘前关注摘要。",
+                "priority": 40,
+            },
+        ],
+    ),
+    WorkflowTemplate(
         id="market_risk_analysis",
         name="市场风控分析模板",
         description="先看市场和风控，再做个股分析并输出报告。",
@@ -312,6 +354,8 @@ def _build_template_reason(
         return f"命中意图 {intent}，使用模板《{template.name}》，评分 {template_score:.1f}。"
     if selected_by == "report_hint":
         return f"报告请求同时包含市场/风控语义，使用模板《{template.name}》，评分 {template_score:.1f}。"
+    if selected_by == "runtime_health":
+        return f"盘前健康检查命中运行健康语义，使用模板《{template.name}》，评分 {template_score:.1f}。"
     if matched_terms:
         return f"命中关键词 {', '.join(str(term) for term in matched_terms[:3])}，使用模板《{template.name}》，评分 {template_score:.1f}。"
     if tool == "execute_workflow" or intent == "workflow":
@@ -342,8 +386,12 @@ def _extract_risk_profile(route: dict, *, default_risk_profile: str) -> str:
 def _build_arguments(intent: str, *, stock_code: str, risk_profile: str) -> dict:
     if intent == "market_overview":
         return {}
+    if intent == "pre_market_overview":
+        return {}
     if intent == "risk_profile":
         return {"risk_profile": risk_profile}
+    if intent == "runtime_health":
+        return {"window_size": 50}
     if intent == "analyze_stock":
         return {"stock_code": stock_code, "risk_profile": risk_profile}
     if intent == "recommend":

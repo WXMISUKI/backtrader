@@ -34,6 +34,13 @@ class IntentRoute:
 
 ROUTE_RULES = [
     {
+        "intent": "pre_market_overview",
+        "tool": "execute_workflow",
+        "priority": 112,
+        "keywords": ["盘前", "盘前概览", "开盘前", "早盘", "早盘准备", "今日盘前"],
+        "confidence": 0.99,
+    },
+    {
         "intent": "capability_directory",
         "tool": "list_project_capabilities",
         "priority": 115,
