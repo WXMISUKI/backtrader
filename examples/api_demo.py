@@ -32,7 +32,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--submit-feedback",
         action="store_true",
-        help="Submit feedback when decision response contains session_id and workflow_id.",
+        help="Submit feedback when decision response contains session_id.",
     )
     parser.add_argument(
         "--accepted",
@@ -79,23 +79,22 @@ def main() -> int:
         if args.submit_feedback:
             session_id = str(decision.get("session_id", "") or "").strip()
             workflow_id = str(decision.get("workflow_id", "") or "").strip()
-            if not session_id or not workflow_id:
-                print("\n跳过 feedback：decision 响应缺少 session_id 或 workflow_id。")
+            if not session_id:
+                print("\n跳过 feedback：decision 响应缺少 session_id。")
                 return 0
 
-            feedback = _request_json(
-                "POST",
-                f"{base_url}/feedback",
-                {
-                    "session_id": session_id,
-                    "workflow_id": workflow_id,
-                    "accepted": bool(args.accepted),
-                    "rating": int(args.rating),
-                    "reason": "",
-                    "correction": "",
-                    "comment": args.comment,
-                },
-            )
+            feedback_payload = {
+                "session_id": session_id,
+                "accepted": bool(args.accepted),
+                "rating": int(args.rating),
+                "reason": "",
+                "correction": "",
+                "comment": args.comment,
+            }
+            if workflow_id:
+                feedback_payload["workflow_id"] = workflow_id
+
+            feedback = _request_json("POST", f"{base_url}/feedback", feedback_payload)
             _print_json("feedback", feedback)
 
         return 0

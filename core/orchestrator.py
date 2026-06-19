@@ -20,7 +20,7 @@ from .agent.workflow import execute_collaboration_workflow
 from .agent.task_protocol import build_task_plan, build_task_result
 from .agent import build_default_tool_registry
 from .agent.routing import parse_intent
-from .agent.session import create_decision_session
+from .agent.session import create_decision_session, submit_decision_feedback
 from .model import get_model_governance_service
 from .data import CacheManager, DataQualityChecker, build_snapshot
 from .observability import get_observability_service
@@ -395,6 +395,61 @@ class StockOrchestrator:
             "task_protocol": result.get("task_protocol", {}),
             "governance": result.get("governance", {}),
         }
+
+    def submit_decision_feedback(
+        self,
+        *,
+        session_id: str,
+        workflow_id: str = "",
+        accepted: Optional[bool] = None,
+        rating: Optional[int] = None,
+        reason: str = "",
+        correction: str = "",
+        comment: str = "",
+    ) -> dict:
+        """提交决策反馈。"""
+        started_at = time.perf_counter()
+        result = submit_decision_feedback(
+            session_id=session_id,
+            workflow_id=workflow_id,
+            accepted=accepted,
+            rating=rating,
+            reason=reason,
+            correction=correction,
+            comment=comment,
+        )
+        duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
+        self.observability.record_metric(
+            "orchestrator.feedback_count",
+            1,
+            source="StockOrchestrator",
+            category="workflow",
+            labels={"accepted": str(bool(result.get("accepted"))).lower()},
+            meta={"session_id": session_id, "workflow_id": result.get("workflow_id", "")},
+        )
+        self.observability.record_latency(
+            "orchestrator.submit_decision_feedback",
+            duration_ms,
+            source="StockOrchestrator",
+            category="workflow",
+            labels={"accepted": str(bool(result.get("accepted"))).lower()},
+            meta={"session_id": session_id, "workflow_id": result.get("workflow_id", "")},
+        )
+        self.observability.record_runtime_event(
+            "orchestrator.submit_decision_feedback",
+            status="ok" if result.get("feedback_id") else "failed",
+            source="StockOrchestrator",
+            category="workflow",
+            duration_ms=duration_ms,
+            data_source=result.get("meta", {}).get("data_source", "decision_feedback"),
+            message="已提交决策反馈。",
+            meta={
+                "session_id": session_id,
+                "workflow_id": result.get("workflow_id", ""),
+                "accepted": result.get("accepted"),
+            },
+        )
+        return result
 
     def plan_collaboration(self, user_input: str, **kwargs) -> dict:
         """根据自然语言生成协作计划。"""

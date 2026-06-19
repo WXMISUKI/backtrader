@@ -279,6 +279,21 @@
 | 22.6 | 编写归档文档 | P1 | ✅ | - | ARCHIVE_PHASE22_STANDARD_WORKFLOW_PORTAL.md |
 | 22.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
+## Phase 23: 最小反馈闭环入口 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE23_MINIMAL_FEEDBACK_LOOP.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 23.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE23_MINIMAL_FEEDBACK_LOOP.md |
+| 23.1 | 允许反馈入口回推 workflow_id | P0 | ✅ | - | `core/agent/session.py` |
+| 23.2 | 扩展编排器反馈方法 | P0 | ✅ | - | `core/orchestrator.py` |
+| 23.3 | 扩展 HTTP API 反馈请求 | P0 | ✅ | - | `core/api_server.py` |
+| 23.4 | 扩展运行时与工具入口 | P1 | ✅ | - | `core/agent/runtime.py` / `core/agent/tools.py` |
+| 23.5 | 更新反馈联调用例 | P1 | ✅ | - | `examples/api_demo.py` |
+| 23.6 | 编写归档文档 | P1 | ✅ | - | ARCHIVE_PHASE23_MINIMAL_FEEDBACK_LOOP.md |
+| 23.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
 ---
 
 ## 已完成任务归档

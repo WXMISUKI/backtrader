@@ -79,8 +79,8 @@ class AgentAPIHandler(BaseHTTPRequestHandler):
         if parsed.path == "/feedback":
             session_id = str(payload.get("session_id", "") or "").strip()
             workflow_id = str(payload.get("workflow_id", "") or "").strip()
-            if not session_id or not workflow_id:
-                self._write_json(400, {"ok": False, "error": "session_id_and_workflow_id_required"})
+            if not session_id:
+                self._write_json(400, {"ok": False, "error": "session_id_required"})
                 return
             result = orchestrator.submit_decision_feedback(
                 session_id=session_id,
@@ -120,4 +120,3 @@ def run_agent_api_server(host: str = "127.0.0.1", port: int = 8000) -> None:
 
 if __name__ == "__main__":
     run_agent_api_server()
-

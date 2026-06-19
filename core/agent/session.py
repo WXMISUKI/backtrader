@@ -143,7 +143,7 @@ class DecisionSessionStore:
         self,
         *,
         session_id: str,
-        workflow_id: str,
+        workflow_id: str = "",
         accepted: Optional[bool] = None,
         rating: Optional[int] = None,
         reason: str = "",
@@ -151,16 +151,24 @@ class DecisionSessionStore:
         comment: str = "",
         meta: Optional[Dict[str, Any]] = None,
     ) -> dict:
+        resolved_workflow_id = str(workflow_id or "").strip()
+        session = self.get_session(session_id) if not resolved_workflow_id and session_id else {}
+        if not resolved_workflow_id and isinstance(session, dict):
+            resolved_workflow_id = str(session.get("workflow_id", "") or "").strip()
+        resolved_meta = dict(meta or {})
+        if session and isinstance(session, dict):
+            resolved_meta.setdefault("session_workflow_id", resolved_workflow_id)
+
         feedback = DecisionFeedback(
             feedback_id=str(uuid.uuid4()),
             session_id=str(session_id or ""),
-            workflow_id=str(workflow_id or ""),
+            workflow_id=resolved_workflow_id,
             accepted=accepted,
             rating=rating,
             reason=reason,
             correction=correction,
             comment=comment,
-            meta=meta or {},
+            meta=resolved_meta,
         )
         payload = feedback.to_dict()
         if not self.enabled:
@@ -301,7 +309,7 @@ def create_decision_session(
 def submit_decision_feedback(
     *,
     session_id: str,
-    workflow_id: str,
+    workflow_id: str = "",
     accepted: Optional[bool] = None,
     rating: Optional[int] = None,
     reason: str = "",
@@ -330,4 +338,3 @@ def get_decision_session_replay(session_id: str) -> dict:
 def get_decision_session_stats(limit: int = 20) -> dict:
     """返回决策会话统计。"""
     return get_decision_session_store().get_session_stats(limit=limit)
-

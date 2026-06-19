@@ -87,7 +87,7 @@ class StockAgentRuntime:
     def submit_decision_feedback(
         self,
         session_id: str,
-        workflow_id: str,
+        workflow_id: str = "",
         *,
         accepted: Optional[bool] = None,
         rating: Optional[int] = None,
