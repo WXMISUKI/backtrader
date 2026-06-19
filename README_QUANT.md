@@ -90,7 +90,25 @@ python examples/api_demo.py --host 127.0.0.1 --port 8000 --submit-feedback
 python examples/backtest_simple.py
 ```
 
-### 5. 使用风险管理器
+### 5. 最小 `curl` 调试示例
+
+```bash
+curl http://127.0.0.1:8000/health
+```
+
+```bash
+curl -X POST http://127.0.0.1:8000/decision ^
+  -H "Content-Type: application/json" ^
+  -d "{\"user_input\":\"请分析 000001，并给出买入/卖出建议和持仓建议。\",\"risk_profile\":\"moderate\"}"
+```
+
+```bash
+curl -X POST http://127.0.0.1:8000/feedback ^
+  -H "Content-Type: application/json" ^
+  -d "{\"session_id\":\"your-session-id\",\"workflow_id\":\"your-workflow-id\",\"accepted\":true,\"rating\":5,\"reason\":\"\",\"correction\":\"\",\"comment\":\"示例反馈\"}"
+```
+
+### 6. 使用风险管理器
 
 ```python
 from core.risk.risk_profiles import RiskManager
@@ -111,7 +129,7 @@ take_profit = rm.calc_take_profit_price(10.0)
 position = rm.calc_position_size(100000, 10.0)  # 10万资金，10元股价
 ```
 
-### 6. 使用智能体接入层
+### 7. 使用智能体接入层
 
 ```bash
 python examples/agent_demo.py "请分析 000001，并给出建议"
