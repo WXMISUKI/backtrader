@@ -49,13 +49,48 @@ backtrader/
 conda activate quant
 ```
 
-### 2. 运行回测示例
+### 2. 启动最小 HTTP API
+
+```bash
+python tools/agent-api.py --host 127.0.0.1 --port 8000
+```
+
+也可以使用安装后的命令：
+
+```bash
+stock-agent-api --host 127.0.0.1 --port 8000
+```
+
+默认支持的环境变量：
+
+- `STOCK_AGENT_API_HOST`
+- `STOCK_AGENT_API_PORT`
+
+### 3. 运行最小联调用例
+
+```bash
+python examples/api_demo.py --host 127.0.0.1 --port 8000
+```
+
+如果希望顺带提交反馈，可以加：
+
+```bash
+python examples/api_demo.py --host 127.0.0.1 --port 8000 --submit-feedback
+```
+
+联调用例会依次检查：
+
+- `GET /health`
+- `POST /decision`
+- 可选 `POST /feedback`
+
+### 4. 运行回测示例
 
 ```bash
 python examples/backtest_simple.py
 ```
 
-### 3. 使用风险管理器
+### 5. 使用风险管理器
 
 ```python
 from core.risk.risk_profiles import RiskManager
@@ -76,7 +111,7 @@ take_profit = rm.calc_take_profit_price(10.0)
 position = rm.calc_position_size(100000, 10.0)  # 10万资金，10元股价
 ```
 
-### 4. 使用智能体接入层
+### 6. 使用智能体接入层
 
 ```bash
 python examples/agent_demo.py "请分析 000001，并给出建议"
@@ -93,6 +128,7 @@ python examples/agent_demo.py "请分析 000001，并给出建议"
 注意：
 - 需要先在 `.env` 中配置 `ARK_API_KEY`
 - 如果真实行情不可用，系统会自动降级到离线模拟数据，并在结果中标记 `mock`
+- 如果你要联调东方财富真实数据，Cookie 需要保持有效；过期后请重新从官网浏览器中获取
 
 ## 功能模块
 
