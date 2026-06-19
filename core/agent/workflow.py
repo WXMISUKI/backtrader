@@ -10,11 +10,13 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 import uuid
+import time
 from typing import Any, Dict, List, Optional
 
 from .audit import RouteAuditLogger, get_route_audit_logger
 from .collaboration import CollaborationPlan, build_collaboration_plan
 from .serialization import build_tool_payload, serialize_value
+from core.observability import get_observability_service
 
 
 @dataclass(frozen=True)
@@ -86,6 +88,8 @@ class WorkflowExecutor:
 
     def execute(self, user_input: str, *, default_risk_profile: str = "moderate") -> dict:
         """生成协作计划并依次执行。"""
+        observability = get_observability_service()
+        started_at = time.perf_counter()
         plan = build_collaboration_plan(user_input, default_risk_profile=default_risk_profile)
         workflow_id = str(uuid.uuid4())
 
@@ -256,6 +260,64 @@ class WorkflowExecutor:
         tool_payload["meta"]["template_hit"] = plan.template_hit
         tool_payload["meta"]["execution_engine"] = "WorkflowExecutor"
         tool_payload["meta"]["step_audit_ids"] = step_audit_ids
+
+        duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
+        observability.record_metric(
+            "workflow.step_count",
+            len(step_results),
+            source="WorkflowExecutor",
+            category="workflow",
+            labels={"workflow_id": workflow_id},
+            meta={"workflow_id": workflow_id},
+        )
+        observability.record_metric(
+            "workflow.fallback_count",
+            fallback_used_count,
+            source="WorkflowExecutor",
+            category="workflow",
+            labels={"workflow_id": workflow_id},
+            meta={"workflow_id": workflow_id},
+        )
+        observability.record_metric(
+            "workflow.failed_step_count",
+            failed_step_count,
+            source="WorkflowExecutor",
+            category="workflow",
+            labels={"workflow_id": workflow_id},
+            meta={"workflow_id": workflow_id},
+        )
+        observability.record_latency(
+            "execute_workflow",
+            duration_ms,
+            source="WorkflowExecutor",
+            category="workflow",
+            labels={"workflow_id": workflow_id, "template_hit": str(plan.template_hit).lower()},
+            meta={
+                "workflow_id": workflow_id,
+                "template_hit": plan.template_hit,
+                "is_degraded": is_degraded,
+                "primary_ok": primary_ok,
+            },
+        )
+        observability.record_runtime_event(
+            "workflow.execute",
+            status="degraded" if is_degraded else "ok",
+            source="WorkflowExecutor",
+            category="workflow",
+            duration_ms=duration_ms,
+            data_source=primary_source,
+            message=summary,
+            meta={
+                "workflow_id": workflow_id,
+                "template_hit": plan.template_hit,
+                "template_id": plan.template_id,
+                "template_name": plan.template_name,
+                "step_count": len(step_results),
+                "fallback_used_count": fallback_used_count,
+                "failed_step_count": failed_step_count,
+                "primary_ok": primary_ok,
+            },
+        )
         return tool_payload
 
     def _execute_task(self, task, prior_steps: List[WorkflowStepResult]) -> tuple[dict, bool, Optional[str], int]:

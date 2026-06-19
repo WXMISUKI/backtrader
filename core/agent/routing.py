@@ -34,6 +34,20 @@ class IntentRoute:
 
 ROUTE_RULES = [
     {
+        "intent": "runtime_health_eval",
+        "tool": "evaluate_runtime_health",
+        "priority": 105,
+        "keywords": ["健康评估", "运行评估", "监控评估", "告警评估", "阈值诊断", "评估", "诊断", "阈值建议", "检查健康"],
+        "confidence": 0.95,
+    },
+    {
+        "intent": "runtime_health",
+        "tool": "get_runtime_health",
+        "priority": 104,
+        "keywords": ["健康", "监控", "告警", "运行状态", "可观测", "异常", "故障"],
+        "confidence": 0.94,
+    },
+    {
         "intent": "workflow",
         "tool": "execute_workflow",
         "priority": 110,
@@ -211,6 +225,13 @@ def _collect_matched_terms(lower_input: str, raw_input: str) -> list[str]:
         "风控",
         "仓位",
         "风险",
+        "健康",
+        "监控",
+        "告警",
+        "运行状态",
+        "可观测",
+        "异常",
+        "故障",
         "模型",
         "版本",
         "特征",
@@ -260,6 +281,13 @@ def _build_arguments(intent: str, stock_code: str, risk_profile: str) -> dict:
         return {}
     if intent == "risk_profile":
         return {"risk_profile": risk_profile}
+    if intent == "runtime_health":
+        return {"window_size": 50}
+    if intent == "runtime_health_eval":
+        return {
+            "window_size": 50,
+            "thresholds": {},
+        }
     if intent == "report":
         return {
             "stock_code": stock_code or "000001",

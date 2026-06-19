@@ -318,15 +318,34 @@ class ModelEvaluator:
 #### 核心接口
 
 ```python
-class MetricsCollector:
-    """指标收集器"""
+class ObservabilityService:
+    """轻量运行保障服务"""
 
-class AlertManager:
-    """告警管理器"""
+    def record_metric(...):
+        pass
 
-class AuditLogger:
-    """审计日志记录器"""
+    def record_latency(...):
+        pass
+
+    def record_runtime_event(...):
+        pass
+
+    def get_health(...):
+        pass
+
+    def evaluate(...):
+        pass
+
+    def recent_alerts(...):
+        pass
 ```
+
+#### 当前实现状态
+
+- 已新增 `core/observability/monitoring.py`
+- 已提供 `get_runtime_health` 与 `evaluate_runtime_health`
+- 工具层已接入中心化运行埋点
+- 工作流与编排层已开始回写运行指标
 
 ---
 
@@ -456,9 +475,9 @@ class WorkflowExecutor:
 
 ### 7.4 运行保障
 
-- [ ] 实现指标收集
-- [ ] 实现告警
-- [ ] 实现审计日志
+- [x] 实现指标收集
+- [x] 实现告警
+- [x] 实现审计日志
 
 ### 7.5 结果输出
 
@@ -552,6 +571,16 @@ class WorkflowExecutor:
 | 稳定版本 | P0 | 标记可用稳定版本 |
 | 回滚 | P1 | 恢复到最近稳定版本 |
 
+### Sprint 19: 运行保障与监控告警
+
+| 任务 | 优先级 | 说明 |
+|------|--------|------|
+| 监控服务 | P0 | 统一收口指标、事件、告警和健康态 |
+| 工具埋点 | P0 | 为工具调用补充成功率、失败率和延迟指标 |
+| 工作流埋点 | P0 | 为协作执行补充 workflow 级健康与耗时 |
+| 健康查询 | P0 | 提供 `get_runtime_health` 查询入口 |
+| 健康评估 | P0 | 提供 `evaluate_runtime_health` 告警入口 |
+
 ---
 
 ## 9. 质量门槛
@@ -596,7 +625,7 @@ class WorkflowExecutor:
 | 统一编排器 | `core/orchestrator.py` | ✅ |
 | 数据治理模块 | `core/data/governance.py` | ✅ |
 | 模型治理模块 | `core/model/` | ✅ |
-| 监控与告警模块 | `core/observability/` | ⬜ |
+| 监控与告警模块 | `core/observability/` | ✅ |
 | Phase 5 测试 | `tests/test_phase5.py` | ⬜ |
 
 ---

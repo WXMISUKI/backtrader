@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import time
 from typing import Any, Callable, Dict, List
 
 from .collaboration import build_collaboration_plan
@@ -18,6 +19,11 @@ from .workflow_templates import list_workflow_templates
 from .workflow import execute_collaboration_workflow
 from .serialization import build_tool_payload, serialize_value
 from core.model import get_model_governance_service
+from core.observability import (
+    evaluate_runtime_health as evaluate_runtime_health_snapshot,
+    get_observability_service,
+    get_runtime_health as get_runtime_health_snapshot,
+)
 
 
 @dataclass(frozen=True)
@@ -64,6 +70,7 @@ class ProjectToolRegistry:
     def dispatch(self, name: str, arguments: Any) -> dict:
         """执行工具调用并返回标准响应。"""
         tool = self.get(name)
+        observability = get_observability_service()
 
         if isinstance(arguments, str):
             arguments = arguments.strip()
@@ -73,14 +80,148 @@ class ProjectToolRegistry:
         else:
             params = {}
 
-        result = tool.handler(params)
+        started_at = time.perf_counter()
+        try:
+            result = tool.handler(params)
+        except Exception as exc:
+            duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
+            category = _tool_category(tool.name)
+            observability.record_metric(
+                "tool.failure_count",
+                1,
+                source=tool.name,
+                category=category,
+                labels={"status": "exception"},
+                meta={"error": str(exc)},
+            )
+            observability.record_latency(
+                tool.name,
+                duration_ms,
+                source=tool.name,
+                category=category,
+                labels={"status": "exception", "tool": tool.name},
+                meta={"error": str(exc)},
+            )
+            observability.record_runtime_event(
+                "tool.dispatch",
+                status="failed",
+                source=tool.name,
+                category=category,
+                duration_ms=duration_ms,
+                message=f"工具执行失败: {exc}",
+                meta={
+                    "tool": tool.name,
+                    "arguments_keys": list(params.keys()),
+                    "error": str(exc),
+                },
+            )
+            raise
+
+        duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
         if isinstance(result, dict) and {"ok", "tool", "data"}.issubset(result.keys()):
-            return result
-        return build_tool_payload(tool.name, result)
+            payload = result
+        else:
+            payload = build_tool_payload(tool.name, result)
+
+        category = str(payload.get("category") or _tool_category(tool.name))
+        data_source = payload.get("data_source")
+        ok = bool(payload.get("ok", False))
+        degraded = bool(payload.get("meta", {}).get("is_degraded")) or data_source in {"mock", "fallback"}
+        status = "failed" if not ok else ("degraded" if degraded else "ok")
+
+        observability.record_metric(
+            "tool.call_count",
+            1,
+            source=tool.name,
+            category=category,
+            labels={"status": status},
+            meta={"tool": tool.name},
+        )
+        if ok:
+            observability.record_metric(
+                "tool.success_count",
+                1,
+                source=tool.name,
+                category=category,
+                labels={"status": status},
+                meta={"tool": tool.name},
+            )
+        else:
+            observability.record_metric(
+                "tool.failure_count",
+                1,
+                source=tool.name,
+                category=category,
+                labels={"status": status},
+                meta={"tool": tool.name},
+            )
+        if degraded and ok:
+            observability.record_metric(
+                "tool.degraded_count",
+                1,
+                source=tool.name,
+                category=category,
+                labels={"status": status},
+                meta={"tool": tool.name},
+            )
+        observability.record_latency(
+            tool.name,
+            duration_ms,
+            source=tool.name,
+            category=category,
+            labels={"status": status, "tool": tool.name},
+            meta={"tool": tool.name},
+        )
+        observability.record_runtime_event(
+            "tool.dispatch",
+            status=status,
+            source=tool.name,
+            category=category,
+            duration_ms=duration_ms,
+            data_source=data_source,
+            message=str(payload.get("summary", "")),
+            meta={
+                "tool": tool.name,
+                "category": category,
+                "ok": ok,
+                "degraded": degraded,
+                "arguments_keys": list(params.keys()),
+                "summary": payload.get("summary", ""),
+            },
+        )
+        return payload
 
 
 def _tool_response(name: str, data: Any, summary: str = "") -> dict:
     return build_tool_payload(name, data, summary)
+
+
+def _runtime_tool_response(name: str, data: Any, summary: str = "", *, ok: Optional[bool] = None) -> dict:
+    payload = build_tool_payload(name, data, summary)
+    if ok is not None:
+        payload["ok"] = bool(ok)
+    return payload
+
+
+def _tool_category(tool_name: str) -> str:
+    """推断工具分类，供监控埋点使用。"""
+    if tool_name in {"plan_collaboration", "execute_workflow", "list_workflow_templates", "get_workflow_template_stats"}:
+        return "workflow"
+    if tool_name in {"get_model_governance_status", "evaluate_model_release"}:
+        return "model"
+    if tool_name in {"run_backtest"}:
+        return "backtest"
+    if tool_name in {"recommend_long_term", "recommend_short_term", "recommend_by_risk"}:
+        return "recommendation"
+    if tool_name in {"get_market_overview"}:
+        return "market"
+    if tool_name in {"get_risk_profile"}:
+        return "risk"
+    if tool_name in {"get_runtime_health", "evaluate_runtime_health"}:
+        return "observability"
+    if tool_name in {"generate_stock_report"}:
+        return "report"
+    return "analysis"
 
 
 def _wrap_governed_data(data: Any, *, source: str, is_degraded: bool = False, reason: str = "", quality: dict | None = None, meta: dict | None = None) -> dict:
@@ -123,6 +264,32 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
     from skills.stock_report import generate_stock_report
     from skills.stock_selector import screen_stocks
     from skills.trading_advisor import analyze_stock as analyze_trading_stock
+
+    def _get_runtime_health(params: dict) -> dict:
+        return _runtime_tool_response(
+            "get_runtime_health",
+            get_runtime_health_snapshot(
+                window_size=int(params.get("window_size", 50) or 50),
+                category=params.get("category"),
+                tool_name=params.get("tool_name"),
+            ),
+            "已返回运行健康状态。",
+            ok=True,
+        )
+
+    def _evaluate_runtime_health(params: dict) -> dict:
+        evaluation = evaluate_runtime_health_snapshot(
+            window_size=int(params.get("window_size", 50) or 50),
+            category=params.get("category"),
+            tool_name=params.get("tool_name"),
+            thresholds=params.get("thresholds") or {},
+        )
+        return _runtime_tool_response(
+            "evaluate_runtime_health",
+            evaluation,
+            "已完成运行健康评估。",
+            ok=evaluation.get("status", "ok") != "critical",
+        )
 
     registry.register(
         ToolSpec(
@@ -245,6 +412,41 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                 ),
                 "已完成模型发布评估。",
             ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="get_runtime_health",
+            description="查看当前运行健康状态、最近事件和最近告警。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "window_size": {"type": "integer", "minimum": 1, "maximum": 500, "default": 50},
+                    "category": {"type": "string", "description": "可选的分类过滤，如 workflow、analysis、recommendation"},
+                    "tool_name": {"type": "string", "description": "可选的工具名称过滤"},
+                },
+                "additionalProperties": False,
+            },
+            handler=_get_runtime_health,
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="evaluate_runtime_health",
+            description="根据阈值评估运行健康并在必要时生成告警。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "window_size": {"type": "integer", "minimum": 1, "maximum": 500, "default": 50},
+                    "category": {"type": "string", "description": "可选的分类过滤，如 workflow、analysis、recommendation"},
+                    "tool_name": {"type": "string", "description": "可选的工具名称过滤"},
+                    "thresholds": {"type": "object", "description": "可选阈值配置"},
+                },
+                "additionalProperties": False,
+            },
+            handler=_evaluate_runtime_health,
         )
     )
 

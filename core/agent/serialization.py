@@ -130,6 +130,8 @@ def _infer_category(tool_name: str) -> str:
         return "market"
     if tool_name in {"get_risk_profile"}:
         return "risk"
+    if tool_name in {"get_runtime_health", "evaluate_runtime_health"}:
+        return "observability"
     if tool_name in {"generate_stock_report"}:
         return "report"
     return "analysis"

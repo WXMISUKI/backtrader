@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
+import time
 from typing import Any, Dict, Optional
 
 from .agent.audit import RouteAuditLogger, get_route_audit_logger
@@ -19,6 +20,7 @@ from .agent import build_default_tool_registry
 from .agent.routing import parse_intent
 from .model import get_model_governance_service
 from .data import CacheManager, DataQualityChecker, build_snapshot
+from .observability import get_observability_service
 
 
 @dataclass(frozen=True)
@@ -55,6 +57,7 @@ class StockOrchestrator:
         self.cache = CacheManager()
         self.quality = DataQualityChecker()
         self.audit_logger = audit_logger or get_route_audit_logger()
+        self.observability = get_observability_service()
 
     def analyze(self, stock_code: str, risk_profile: str = "moderate") -> dict:
         """执行个股分析。"""
@@ -138,6 +141,7 @@ class StockOrchestrator:
 
         该入口用于智能体或上层控制器直接调用。
         """
+        route_started_at = time.perf_counter()
         route = self.parse_intent(user_input)
         collaboration_recommended = should_plan_collaboration(route)
         tool_name = route.get("tool", "recommend_by_risk")
@@ -175,6 +179,18 @@ class StockOrchestrator:
             result = self.execute_workflow(
                 user_input,
                 risk_profile=arguments.get("risk_profile", kwargs.get("risk_profile", "moderate")),
+            )
+        elif tool_name == "get_runtime_health":
+            result = self._dispatch(
+                action="observability",
+                tool_name=tool_name,
+                arguments=arguments or {"window_size": 50},
+            )
+        elif tool_name == "evaluate_runtime_health":
+            result = self._dispatch(
+                action="observability",
+                tool_name=tool_name,
+                arguments=arguments or {"window_size": 50, "thresholds": {}},
             )
         elif tool_name == "analyze_fundamental":
             result = self._dispatch_with_data_governance(
@@ -229,6 +245,39 @@ class StockOrchestrator:
         governance["collaboration_recommended"] = collaboration_recommended
         result["meta"] = result_meta
         result["governance"] = governance
+        route_duration_ms = round((time.perf_counter() - route_started_at) * 1000.0, 3)
+        route_status = "degraded" if bool(governance.get("is_degraded")) else ("failed" if not bool(result.get("ok", True)) else "ok")
+        self.observability.record_metric(
+            "orchestrator.route_count",
+            1,
+            source="StockOrchestrator",
+            category="workflow",
+            labels={"tool": str(route.get("tool", "")), "status": route_status},
+            meta={"collaboration_recommended": collaboration_recommended},
+        )
+        self.observability.record_latency(
+            "orchestrator.route",
+            route_duration_ms,
+            source="StockOrchestrator",
+            category="workflow",
+            labels={"tool": str(route.get("tool", "")), "status": route_status},
+            meta={"collaboration_recommended": collaboration_recommended},
+        )
+        self.observability.record_runtime_event(
+            "orchestrator.route",
+            status=route_status,
+            source="StockOrchestrator",
+            category="workflow",
+            duration_ms=route_duration_ms,
+            data_source=result.get("data_source"),
+            message=str(result.get("summary", "")),
+            meta={
+                "tool": route.get("tool", ""),
+                "cache_hit": bool(governance.get("cache_hit")),
+                "is_degraded": bool(governance.get("is_degraded")),
+                "collaboration_recommended": collaboration_recommended,
+            },
+        )
         audit_entry = self.audit_logger.record(
             entrypoint="orchestrator.route",
             input_text=user_input,
@@ -247,6 +296,7 @@ class StockOrchestrator:
 
     def plan_collaboration(self, user_input: str, **kwargs) -> dict:
         """根据自然语言生成协作计划。"""
+        started_at = time.perf_counter()
         default_risk_profile = kwargs.get("risk_profile", "moderate")
         plan = build_collaboration_plan(user_input, default_risk_profile=default_risk_profile)
         audit_entry = self.audit_logger.record(
@@ -284,10 +334,45 @@ class StockOrchestrator:
             "task_count": len(plan.tasks),
             "route_audit_id": audit_entry.get("id"),
         }
+        duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
+        self.observability.record_metric(
+            "orchestrator.plan_count",
+            1,
+            source="StockOrchestrator",
+            category="workflow",
+            labels={"mode": plan.mode},
+            meta={"task_count": len(plan.tasks)},
+        )
+        self.observability.record_latency(
+            "orchestrator.plan_collaboration",
+            duration_ms,
+            source="StockOrchestrator",
+            category="workflow",
+            labels={"mode": plan.mode},
+            meta={"task_count": len(plan.tasks)},
+        )
+        self.observability.record_runtime_event(
+            "orchestrator.plan_collaboration",
+            status="ok",
+            source="StockOrchestrator",
+            category="workflow",
+            duration_ms=duration_ms,
+            data_source=plan.data_source,
+            message=plan.summary,
+            meta={
+                "planner_version": plan.meta.get("planner_version"),
+                "collaboration_recommended": plan.meta.get("collaboration_recommended", False),
+                "task_count": len(plan.tasks),
+                "template_hit": plan.template_hit,
+                "template_id": plan.template_id,
+                "template_name": plan.template_name,
+            },
+        )
         return payload
 
     def execute_workflow(self, user_input: str, **kwargs) -> dict:
         """执行协作工作流。"""
+        started_at = time.perf_counter()
         default_risk_profile = kwargs.get("risk_profile", "moderate")
         result = execute_collaboration_workflow(
             user_input,
@@ -299,6 +384,39 @@ class StockOrchestrator:
             result.setdefault("meta", {})["orchestrator"] = "StockOrchestrator"
             result.setdefault("governance", {})["workflow_mode"] = result.get("data", {}).get("mode")
             result["governance"]["is_degraded"] = result.get("meta", {}).get("is_degraded", False)
+            duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
+            self.observability.record_metric(
+                "orchestrator.workflow_count",
+                1,
+                source="StockOrchestrator",
+                category="workflow",
+                labels={"workflow_mode": str(result.get("data", {}).get("mode", ""))},
+                meta={"workflow_id": result.get("meta", {}).get("workflow_id")},
+            )
+            self.observability.record_latency(
+                "orchestrator.execute_workflow",
+                duration_ms,
+                source="StockOrchestrator",
+                category="workflow",
+                labels={"workflow_mode": str(result.get("data", {}).get("mode", ""))},
+                meta={"workflow_id": result.get("meta", {}).get("workflow_id")},
+            )
+            self.observability.record_runtime_event(
+                "orchestrator.execute_workflow",
+                status="degraded" if result.get("meta", {}).get("is_degraded") else "ok",
+                source="StockOrchestrator",
+                category="workflow",
+                duration_ms=duration_ms,
+                data_source=result.get("data_source"),
+                message=str(result.get("summary", "")),
+                meta={
+                    "workflow_id": result.get("meta", {}).get("workflow_id"),
+                    "plan_audit_id": result.get("meta", {}).get("plan_audit_id"),
+                    "route_audit_id": result.get("meta", {}).get("route_audit_id"),
+                    "result_audit_id": result.get("meta", {}).get("result_audit_id"),
+                    "is_degraded": result.get("meta", {}).get("is_degraded", False),
+                },
+            )
         return result
 
     def _dispatch(self, action: str, tool_name: str, arguments: dict) -> dict:
@@ -330,6 +448,7 @@ class StockOrchestrator:
         cache_key: str,
         cache_ttl: int,
     ) -> dict:
+        started_at = time.perf_counter()
         cached = self.cache.get(cache_key)
         if cached is not None:
             payload = dict(cached) if isinstance(cached, dict) else {"data": cached}
@@ -348,6 +467,38 @@ class StockOrchestrator:
                     "summary": "已从缓存返回结果。",
                     "governance": governance,
                 }
+            )
+            duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
+            self.observability.record_metric(
+                "orchestrator.cache_hit_count",
+                1,
+                source="StockOrchestrator",
+                category=action,
+                labels={"tool": tool_name, "cache_hit": "true"},
+                meta={"cache_key": cache_key},
+            )
+            self.observability.record_latency(
+                f"orchestrator.{action}",
+                duration_ms,
+                source="StockOrchestrator",
+                category=action,
+                labels={"tool": tool_name, "cache_hit": "true"},
+                meta={"cache_key": cache_key},
+            )
+            self.observability.record_runtime_event(
+                f"orchestrator.{action}",
+                status="degraded" if bool(governance.get("is_degraded")) else "ok",
+                source="StockOrchestrator",
+                category=action,
+                duration_ms=duration_ms,
+                data_source=payload.get("data_source"),
+                message=str(payload.get("summary", "")),
+                meta={
+                    "tool": tool_name,
+                    "cache_key": cache_key,
+                    "cache_hit": True,
+                    "is_degraded": bool(governance.get("is_degraded")),
+                },
             )
             return payload
 
@@ -369,6 +520,39 @@ class StockOrchestrator:
             },
         }
         self.cache.set(cache_key, governed_payload, ttl=cache_ttl)
+        duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
+        self.observability.record_metric(
+            "orchestrator.cache_miss_count",
+            1,
+            source="StockOrchestrator",
+            category=action,
+            labels={"tool": tool_name, "cache_hit": "false"},
+            meta={"cache_key": cache_key},
+        )
+        self.observability.record_latency(
+            f"orchestrator.{action}",
+            duration_ms,
+            source="StockOrchestrator",
+            category=action,
+            labels={"tool": tool_name, "cache_hit": "false"},
+            meta={"cache_key": cache_key},
+        )
+        self.observability.record_runtime_event(
+            f"orchestrator.{action}",
+            status="degraded" if is_degraded else ("failed" if not bool(result.get("ok", True)) else "ok"),
+            source="StockOrchestrator",
+            category=action,
+            duration_ms=duration_ms,
+            data_source=result.get("data_source"),
+            message=str(result.get("summary", "")),
+            meta={
+                "tool": tool_name,
+                "cache_key": cache_key,
+                "cache_hit": False,
+                "is_degraded": is_degraded,
+                "quality_ok": bool(quality.get("ok", True)),
+            },
+        )
         return governed_payload
 
     def _infer_governance(self, tool_result: dict, data: Any) -> dict:
@@ -411,7 +595,36 @@ class StockOrchestrator:
 
     def model_governance_status(self, model_name: Optional[str] = None) -> dict:
         """查看模型治理状态。"""
-        return get_model_governance_service().get_status(model_name)
+        started_at = time.perf_counter()
+        result = get_model_governance_service().get_status(model_name)
+        duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
+        self.observability.record_metric(
+            "orchestrator.model_governance_count",
+            1,
+            source="StockOrchestrator",
+            category="model",
+            labels={"model_name": model_name or ""},
+            meta={"model_name": model_name or ""},
+        )
+        self.observability.record_latency(
+            "orchestrator.model_governance_status",
+            duration_ms,
+            source="StockOrchestrator",
+            category="model",
+            labels={"model_name": model_name or ""},
+            meta={"model_name": model_name or ""},
+        )
+        self.observability.record_runtime_event(
+            "orchestrator.model_governance_status",
+            status="ok",
+            source="StockOrchestrator",
+            category="model",
+            duration_ms=duration_ms,
+            data_source=result.get("data_source"),
+            message=str(result.get("summary", "")),
+            meta={"model_name": model_name or ""},
+        )
+        return result
 
     def evaluate_model_release(
         self,
@@ -422,12 +635,46 @@ class StockOrchestrator:
         thresholds: Optional[dict] = None,
     ) -> dict:
         """评估模型是否可发布。"""
-        return get_model_governance_service().evaluate_release(
+        started_at = time.perf_counter()
+        result = get_model_governance_service().evaluate_release(
             model_name,
             version,
             metrics=metrics,
             thresholds=thresholds,
         )
+        duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
+        self.observability.record_metric(
+            "orchestrator.model_release_check_count",
+            1,
+            source="StockOrchestrator",
+            category="model",
+            labels={"model_name": model_name, "version": version},
+            meta={"model_name": model_name, "version": version},
+        )
+        self.observability.record_latency(
+            "orchestrator.evaluate_model_release",
+            duration_ms,
+            source="StockOrchestrator",
+            category="model",
+            labels={"model_name": model_name, "version": version},
+            meta={"model_name": model_name, "version": version},
+        )
+        self.observability.record_runtime_event(
+            "orchestrator.evaluate_model_release",
+            status="ok" if result.get("ok") else "failed",
+            source="StockOrchestrator",
+            category="model",
+            duration_ms=duration_ms,
+            data_source=result.get("data_source"),
+            message=str(result.get("decision", {}).get("decision", "")),
+            meta={
+                "model_name": model_name,
+                "version": version,
+                "decision": result.get("decision", {}).get("decision"),
+                "score": result.get("decision", {}).get("score"),
+            },
+        )
+        return result
 
 
 def create_stock_orchestrator(tool_registry=None) -> StockOrchestrator:
