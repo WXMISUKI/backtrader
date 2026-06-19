@@ -15,6 +15,8 @@ from typing import Any
 
 import numpy as np
 
+from .output_contract import TOOL_OUTPUT_FIELDS
+
 try:
     import pandas as pd
 except ImportError:  # pragma: no cover
@@ -96,6 +98,8 @@ def dumps_json(value: Any, *, ensure_ascii: bool = False, indent: int = 2) -> st
 
 def build_tool_payload(tool_name: str, data: Any, summary: str = "") -> dict:
     """构造标准工具响应。"""
+    # 输出遵循统一字段契约：ok/tool/category/data_source/summary/data/meta
+    _ = TOOL_OUTPUT_FIELDS
     category = _infer_category(tool_name)
     data_source = _infer_data_source(data)
 

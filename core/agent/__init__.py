@@ -14,6 +14,7 @@ from .workflow_templates import WorkflowTemplate, build_template_task_specs, lis
 from .template_metrics import get_workflow_template_stats, record_workflow_template_usage
 from .workflow import WorkflowExecutionResult, WorkflowExecutor, WorkflowStepResult, execute_collaboration_workflow
 from .task_protocol import TaskPlan, TaskResult, TaskStep, build_task_plan, build_task_result, build_task_step
+from .output_contract import GOVERNANCE_FIELDS, REPLAY_FIELDS, TASK_PROTOCOL_FIELDS, TOOL_OUTPUT_FIELDS
 from .replay import get_workflow_learning_stats, get_workflow_replay
 from .client import ArkAgentClient
 from .runtime import StockAgentRuntime, create_stock_agent_runtime
@@ -45,6 +46,10 @@ __all__ = [
     "build_task_plan",
     "build_task_result",
     "build_task_step",
+    "TOOL_OUTPUT_FIELDS",
+    "TASK_PROTOCOL_FIELDS",
+    "GOVERNANCE_FIELDS",
+    "REPLAY_FIELDS",
     "get_workflow_replay",
     "get_workflow_learning_stats",
     "ArkAgentClient",
