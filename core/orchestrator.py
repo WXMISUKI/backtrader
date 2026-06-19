@@ -378,8 +378,14 @@ class StockOrchestrator:
             "scenario": result.get("scenario", "workflow"),
             "summary": result.get("summary", ""),
             "decision": {
-                "conclusion": decision.get("conclusion", ""),
-                "next_action": decision.get("next_action", "查看会话并决定是否采纳"),
+                "结论": decision.get("结论", decision.get("conclusion", "")),
+                "依据": decision.get("依据", decision.get("basis", [])),
+                "风险": decision.get("风险", decision.get("risk")),
+                "下一步动作": decision.get("下一步动作", decision.get("next_action", "查看会话并决定是否采纳")),
+                "conclusion": decision.get("conclusion", decision.get("结论", "")),
+                "basis": decision.get("basis", decision.get("依据", [])),
+                "risk": decision.get("risk", decision.get("风险")),
+                "next_action": decision.get("next_action", decision.get("下一步动作", "查看会话并决定是否采纳")),
                 "confidence": decision.get("confidence"),
             },
             "data_source": result.get("data_source"),
@@ -554,6 +560,7 @@ class StockOrchestrator:
             basis.append(summary)
         conclusion = summary or f"已完成 {tool}。"
         risk = data.get("risk") if isinstance(data, dict) else None
+        next_action = self._infer_next_action(route=route, result=result)
         confidence = None
         if isinstance(data, dict):
             for key in ("confidence", "score", "signal_strength", "signal"):
@@ -562,12 +569,32 @@ class StockOrchestrator:
                     confidence = float(value)
                     break
         return {
+            "结论": conclusion,
+            "依据": basis[:5],
+            "风险": risk,
+            "下一步动作": next_action,
             "conclusion": conclusion,
             "basis": basis[:5],
             "risk": risk,
-            "next_action": "查看会话并决定是否采纳",
+            "next_action": next_action,
             "confidence": confidence,
         }
+
+    def _infer_next_action(self, *, route: dict, result: dict) -> str:
+        """根据当前结果给出下一步动作。"""
+        tool = str(result.get("tool", route.get("tool", "")))
+        intent = str(route.get("intent", ""))
+        if tool == "execute_workflow":
+            return "查看 workflow 结果并决定是否复盘或继续执行"
+        if tool == "answer_decision_request":
+            return "查看会话并决定是否采纳"
+        if intent in {"review_report", "standard_workflow_portal"}:
+            return "先确认结论，再根据建议调整下一次执行"
+        if tool == "run_backtest":
+            return "结合回测结果调整策略或风险参数"
+        if tool in {"get_market_overview", "get_risk_profile"}:
+            return "结合当前环境再决定是否进入分析或工作流"
+        return "根据结果决定是否继续追问或执行下一步"
 
     def _dispatch_with_data_governance(
         self,
