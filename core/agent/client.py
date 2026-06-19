@@ -13,7 +13,10 @@ from typing import Optional
 
 from openai import OpenAI
 
+from .collaboration import build_collaboration_plan, should_plan_collaboration
+from .audit import RouteAuditLogger, get_route_audit_logger
 from .config import AgentSettings, load_agent_settings
+from .routing import parse_intent
 from .tools import ProjectToolRegistry, build_default_tool_registry
 
 
@@ -21,6 +24,8 @@ DEFAULT_SYSTEM_PROMPT = """你是一个中文股票量化投顾智能体。
 
 你必须优先使用工具来获取事实数据，不要凭空编造价格、指标、财务数据或回测结果。
 当用户询问个股分析、基本面、市场概览、选股、交易决策、回测、风险控制或报告时，请调用对应工具。
+如果同一个问题里同时包含多个分析、回测、风控或报告目标，请优先调用 plan_collaboration 先生成协作计划，再决定后续工具调用顺序。
+如果同一个问题里同时包含多个分析、回测、风控或报告目标，并且工具可用，请优先调用 execute_workflow 直接执行完整协作工作流。
 
 回答要求：
 - 使用中文
@@ -42,9 +47,11 @@ class ArkAgentClient:
         settings: Optional[AgentSettings] = None,
         tool_registry: Optional[ProjectToolRegistry] = None,
         client: Optional[OpenAI] = None,
+        audit_logger: Optional[RouteAuditLogger] = None,
     ) -> None:
         self.settings = settings or load_agent_settings()
         self.tool_registry = tool_registry or build_default_tool_registry()
+        self.audit_logger = audit_logger or get_route_audit_logger()
 
         if client is not None:
             self.client = client
@@ -69,7 +76,19 @@ class ArkAgentClient:
         ]
 
         tools = self.tool_registry.to_openai_tools()
-        preferred_tool = self._infer_preferred_tool(user_input)
+        route = self.parse_intent(user_input)
+        collaboration_recommended = should_plan_collaboration(route)
+        preferred_tool = self._infer_preferred_tool(user_input, route=route)
+        self.audit_logger.record(
+            entrypoint="agent.ask",
+            input_text=user_input,
+            route=route,
+            notes=f"preferred_tool={preferred_tool}",
+            meta={
+                "system_prompt_provided": bool(system_prompt),
+                "collaboration_recommended": collaboration_recommended,
+            },
+        )
 
         for round_index in range(max_rounds):
             tool_choice = (
@@ -132,27 +151,64 @@ class ArkAgentClient:
 
         raise RuntimeError("超过最大工具调用轮次，仍未收敛到最终回答。")
 
-    def _infer_preferred_tool(self, user_input: str) -> str:
+    def _infer_preferred_tool(self, user_input: str, route: Optional[dict] = None) -> str:
         """根据用户输入做轻量路由，优先选择最相关的工具。"""
-        text = user_input.lower()
+        if route is None:
+            route = self.parse_intent(user_input)
+        return self._infer_preferred_tool_from_route(route)
 
-        if "回测" in user_input or "backtest" in text:
-            return "run_backtest"
-        if "市场" in user_input or "大盘" in user_input or "market" in text:
-            return "get_market_overview"
-        if "基本面" in user_input:
-            return "analyze_fundamental"
-        if "长线" in user_input:
-            return "recommend_long_term"
-        if "短线" in user_input:
-            return "recommend_short_term"
-        if "风控" in user_input or "仓位" in user_input or "风险" in user_input:
-            return "get_risk_profile"
-        if "选股" in user_input or "筛选" in user_input:
-            return "screen_stocks"
-        if any(keyword in user_input for keyword in ["推荐", "适合", "买什么", "买哪些", "配置"]):
-            return "recommend_by_risk"
-        if any(keyword in user_input for keyword in ["分析", "建议", "报告", "买", "卖"]):
-            return "analyze_stock"
+    def _infer_preferred_tool_from_route(self, route: dict) -> str:
+        """根据路由结果选择首轮工具。"""
+        if should_plan_collaboration(route):
+            if "execute_workflow" in self.tool_registry.list_tools():
+                return "execute_workflow"
+            if "plan_collaboration" in self.tool_registry.list_tools():
+                return "plan_collaboration"
+        return route.get("tool", "")
 
-        return ""
+    def plan_collaboration(self, user_input: str) -> dict:
+        """直接生成协作计划，供上层调用或调试。"""
+        plan = build_collaboration_plan(user_input, default_risk_profile=self.settings.default_risk_profile)
+        audit_entry = self.audit_logger.record(
+            entrypoint="agent.plan_collaboration",
+            input_text=user_input,
+            route=plan.route,
+            data_source=plan.data_source,
+            notes=f"mode={plan.mode}",
+            meta={
+                "planner_version": plan.meta.get("planner_version"),
+                "collaboration_recommended": plan.meta.get("collaboration_recommended", False),
+                "task_count": len(plan.tasks),
+            },
+        )
+        payload = plan.to_dict()
+        payload.setdefault("meta", {})["route_audit_id"] = audit_entry.get("id")
+        return payload
+
+    def execute_workflow(self, user_input: str) -> dict:
+        """直接执行协作工作流，返回统一工作流结果。"""
+        result = self.tool_registry.dispatch(
+            "execute_workflow",
+            {
+                "user_input": user_input,
+                "risk_profile": self.settings.default_risk_profile,
+            },
+        )
+        if isinstance(result, dict):
+            audit_entry = self.audit_logger.record(
+                entrypoint="agent.execute_workflow",
+                input_text=user_input,
+                route=result.get("data", {}).get("plan", {}).get("route", {}),
+                data_source=result.get("data_source"),
+                notes=f"workflow_id={result.get('meta', {}).get('workflow_id', '')}",
+                meta={
+                    "workflow_id": result.get("meta", {}).get("workflow_id"),
+                    "route_audit_id": result.get("meta", {}).get("route_audit_id"),
+                },
+            )
+            result.setdefault("meta", {})["agent_audit_id"] = audit_entry.get("id")
+        return result
+
+    def parse_intent(self, user_input: str) -> dict:
+        """解析自然语言并返回结构化路由结果。"""
+        return parse_intent(user_input, default_risk_profile=self.settings.default_risk_profile).to_dict()

@@ -12,6 +12,8 @@ from dataclasses import dataclass
 import json
 from typing import Any, Callable, Dict, List
 
+from .collaboration import build_collaboration_plan
+from .workflow import execute_collaboration_workflow
 from .serialization import build_tool_payload, serialize_value
 
 
@@ -132,6 +134,51 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                 "list_project_tools",
                 {"tools": registry.list_tools()},
                 "已返回项目工具列表。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="plan_collaboration",
+            description="将用户需求拆解为主任务、支持任务和执行顺序，供智能体进行协作规划。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "user_input": {"type": "string", "description": "用户的原始自然语言需求"},
+                    "risk_profile": {"type": "string", "enum": ["conservative", "moderate", "aggressive"]},
+                },
+                "required": ["user_input"],
+                "additionalProperties": False,
+            },
+            handler=lambda params: _tool_response(
+                "plan_collaboration",
+                build_collaboration_plan(
+                    params["user_input"],
+                    default_risk_profile=params.get("risk_profile", "moderate"),
+                ).to_dict(),
+                "已生成协作计划。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="execute_workflow",
+            description="将用户需求先规划再执行，串联市场、风控、分析、回测和报告等能力。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "user_input": {"type": "string", "description": "用户的原始自然语言需求"},
+                    "risk_profile": {"type": "string", "enum": ["conservative", "moderate", "aggressive"]},
+                },
+                "required": ["user_input"],
+                "additionalProperties": False,
+            },
+            handler=lambda params: execute_collaboration_workflow(
+                params["user_input"],
+                registry,
+                default_risk_profile=params.get("risk_profile", "moderate"),
             ),
         )
     )

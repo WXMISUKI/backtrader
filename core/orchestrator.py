@@ -10,10 +10,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timezone
-import re
 from typing import Any, Dict, Optional
 
+from .agent.audit import RouteAuditLogger, get_route_audit_logger
+from .agent.collaboration import build_collaboration_plan, should_plan_collaboration
+from .agent.workflow import execute_collaboration_workflow
 from .agent import build_default_tool_registry
+from .agent.routing import parse_intent
 from .data import CacheManager, DataQualityChecker, build_snapshot
 
 
@@ -46,10 +49,11 @@ class OrchestratorResult:
 class StockOrchestrator:
     """统一编排器。"""
 
-    def __init__(self, tool_registry=None) -> None:
+    def __init__(self, tool_registry=None, audit_logger: Optional[RouteAuditLogger] = None) -> None:
         self.tool_registry = tool_registry or build_default_tool_registry()
         self.cache = CacheManager()
         self.quality = DataQualityChecker()
+        self.audit_logger = audit_logger or get_route_audit_logger()
 
     def analyze(self, stock_code: str, risk_profile: str = "moderate") -> dict:
         """执行个股分析。"""
@@ -133,42 +137,164 @@ class StockOrchestrator:
 
         该入口用于智能体或上层控制器直接调用。
         """
-        text = user_input.strip()
-        lower = text.lower()
-        stock_code = self._extract_stock_code(text)
-        risk_profile = kwargs.get("risk_profile", "moderate")
+        route = self.parse_intent(user_input)
+        collaboration_recommended = should_plan_collaboration(route)
+        tool_name = route.get("tool", "recommend_by_risk")
+        arguments = dict(route.get("arguments", {}))
+        arguments.update({k: v for k, v in kwargs.items() if v is not None})
 
-        if any(keyword in text for keyword in ["回测", "backtest"]):
-            return self._dispatch_with_data_governance(
+        if tool_name == "run_backtest":
+            arguments.setdefault("stock_code", "000001")
+            arguments.setdefault("strategy_name", "ma_cross")
+            arguments.setdefault("start_date", "20260101")
+            arguments.setdefault("end_date", "20260614")
+            arguments.setdefault("initial_cash", 100000)
+            result = self._dispatch_with_data_governance(
                 action="backtest",
-                tool_name="run_backtest",
-                arguments={
-                    "stock_code": stock_code or kwargs.get("stock_code", "000001"),
-                    "strategy_name": kwargs.get("strategy_name", "ma_cross"),
-                    "start_date": kwargs.get("start_date", "20260101"),
-                    "end_date": kwargs.get("end_date", "20260614"),
-                    "initial_cash": kwargs.get("initial_cash", 100000),
-                },
-                cache_key=f"route:backtest:{stock_code or kwargs.get('stock_code', '000001')}:{kwargs.get('strategy_name', 'ma_cross')}",
+                tool_name=tool_name,
+                arguments=arguments,
+                cache_key=f"route:backtest:{arguments.get('stock_code')}:{arguments.get('strategy_name')}",
                 cache_ttl=300,
             )
+        elif tool_name == "get_market_overview":
+            result = self.market_overview()
+        elif tool_name == "get_risk_profile":
+            result = self.risk_profile(risk_profile=arguments.get("risk_profile", kwargs.get("risk_profile", "moderate")))
+        elif tool_name == "generate_stock_report":
+            result = self.report(
+                stock_code=arguments.get("stock_code", kwargs.get("stock_code", "000001")),
+                risk_profile=arguments.get("risk_profile", kwargs.get("risk_profile", "moderate")),
+            )
+        elif tool_name == "plan_collaboration":
+            result = self.plan_collaboration(
+                user_input,
+                risk_profile=arguments.get("risk_profile", kwargs.get("risk_profile", "moderate")),
+            )
+        elif tool_name == "execute_workflow":
+            result = self.execute_workflow(
+                user_input,
+                risk_profile=arguments.get("risk_profile", kwargs.get("risk_profile", "moderate")),
+            )
+        elif tool_name == "analyze_fundamental":
+            result = self._dispatch_with_data_governance(
+                action="fundamental",
+                tool_name=tool_name,
+                arguments=arguments or {"stock_code": "000001"},
+                cache_key=f"route:fundamental:{arguments.get('stock_code', kwargs.get('stock_code', '000001'))}",
+                cache_ttl=300,
+            )
+        elif tool_name == "recommend_long_term":
+            result = self._dispatch_with_data_governance(
+                action="recommend",
+                tool_name=tool_name,
+                arguments=arguments or {"top_n": 5},
+                cache_key=f"route:recommend_long:{arguments.get('top_n', 5)}",
+                cache_ttl=300,
+            )
+        elif tool_name == "recommend_short_term":
+            result = self._dispatch_with_data_governance(
+                action="recommend",
+                tool_name=tool_name,
+                arguments=arguments or {"top_n": 5},
+                cache_key=f"route:recommend_short:{arguments.get('top_n', 5)}",
+                cache_ttl=300,
+            )
+        elif tool_name == "screen_stocks":
+            result = self._dispatch_with_data_governance(
+                action="screen",
+                tool_name=tool_name,
+                arguments=arguments,
+                cache_key="route:screen_stocks",
+                cache_ttl=300,
+            )
+        elif tool_name == "analyze_stock":
+            result = self.analyze(
+                stock_code=arguments.get("stock_code", kwargs.get("stock_code", "000001")),
+                risk_profile=arguments.get("risk_profile", kwargs.get("risk_profile", "moderate")),
+            )
+        else:
+            result = self.recommend(
+                risk_profile=arguments.get("risk_profile", kwargs.get("risk_profile", "moderate")),
+                top_n=int(arguments.get("top_n", kwargs.get("top_n", 5))),
+            )
 
-        if any(keyword in text for keyword in ["市场", "大盘", "行情"]) or "market" in lower:
-            return self.market_overview()
+        result_meta = dict(result.get("meta", {}))
+        result_meta["route"] = route
+        result_meta["collaboration_recommended"] = collaboration_recommended
+        governance = dict(result.get("governance", {}))
+        governance["route"] = route
+        governance["collaboration_recommended"] = collaboration_recommended
+        result["meta"] = result_meta
+        result["governance"] = governance
+        audit_entry = self.audit_logger.record(
+            entrypoint="orchestrator.route",
+            input_text=user_input,
+            route=route,
+            data_source=result.get("data_source"),
+            notes=f"tool={route.get('tool')}",
+            meta={
+                "cache_hit": bool(governance.get("cache_hit")),
+                "is_degraded": bool(governance.get("is_degraded")),
+                "collaboration_recommended": collaboration_recommended,
+            },
+        )
+        result["meta"]["route_audit_id"] = audit_entry.get("id")
+        result["governance"]["route_audit_id"] = audit_entry.get("id")
+        return result
 
-        if any(keyword in text for keyword in ["风控", "仓位", "风险"]):
-            return self.risk_profile(risk_profile=risk_profile)
+    def plan_collaboration(self, user_input: str, **kwargs) -> dict:
+        """根据自然语言生成协作计划。"""
+        default_risk_profile = kwargs.get("risk_profile", "moderate")
+        plan = build_collaboration_plan(user_input, default_risk_profile=default_risk_profile)
+        audit_entry = self.audit_logger.record(
+            entrypoint="orchestrator.plan_collaboration",
+            input_text=user_input,
+            route=plan.route,
+            data_source=plan.data_source,
+            notes=f"mode={plan.mode}",
+            meta={
+                "planner_version": plan.meta.get("planner_version"),
+                "task_count": len(plan.tasks),
+                "collaboration_recommended": plan.meta.get("collaboration_recommended", False),
+            },
+        )
+        payload = OrchestratorResult(
+            ok=True,
+            action="collaboration_plan",
+            tool="plan_collaboration",
+            category="workflow",
+            data_source=plan.data_source,
+            summary=plan.summary,
+            data=plan.to_dict(),
+            meta={
+                "orchestrator": "StockOrchestrator",
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "collaboration_recommended": plan.meta.get("collaboration_recommended", False),
+            },
+        ).to_dict()
+        payload["meta"]["route_audit_id"] = audit_entry.get("id")
+        payload["governance"] = {
+            "collaboration_recommended": plan.meta.get("collaboration_recommended", False),
+            "collaboration_mode": plan.mode,
+            "task_count": len(plan.tasks),
+            "route_audit_id": audit_entry.get("id"),
+        }
+        return payload
 
-        if any(keyword in text for keyword in ["报告", "report"]):
-            return self.report(stock_code=stock_code or kwargs.get("stock_code", "000001"), risk_profile=risk_profile)
-
-        if any(keyword in text for keyword in ["推荐", "适合", "买什么", "买哪些", "配置"]):
-            return self.recommend(risk_profile=risk_profile, top_n=int(kwargs.get("top_n", 5)))
-
-        if any(keyword in text for keyword in ["分析", "建议", "买", "卖"]):
-            return self.analyze(stock_code=stock_code or kwargs.get("stock_code", "000001"), risk_profile=risk_profile)
-
-        return self.recommend(risk_profile=risk_profile, top_n=int(kwargs.get("top_n", 5)))
+    def execute_workflow(self, user_input: str, **kwargs) -> dict:
+        """执行协作工作流。"""
+        default_risk_profile = kwargs.get("risk_profile", "moderate")
+        result = execute_collaboration_workflow(
+            user_input,
+            self.tool_registry,
+            default_risk_profile=default_risk_profile,
+            audit_logger=self.audit_logger,
+        )
+        if isinstance(result, dict):
+            result.setdefault("meta", {})["orchestrator"] = "StockOrchestrator"
+            result.setdefault("governance", {})["workflow_mode"] = result.get("data", {}).get("mode")
+            result["governance"]["is_degraded"] = result.get("meta", {}).get("is_degraded", False)
+        return result
 
     def _dispatch(self, action: str, tool_name: str, arguments: dict) -> dict:
         tool_result = self.tool_registry.dispatch(tool_name, arguments)
@@ -254,12 +380,13 @@ class StockOrchestrator:
             governance["data_source"] = tool_result.get("data_source")
         return governance
 
-    def _extract_stock_code(self, text: str) -> Optional[str]:
-        """从自然语言中提取股票代码。"""
-        match = re.search(r"\b\d{6}\b", text)
-        if match:
-            return match.group(0)
-        return None
+    def parse_intent(self, user_input: str) -> dict:
+        """解析自然语言并返回结构化路由结果。"""
+        return parse_intent(user_input).to_dict()
+
+    def recent_routes(self, limit: int = 20) -> list[dict]:
+        """查看最近的路由审计记录。"""
+        return self.audit_logger.recent(limit)
 
 
 def create_stock_orchestrator(tool_registry=None) -> StockOrchestrator:
