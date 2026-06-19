@@ -56,6 +56,10 @@ class WorkflowExecutionResult:
     steps: List[WorkflowStepResult] = field(default_factory=list)
     execution_order: List[str] = field(default_factory=list)
     summary: str = ""
+    template_id: str = ""
+    template_name: str = ""
+    template_reason: str = ""
+    template_hit: bool = False
     is_degraded: bool = False
     primary_ok: bool = True
     route_audit_id: Optional[str] = None
@@ -99,6 +103,10 @@ class WorkflowExecutor:
                 "planner_version": plan.meta.get("planner_version"),
                 "collaboration_recommended": plan.meta.get("collaboration_recommended", False),
                 "task_count": len(plan.tasks),
+                "template_id": plan.template_id,
+                "template_name": plan.template_name,
+                "template_reason": plan.template_reason,
+                "template_hit": plan.template_hit,
             },
         )
 
@@ -168,6 +176,10 @@ class WorkflowExecutor:
             steps=step_results,
             execution_order=plan.execution_order,
             summary=summary,
+            template_id=plan.template_id,
+            template_name=plan.template_name,
+            template_reason=plan.template_reason,
+            template_hit=plan.template_hit,
             is_degraded=is_degraded,
             primary_ok=primary_ok,
             plan_audit_id=plan_audit.get("id"),
@@ -180,6 +192,10 @@ class WorkflowExecutor:
                 "step_audit_ids": step_audit_ids,
                 "fallback_used_count": fallback_used_count,
                 "failed_step_count": failed_step_count,
+                "template_id": plan.template_id,
+                "template_name": plan.template_name,
+                "template_reason": plan.template_reason,
+                "template_hit": plan.template_hit,
             },
         ).to_dict()
 
@@ -203,6 +219,10 @@ class WorkflowExecutor:
                 "step_audit_ids": step_audit_ids,
                 "fallback_used_count": fallback_used_count,
                 "failed_step_count": failed_step_count,
+                "template_id": plan.template_id,
+                "template_name": plan.template_name,
+                "template_reason": plan.template_reason,
+                "template_hit": plan.template_hit,
             },
         )
         payload["route_audit_id"] = result_audit.get("id")
@@ -224,6 +244,10 @@ class WorkflowExecutor:
         tool_payload["meta"]["overall_ok"] = primary_ok
         tool_payload["meta"]["fallback_used_count"] = fallback_used_count
         tool_payload["meta"]["failed_step_count"] = failed_step_count
+        tool_payload["meta"]["template_id"] = plan.template_id
+        tool_payload["meta"]["template_name"] = plan.template_name
+        tool_payload["meta"]["template_reason"] = plan.template_reason
+        tool_payload["meta"]["template_hit"] = plan.template_hit
         tool_payload["meta"]["execution_engine"] = "WorkflowExecutor"
         tool_payload["meta"]["step_audit_ids"] = step_audit_ids
         return tool_payload
@@ -358,7 +382,8 @@ class WorkflowExecutor:
 
     def _build_summary(self, plan: CollaborationPlan, steps: List[WorkflowStepResult], is_degraded: bool) -> str:
         suffix = "，存在部分降级。" if is_degraded else "。"
-        return f"已执行协作工作流，共 {len(steps)} 个步骤，主路由为 {plan.primary_tool}{suffix}"
+        template_prefix = f"已匹配模板《{plan.template_name}》，" if plan.template_hit and plan.template_name else ""
+        return f"{template_prefix}已执行协作工作流，共 {len(steps)} 个步骤，主路由为 {plan.primary_tool}{suffix}"
 
 
 def execute_collaboration_workflow(

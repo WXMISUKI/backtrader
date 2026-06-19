@@ -13,6 +13,7 @@ import json
 from typing import Any, Callable, Dict, List
 
 from .collaboration import build_collaboration_plan
+from .workflow_templates import list_workflow_templates
 from .workflow import execute_collaboration_workflow
 from .serialization import build_tool_payload, serialize_value
 
@@ -141,7 +142,7 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
     registry.register(
         ToolSpec(
             name="plan_collaboration",
-            description="将用户需求拆解为主任务、支持任务和执行顺序，供智能体进行协作规划。",
+            description="将用户需求拆解为主任务、支持任务和执行顺序，并在适合时匹配标准工作流模板。",
             parameters={
                 "type": "object",
                 "properties": {
@@ -164,8 +165,25 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
 
     registry.register(
         ToolSpec(
+            name="list_workflow_templates",
+            description="列出当前项目可复用的标准工作流模板，便于智能体选择和调试。",
+            parameters={
+                "type": "object",
+                "properties": {},
+                "additionalProperties": False,
+            },
+            handler=lambda _params: _tool_response(
+                "list_workflow_templates",
+                {"templates": list_workflow_templates()},
+                "已返回标准工作流模板列表。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
             name="execute_workflow",
-            description="将用户需求先规划再执行，串联市场、风控、分析、回测和报告等能力。",
+            description="将用户需求先规划再执行，必要时自动匹配标准工作流模板，串联市场、风控、分析、回测和报告等能力。",
             parameters={
                 "type": "object",
                 "properties": {

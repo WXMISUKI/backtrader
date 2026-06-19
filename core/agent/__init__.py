@@ -10,6 +10,7 @@
 from .config import AgentSettings, load_agent_settings
 from .audit import RouteAuditLogger, RouteAuditRecord, get_route_audit_logger
 from .collaboration import CollaborationPlan, CollaborationTask, build_collaboration_plan, should_plan_collaboration
+from .workflow_templates import WorkflowTemplate, build_template_task_specs, list_workflow_templates, select_workflow_template
 from .workflow import WorkflowExecutionResult, WorkflowExecutor, WorkflowStepResult, execute_collaboration_workflow
 from .client import ArkAgentClient
 from .runtime import StockAgentRuntime, create_stock_agent_runtime
@@ -25,6 +26,10 @@ __all__ = [
     "CollaborationTask",
     "build_collaboration_plan",
     "should_plan_collaboration",
+    "WorkflowTemplate",
+    "build_template_task_specs",
+    "list_workflow_templates",
+    "select_workflow_template",
     "WorkflowStepResult",
     "WorkflowExecutionResult",
     "WorkflowExecutor",

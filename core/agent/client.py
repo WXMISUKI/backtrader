@@ -181,6 +181,10 @@ class ArkAgentClient:
                 "planner_version": plan.meta.get("planner_version"),
                 "collaboration_recommended": plan.meta.get("collaboration_recommended", False),
                 "task_count": len(plan.tasks),
+                "template_id": plan.template_id,
+                "template_name": plan.template_name,
+                "template_reason": plan.template_reason,
+                "template_hit": plan.template_hit,
             },
         )
         payload = plan.to_dict()
@@ -210,6 +214,10 @@ class ArkAgentClient:
                 meta={
                     "workflow_id": result.get("meta", {}).get("workflow_id"),
                     "route_audit_id": result.get("meta", {}).get("route_audit_id"),
+                    "template_id": result.get("data", {}).get("template_id") or result.get("meta", {}).get("template_id"),
+                    "template_name": result.get("data", {}).get("template_name") or result.get("meta", {}).get("template_name"),
+                    "template_reason": result.get("data", {}).get("template_reason") or result.get("meta", {}).get("template_reason"),
+                    "template_hit": result.get("data", {}).get("template_hit", result.get("meta", {}).get("template_hit", False)),
                 },
             )
             result.setdefault("meta", {})["agent_audit_id"] = audit_entry.get("id")

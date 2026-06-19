@@ -12,6 +12,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Sequence
 
 from .routing import IntentRoute, parse_intent
+from .workflow_templates import build_template_task_specs, select_workflow_template
 
 
 _ROLE_BY_INTENT = {
@@ -82,6 +83,10 @@ class CollaborationPlan:
     primary_tool: str
     primary_reason: str
     summary: str
+    template_id: str = ""
+    template_name: str = ""
+    template_reason: str = ""
+    template_hit: bool = False
     tasks: List[CollaborationTask] = field(default_factory=list)
     execution_order: List[str] = field(default_factory=list)
     next_actions: List[str] = field(default_factory=list)
@@ -127,18 +132,42 @@ def build_collaboration_plan(user_input: str, *, default_risk_profile: str = "mo
     """根据用户输入生成协作计划。"""
     route = parse_intent(user_input, default_risk_profile=default_risk_profile)
     route_dict = route.to_dict()
-    tasks = _build_tasks(route)
+    template = select_workflow_template(user_input, route_dict)
+    if template is not None:
+        task_specs = build_template_task_specs(template, route=route_dict, default_risk_profile=default_risk_profile)
+        tasks = [_task_from_spec(spec) for spec in task_specs if spec.get("tool")]
+    else:
+        tasks = _build_tasks(route)
+
     ordered_tasks = _order_tasks(tasks)
     execution_order = [task.id for task in ordered_tasks]
     next_actions = [f"{index + 1}. {task.description}（{task.tool}）" for index, task in enumerate(ordered_tasks)]
     roles = [task.role for task in ordered_tasks]
     fallback = _build_fallback(route_dict, ordered_tasks)
     mode = "multi_agent" if len(ordered_tasks) > 1 else "single_agent"
-    summary = _build_summary(route_dict, ordered_tasks, mode)
-    primary_intent = ordered_tasks[0].intent if ordered_tasks and route_dict.get("tool") == "execute_workflow" else route_dict.get("intent", "")
-    primary_tool = ordered_tasks[0].tool if ordered_tasks and route_dict.get("tool") == "execute_workflow" else route_dict.get("tool", "")
-    primary_reason = route_dict.get("reason", "")
-    if route_dict.get("tool") == "execute_workflow" and ordered_tasks:
+    template_hit = bool(template)
+    template_id = str(template.get("id", "")) if template else ""
+    template_name = str(template.get("name", "")) if template else ""
+    template_reason = str(template.get("template_reason", "")) if template else ""
+    primary_from_tasks = bool(ordered_tasks) and (template_hit or route_dict.get("tool") == "execute_workflow")
+    resolved_primary_intent = ordered_tasks[0].intent if primary_from_tasks else route_dict.get("intent", "")
+    resolved_primary_tool = ordered_tasks[0].tool if primary_from_tasks else route_dict.get("tool", "")
+    summary = _build_summary(
+        resolved_primary_tool,
+        ordered_tasks,
+        mode,
+        template_name=template_name,
+        template_hit=template_hit,
+    )
+    if template_hit and ordered_tasks:
+        primary_intent = resolved_primary_intent
+        primary_tool = resolved_primary_tool
+        primary_reason = template_reason or f"模板《{template_name}》已命中"
+    else:
+        primary_intent = resolved_primary_intent
+        primary_tool = resolved_primary_tool
+        primary_reason = route_dict.get("reason", "")
+    if not template_hit and route_dict.get("tool") == "execute_workflow" and ordered_tasks:
         primary_reason = f"执行工作流后拆解为 {ordered_tasks[0].intent} 等业务任务"
 
     return CollaborationPlan(
@@ -148,6 +177,10 @@ def build_collaboration_plan(user_input: str, *, default_risk_profile: str = "mo
         primary_tool=primary_tool,
         primary_reason=primary_reason,
         summary=summary,
+        template_id=template_id,
+        template_name=template_name,
+        template_reason=template_reason,
+        template_hit=template_hit,
         tasks=ordered_tasks,
         execution_order=execution_order,
         next_actions=next_actions,
@@ -160,6 +193,10 @@ def build_collaboration_plan(user_input: str, *, default_risk_profile: str = "mo
             "planner_version": "1.0",
             "collaboration_recommended": should_plan_collaboration(route_dict),
             "default_risk_profile": default_risk_profile,
+            "template_id": template_id,
+            "template_name": template_name,
+            "template_reason": template_reason,
+            "template_hit": template_hit,
         },
     )
 
@@ -229,7 +266,7 @@ def _task_from_spec(spec: dict) -> CollaborationTask:
         description=spec["description"],
         arguments=spec["arguments"],
         priority=spec["priority"],
-        confidence=spec["confidence"],
+        confidence=float(spec.get("confidence", 0.0) or 0.0),
     )
 
 
@@ -283,14 +320,15 @@ def _build_fallback(route: dict, tasks: List[CollaborationTask]) -> List[str]:
     ]
 
 
-def _build_summary(route: dict, tasks: List[CollaborationTask], mode: str) -> str:
+def _build_summary(primary_tool: str, tasks: List[CollaborationTask], mode: str, *, template_name: str = "", template_hit: bool = False) -> str:
+    template_prefix = f"已匹配模板《{template_name}》，" if template_hit and template_name else ""
     if mode == "single_agent":
-        return f"单任务即可完成，直接执行 {route.get('tool', '')}。"
+        return f"{template_prefix}单任务即可完成，直接执行 {primary_tool}。"
 
     support_count = max(len(tasks) - 1, 0)
     return (
-        f"已将请求拆解为 1 个主任务和 {support_count} 个支持任务，"
-        f"主工具为 {route.get('tool', '')}。"
+        f"{template_prefix}已将请求拆解为 1 个主任务和 {support_count} 个支持任务，"
+        f"主工具为 {primary_tool}。"
     )
 
 
