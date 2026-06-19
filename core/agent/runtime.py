@@ -13,6 +13,7 @@ from typing import Optional
 from .audit import RouteAuditLogger, get_route_audit_logger
 from .client import ArkAgentClient
 from .config import AgentSettings, load_agent_settings
+from .session import create_decision_session, get_decision_session_replay, get_decision_session_stats, submit_decision_feedback
 
 
 class StockAgentRuntime:
@@ -58,6 +59,47 @@ class StockAgentRuntime:
             phase=phase,
             event_type=event_type,
         )
+
+    def create_decision_session(self, scenario: str, objective: str, route: dict, task_protocol: dict, *, workflow_id: str = "", summary: str = "") -> dict:
+        """创建决策会话。"""
+        return create_decision_session(
+            scenario=scenario,
+            objective=objective,
+            route=route,
+            task_protocol=task_protocol,
+            workflow_id=workflow_id,
+            summary=summary,
+        )
+
+    def submit_decision_feedback(
+        self,
+        session_id: str,
+        workflow_id: str,
+        *,
+        accepted: Optional[bool] = None,
+        rating: Optional[int] = None,
+        reason: str = "",
+        correction: str = "",
+        comment: str = "",
+    ) -> dict:
+        """提交决策反馈。"""
+        return submit_decision_feedback(
+            session_id=session_id,
+            workflow_id=workflow_id,
+            accepted=accepted,
+            rating=rating,
+            reason=reason,
+            correction=correction,
+            comment=comment,
+        )
+
+    def get_decision_session_replay(self, session_id: str) -> dict:
+        """回放决策会话。"""
+        return get_decision_session_replay(session_id)
+
+    def get_decision_session_stats(self, limit: int = 20) -> dict:
+        """查看决策会话统计。"""
+        return get_decision_session_stats(limit=limit)
 
 
 def create_stock_agent_runtime(settings: Optional[AgentSettings] = None) -> StockAgentRuntime:

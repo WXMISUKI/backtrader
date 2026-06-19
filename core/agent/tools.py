@@ -15,6 +15,7 @@ from typing import Any, Callable, Dict, List
 
 from .collaboration import build_collaboration_plan
 from .replay import get_workflow_learning_stats, get_workflow_replay
+from .session import create_decision_session, get_decision_session_replay, get_decision_session_stats, submit_decision_feedback
 from .template_metrics import get_workflow_template_stats
 from .workflow_templates import list_workflow_templates
 from .workflow import execute_collaboration_workflow
@@ -206,7 +207,7 @@ def _runtime_tool_response(name: str, data: Any, summary: str = "", *, ok: Optio
 
 def _tool_category(tool_name: str) -> str:
     """推断工具分类，供监控埋点使用。"""
-    if tool_name in {"plan_collaboration", "execute_workflow", "list_workflow_templates", "get_workflow_template_stats", "get_workflow_replay", "get_workflow_learning_stats"}:
+    if tool_name in {"plan_collaboration", "execute_workflow", "list_workflow_templates", "get_workflow_template_stats", "get_workflow_replay", "get_workflow_learning_stats", "create_decision_session", "submit_decision_feedback", "get_decision_session_replay", "get_decision_session_stats"}:
         return "workflow"
     if tool_name in {"get_model_governance_status", "evaluate_model_release"}:
         return "model"
@@ -405,6 +406,113 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                 "get_workflow_learning_stats",
                 get_workflow_learning_stats(int(params.get("limit", 20) or 20)),
                 "已返回任务学习统计。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="create_decision_session",
+            description="将一次分析、推荐或回测请求创建为决策会话，作为后续反馈与复盘的主对象。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "scenario": {"type": "string", "description": "场景，例如 analyze、recommend、backtest、report"},
+                    "objective": {"type": "string", "description": "用户原始目标"},
+                    "route": {"type": "object", "description": "结构化路由结果"},
+                    "task_protocol": {"type": "object", "description": "统一任务协议"},
+                    "workflow_id": {"type": "string", "description": "可选 workflow_id"},
+                    "summary": {"type": "string", "description": "会话摘要"},
+                },
+                "required": ["scenario", "objective", "route", "task_protocol"],
+                "additionalProperties": False,
+            },
+            handler=lambda params: _tool_response(
+                "create_decision_session",
+                create_decision_session(
+                    scenario=str(params["scenario"]),
+                    objective=str(params["objective"]),
+                    route=params.get("route", {}) or {},
+                    task_protocol=params.get("task_protocol", {}) or {},
+                    workflow_id=str(params.get("workflow_id", "") or ""),
+                    summary=str(params.get("summary", "") or ""),
+                    meta={"data_kind": "decision_session"},
+                ),
+                "已创建决策会话。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="submit_decision_feedback",
+            description="提交对某次决策会话的反馈，用于采纳率和复盘统计。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "session_id": {"type": "string", "description": "决策会话 ID"},
+                    "workflow_id": {"type": "string", "description": "对应 workflow_id"},
+                    "accepted": {"type": "boolean", "description": "是否采纳"},
+                    "rating": {"type": "integer", "minimum": 1, "maximum": 5},
+                    "reason": {"type": "string"},
+                    "correction": {"type": "string"},
+                    "comment": {"type": "string"},
+                },
+                "required": ["session_id", "workflow_id"],
+                "additionalProperties": False,
+            },
+            handler=lambda params: _tool_response(
+                "submit_decision_feedback",
+                submit_decision_feedback(
+                    session_id=str(params["session_id"]),
+                    workflow_id=str(params["workflow_id"]),
+                    accepted=params.get("accepted"),
+                    rating=params.get("rating"),
+                    reason=str(params.get("reason", "") or ""),
+                    correction=str(params.get("correction", "") or ""),
+                    comment=str(params.get("comment", "") or ""),
+                    meta={"data_kind": "decision_feedback"},
+                ),
+                "已提交决策反馈。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="get_decision_session_replay",
+            description="按 session_id 回放决策会话，查看计划、执行、反馈和 workflow 结果。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "session_id": {"type": "string", "description": "决策会话 ID"},
+                },
+                "required": ["session_id"],
+                "additionalProperties": False,
+            },
+            handler=lambda params: _tool_response(
+                "get_decision_session_replay",
+                get_decision_session_replay(str(params["session_id"])),
+                "已返回决策会话回放。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="get_decision_session_stats",
+            description="查看决策会话与用户反馈统计。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20},
+                },
+                "additionalProperties": False,
+            },
+            handler=lambda params: _tool_response(
+                "get_decision_session_stats",
+                get_decision_session_stats(int(params.get("limit", 20) or 20)),
+                "已返回决策会话统计。",
             ),
         )
     )

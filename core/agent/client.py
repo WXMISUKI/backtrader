@@ -18,6 +18,7 @@ from .audit import RouteAuditLogger, get_route_audit_logger
 from .config import AgentSettings, load_agent_settings
 from .routing import parse_intent
 from .task_protocol import build_task_plan, build_task_result
+from .session import create_decision_session
 from .tools import ProjectToolRegistry, build_default_tool_registry
 
 
@@ -194,6 +195,19 @@ class ArkAgentClient:
         payload = plan.to_dict()
         payload.setdefault("meta", {})["route_audit_id"] = audit_entry.get("id")
         payload["task_protocol"] = build_task_plan(plan, workflow_id=audit_entry.get("id", "")).to_dict()
+        payload["decision_session"] = create_decision_session(
+            scenario=str(plan.primary_intent or "workflow"),
+            objective=user_input,
+            route=plan.route,
+            task_protocol=payload["task_protocol"],
+            workflow_id=audit_entry.get("id", ""),
+            summary=plan.summary,
+            meta={
+                "template_id": plan.template_id,
+                "template_name": plan.template_name,
+                "template_hit": plan.template_hit,
+            },
+        )
         return payload
 
     def execute_workflow(self, user_input: str) -> dict:
@@ -228,6 +242,20 @@ class ArkAgentClient:
             )
             result.setdefault("meta", {})["agent_audit_id"] = audit_entry.get("id")
             result["task_protocol"] = build_task_result(result, task_id=result.get("meta", {}).get("workflow_id", ""), workflow_id=result.get("meta", {}).get("workflow_id", "")).to_dict()
+            result["decision_session"] = create_decision_session(
+                scenario=str(result.get("data", {}).get("plan", {}).get("primary_intent", "workflow") or "workflow"),
+                objective=user_input,
+                route=result.get("data", {}).get("plan", {}).get("route", {}),
+                task_protocol=result.get("task_protocol", {}),
+                workflow_id=result.get("meta", {}).get("workflow_id", ""),
+                summary=str(result.get("summary", "")),
+                status="executed" if result.get("ok", False) else "degraded",
+                meta={
+                    "template_id": result.get("meta", {}).get("template_id"),
+                    "template_name": result.get("meta", {}).get("template_name"),
+                    "template_hit": result.get("meta", {}).get("template_hit", False),
+                },
+            )
         return result
 
     def parse_intent(self, user_input: str) -> dict:
