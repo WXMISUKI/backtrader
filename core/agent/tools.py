@@ -207,7 +207,7 @@ def _runtime_tool_response(name: str, data: Any, summary: str = "", *, ok: Optio
 
 def _tool_category(tool_name: str) -> str:
     """推断工具分类，供监控埋点使用。"""
-    if tool_name in {"plan_collaboration", "execute_workflow", "list_workflow_templates", "get_workflow_template_stats", "get_workflow_replay", "get_workflow_learning_stats", "create_decision_session", "submit_decision_feedback", "get_decision_session_replay", "get_decision_session_stats"}:
+    if tool_name in {"plan_collaboration", "execute_workflow", "answer_decision_request", "list_workflow_templates", "get_workflow_template_stats", "get_workflow_replay", "get_workflow_learning_stats", "create_decision_session", "submit_decision_feedback", "get_decision_session_replay", "get_decision_session_stats"}:
         return "workflow"
     if tool_name in {"get_model_governance_status", "evaluate_model_release"}:
         return "model"
@@ -330,6 +330,37 @@ def _register_project_tools(registry: ProjectToolRegistry) -> None:
                     default_risk_profile=params.get("risk_profile", "moderate"),
                 ).to_dict(),
                 "已生成协作计划。",
+            ),
+        )
+    )
+
+    registry.register(
+        ToolSpec(
+            name="answer_decision_request",
+            description="统一决策入口：根据用户问题自动路由、执行并返回业务可读结果，同时创建决策会话。",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "user_input": {"type": "string", "description": "用户的原始自然语言问题"},
+                    "risk_profile": {"type": "string", "enum": ["conservative", "moderate", "aggressive"]},
+                },
+                "required": ["user_input"],
+                "additionalProperties": False,
+            },
+            handler=lambda params: _tool_response(
+                "answer_decision_request",
+                _wrap_tool_result(
+                    "answer_decision_request",
+                    __import__("core.orchestrator", fromlist=["StockOrchestrator"]).StockOrchestrator(
+                        tool_registry=registry
+                    ).answer_decision_request(
+                        params["user_input"],
+                        risk_profile=params.get("risk_profile", "moderate"),
+                    ),
+                    "已返回统一决策结果。",
+                    source="workflow",
+                    meta={"data_kind": "decision_request"},
+                ),
             ),
         )
     )

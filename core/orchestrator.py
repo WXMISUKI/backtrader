@@ -348,6 +348,28 @@ class StockOrchestrator:
         }
         return payload
 
+    def answer_decision_summary(self, user_input: str, **kwargs) -> dict:
+        """统一决策入口的业务摘要版本。"""
+        result = self.answer_decision_request(user_input, **kwargs)
+        decision = result.get("decision", {}) if isinstance(result, dict) else {}
+        return {
+            "ok": bool(result.get("ok", False)),
+            "tool": result.get("tool", "answer_decision_request"),
+            "scenario": result.get("scenario", "workflow"),
+            "summary": result.get("summary", ""),
+            "decision": {
+                "conclusion": decision.get("conclusion", ""),
+                "next_action": decision.get("next_action", "查看会话并决定是否采纳"),
+                "confidence": decision.get("confidence"),
+            },
+            "data_source": result.get("data_source"),
+            "session_id": result.get("session_id", ""),
+            "workflow_id": result.get("workflow_id", ""),
+            "route_audit_id": result.get("route_audit_id", ""),
+            "task_protocol": result.get("task_protocol", {}),
+            "governance": result.get("governance", {}),
+        }
+
     def plan_collaboration(self, user_input: str, **kwargs) -> dict:
         """根据自然语言生成协作计划。"""
         started_at = time.perf_counter()
