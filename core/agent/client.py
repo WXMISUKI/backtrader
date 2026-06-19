@@ -17,6 +17,7 @@ from .collaboration import build_collaboration_plan, should_plan_collaboration
 from .audit import RouteAuditLogger, get_route_audit_logger
 from .config import AgentSettings, load_agent_settings
 from .routing import parse_intent
+from .task_protocol import build_task_plan, build_task_result
 from .tools import ProjectToolRegistry, build_default_tool_registry
 
 
@@ -192,6 +193,7 @@ class ArkAgentClient:
         )
         payload = plan.to_dict()
         payload.setdefault("meta", {})["route_audit_id"] = audit_entry.get("id")
+        payload["task_protocol"] = build_task_plan(plan, workflow_id=audit_entry.get("id", "")).to_dict()
         return payload
 
     def execute_workflow(self, user_input: str) -> dict:
@@ -225,6 +227,7 @@ class ArkAgentClient:
                 },
             )
             result.setdefault("meta", {})["agent_audit_id"] = audit_entry.get("id")
+            result["task_protocol"] = build_task_result(result, task_id=result.get("meta", {}).get("workflow_id", ""), workflow_id=result.get("meta", {}).get("workflow_id", "")).to_dict()
         return result
 
     def parse_intent(self, user_input: str) -> dict:

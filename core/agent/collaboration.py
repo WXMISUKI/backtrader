@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Sequence
 from .routing import IntentRoute, parse_intent
 from .template_metrics import record_workflow_template_usage
 from .workflow_templates import build_template_task_specs, select_workflow_template
+from .task_protocol import TaskPlan, TaskStep, build_task_plan, build_task_step
 
 
 _ROLE_BY_INTENT = {
@@ -114,6 +115,38 @@ class CollaborationPlan:
         payload["matched_terms"] = list(self.matched_terms)
         payload["route"] = _normalize_route(self.route)
         return payload
+
+    def to_task_plan(self, *, workflow_id: str = "") -> TaskPlan:
+        """转换为统一任务计划。"""
+        task_id = workflow_id or self.meta.get("workflow_id", "") or self.objective
+        return build_task_plan(
+            {
+                "task_id": task_id,
+                "objective": self.objective,
+                "mode": self.mode,
+                "primary_intent": self.primary_intent,
+                "primary_tool": self.primary_tool,
+                "primary_reason": self.primary_reason,
+                "summary": self.summary,
+                "workflow_id": workflow_id or self.meta.get("workflow_id", "") or "",
+                "template_id": self.template_id,
+                "template_name": self.template_name,
+                "template_reason": self.template_reason,
+                "template_score": self.template_score,
+                "template_hit": self.template_hit,
+                "tasks": [build_task_step(task, task_id=task.id, workflow_id=workflow_id or self.meta.get("workflow_id", "") or "") for task in self.tasks],
+                "execution_order": self.execution_order,
+                "next_actions": self.next_actions,
+                "roles": self.roles,
+                "fallback": self.fallback,
+                "candidates": self.candidates,
+                "matched_terms": self.matched_terms,
+                "route": self.route,
+                "meta": self.meta,
+            },
+            task_id=task_id,
+            workflow_id=workflow_id or self.meta.get("workflow_id", "") or "",
+        )
 
 
 def should_plan_collaboration(route: dict | IntentRoute) -> bool:

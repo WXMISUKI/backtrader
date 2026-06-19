@@ -13,6 +13,7 @@ from .collaboration import CollaborationPlan, CollaborationTask, build_collabora
 from .workflow_templates import WorkflowTemplate, build_template_task_specs, list_workflow_templates, select_workflow_template
 from .template_metrics import get_workflow_template_stats, record_workflow_template_usage
 from .workflow import WorkflowExecutionResult, WorkflowExecutor, WorkflowStepResult, execute_collaboration_workflow
+from .task_protocol import TaskPlan, TaskResult, TaskStep, build_task_plan, build_task_result, build_task_step
 from .client import ArkAgentClient
 from .runtime import StockAgentRuntime, create_stock_agent_runtime
 from .tools import ProjectToolRegistry, build_default_tool_registry
@@ -37,6 +38,12 @@ __all__ = [
     "WorkflowExecutionResult",
     "WorkflowExecutor",
     "execute_collaboration_workflow",
+    "TaskPlan",
+    "TaskResult",
+    "TaskStep",
+    "build_task_plan",
+    "build_task_result",
+    "build_task_step",
     "ArkAgentClient",
     "StockAgentRuntime",
     "create_stock_agent_runtime",

@@ -16,6 +16,7 @@ from typing import Any, Dict, Optional
 from .agent.audit import RouteAuditLogger, get_route_audit_logger
 from .agent.collaboration import build_collaboration_plan, should_plan_collaboration
 from .agent.workflow import execute_collaboration_workflow
+from .agent.task_protocol import build_task_plan, build_task_result
 from .agent import build_default_tool_registry
 from .agent.routing import parse_intent
 from .model import get_model_governance_service
@@ -334,6 +335,7 @@ class StockOrchestrator:
             "task_count": len(plan.tasks),
             "route_audit_id": audit_entry.get("id"),
         }
+        payload["task_protocol"] = build_task_plan(plan, workflow_id=payload["meta"].get("route_audit_id", "")).to_dict()
         duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
         self.observability.record_metric(
             "orchestrator.plan_count",
@@ -384,6 +386,7 @@ class StockOrchestrator:
             result.setdefault("meta", {})["orchestrator"] = "StockOrchestrator"
             result.setdefault("governance", {})["workflow_mode"] = result.get("data", {}).get("mode")
             result["governance"]["is_degraded"] = result.get("meta", {}).get("is_degraded", False)
+            result["task_protocol"] = build_task_result(result, task_id=result.get("meta", {}).get("workflow_id", ""), workflow_id=result.get("meta", {}).get("workflow_id", "")).to_dict()
             duration_ms = round((time.perf_counter() - started_at) * 1000.0, 3)
             self.observability.record_metric(
                 "orchestrator.workflow_count",

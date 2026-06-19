@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Optional
 from .audit import RouteAuditLogger, get_route_audit_logger
 from .collaboration import CollaborationPlan, build_collaboration_plan
 from .serialization import build_tool_payload, serialize_value
+from .task_protocol import TaskResult, build_task_result, build_task_step
 from core.observability import get_observability_service
 
 
@@ -77,6 +78,28 @@ class WorkflowExecutionResult:
         payload["execution_order"] = list(self.execution_order)
         payload["meta"] = serialize_value(self.meta)
         return payload
+
+    def to_task_result(self) -> TaskResult:
+        """转换为统一任务结果。"""
+        return build_task_result(
+            {
+                "task_id": self.workflow_id,
+                "workflow_id": self.workflow_id,
+                "ok": self.primary_ok,
+                "tool": "execute_workflow",
+                "category": "workflow",
+                "data_source": self.meta.get("primary_data_source"),
+                "summary": self.summary,
+                "plan": self.plan,
+                "steps": [build_task_step(step, task_id=step.id, workflow_id=self.workflow_id, status="done" if step.ok else "failed") for step in self.steps],
+                "execution_order": self.execution_order,
+                "is_degraded": self.is_degraded,
+                "data": self.to_dict(),
+                "meta": self.meta,
+            },
+            task_id=self.workflow_id,
+            workflow_id=self.workflow_id,
+        )
 
 
 class WorkflowExecutor:
