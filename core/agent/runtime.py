@@ -40,6 +40,15 @@ class StockAgentRuntime:
         """执行协作工作流。"""
         return self.client.execute_workflow(question)
 
+    def answer_decision_request(self, question: str, **kwargs) -> dict:
+        """统一决策入口。"""
+        from core.orchestrator import StockOrchestrator
+
+        return StockOrchestrator(
+            tool_registry=self.client.tool_registry,
+            audit_logger=self.audit_logger,
+        ).answer_decision_request(question, **kwargs)
+
     def recent_routes(self, limit: int = 20) -> list[dict]:
         """查看最近的路由审计记录。"""
         return self.audit_logger.recent(limit)

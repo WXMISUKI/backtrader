@@ -19,6 +19,7 @@ from .agent.workflow import execute_collaboration_workflow
 from .agent.task_protocol import build_task_plan, build_task_result
 from .agent import build_default_tool_registry
 from .agent.routing import parse_intent
+from .agent.session import create_decision_session
 from .model import get_model_governance_service
 from .data import CacheManager, DataQualityChecker, build_snapshot
 from .observability import get_observability_service
@@ -295,6 +296,58 @@ class StockOrchestrator:
         result["governance"]["route_audit_id"] = audit_entry.get("id")
         return result
 
+    def answer_decision_request(self, user_input: str, **kwargs) -> dict:
+        """统一决策入口。
+
+        面向生产使用的最小闭环接口，优先返回业务可读结果。
+        """
+        route = self.parse_intent(user_input)
+        tool_name = route.get("tool", "recommend_by_risk")
+        result = self.route(user_input, **kwargs)
+
+        decision = self._build_decision_summary(route=route, result=result)
+        session = create_decision_session(
+            scenario=str(route.get("intent", "workflow") or "workflow"),
+            objective=user_input,
+            route=route,
+            task_protocol=result.get("task_protocol", {}) or {},
+            workflow_id=result.get("meta", {}).get("workflow_id", "") or result.get("meta", {}).get("route_audit_id", ""),
+            summary=str(result.get("summary", "")),
+            status="executed" if bool(result.get("ok", False)) else "degraded",
+            meta={
+                "tool": tool_name,
+                "category": result.get("category"),
+                "data_source": result.get("data_source"),
+                "route_audit_id": result.get("meta", {}).get("route_audit_id"),
+                "workflow_id": result.get("meta", {}).get("workflow_id"),
+                "template_hit": result.get("meta", {}).get("template_hit", False),
+            },
+        )
+
+        payload = {
+            "ok": bool(result.get("ok", False)),
+            "scenario": route.get("intent", "workflow"),
+            "action": result.get("action", tool_name),
+            "tool": result.get("tool", tool_name),
+            "summary": result.get("summary", ""),
+            "decision": decision,
+            "data_source": result.get("data_source"),
+            "session_id": session.get("session_id", ""),
+            "workflow_id": result.get("meta", {}).get("workflow_id", ""),
+            "route_audit_id": result.get("meta", {}).get("route_audit_id", ""),
+            "task_protocol": result.get("task_protocol", {}),
+            "governance": result.get("governance", {}),
+            "data": result.get("data"),
+            "meta": {
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "orchestrator": "StockOrchestrator",
+                "route": route,
+                "session_id": session.get("session_id", ""),
+                "workflow_id": result.get("meta", {}).get("workflow_id", ""),
+            },
+        }
+        return payload
+
     def plan_collaboration(self, user_input: str, **kwargs) -> dict:
         """根据自然语言生成协作计划。"""
         started_at = time.perf_counter()
@@ -441,6 +494,38 @@ class StockOrchestrator:
                 "governance": governance,
             },
         ).to_dict()
+
+    def _build_decision_summary(self, *, route: dict, result: dict) -> dict:
+        """构造最小业务决策摘要。"""
+        data = result.get("data", {}) if isinstance(result, dict) else {}
+        summary = str(result.get("summary", ""))
+        tool = str(result.get("tool", route.get("tool", "")))
+        basis = []
+        if isinstance(data, dict):
+            for key in ("reason", "summary", "signal", "recommendation", "analysis"):
+                value = data.get(key)
+                if isinstance(value, str) and value.strip():
+                    basis.append(value.strip())
+                elif isinstance(value, dict):
+                    basis.append(str(value))
+        if not basis and summary:
+            basis.append(summary)
+        conclusion = summary or f"已完成 {tool}。"
+        risk = data.get("risk") if isinstance(data, dict) else None
+        confidence = None
+        if isinstance(data, dict):
+            for key in ("confidence", "score", "signal_strength", "signal"):
+                value = data.get(key)
+                if isinstance(value, (int, float)):
+                    confidence = float(value)
+                    break
+        return {
+            "conclusion": conclusion,
+            "basis": basis[:5],
+            "risk": risk,
+            "next_action": "查看会话并决定是否采纳",
+            "confidence": confidence,
+        }
 
     def _dispatch_with_data_governance(
         self,
