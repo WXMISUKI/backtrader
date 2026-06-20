@@ -339,6 +339,20 @@
 | 26.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE26_DECISION_OUTPUT_SHARPENING.md` |
 | 26.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
+## Phase 27: 统计与洞察摘要标准化 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE27_INSIGHT_SUMMARY_STANDARDIZATION.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 27.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE27_INSIGHT_SUMMARY_STANDARDIZATION.md |
+| 27.1 | 扩展统计摘要卡片 | P0 | ✅ | - | `core/agent/session.py` |
+| 27.2 | 扩展洞察摘要卡片 | P0 | ✅ | - | `core/agent/session.py` |
+| 27.3 | 更新联调用例展示 | P1 | ✅ | - | `examples/api_demo.py` |
+| 27.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 27.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE27_INSIGHT_SUMMARY_STANDARDIZATION.md` |
+| 27.6 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
 ---
 
 ## 已完成任务归档

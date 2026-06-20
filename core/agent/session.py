@@ -49,6 +49,33 @@ def _load_jsonl(path: Path) -> List[dict]:
     return records
 
 
+def _build_summary_card(
+    *,
+    conclusion: str,
+    basis: List[str],
+    risk: str | None,
+    next_action: str,
+    confidence: float | None = None,
+    source: str = "",
+    extra: Optional[Dict[str, Any]] = None,
+) -> dict:
+    card = {
+        "结论": conclusion,
+        "依据": basis[:5],
+        "风险": risk,
+        "下一步动作": next_action,
+        "conclusion": conclusion,
+        "basis": basis[:5],
+        "risk": risk,
+        "next_action": next_action,
+        "confidence": confidence,
+        "source": source,
+    }
+    if extra:
+        card.update(extra)
+    return card
+
+
 @dataclass(frozen=True)
 class DecisionSession:
     """一次决策会话。"""
@@ -246,11 +273,40 @@ class DecisionSessionStore:
         accept_rate = round(accepted_count / total, 4) if total else 0.0
         recent_sessions = list(reversed(sessions[-limit:]))
         recent_feedback = list(reversed(feedback[-limit:]))
+        sample_warning = "样本量较少，统计结果仅供参考。" if total < max(5, limit) else "样本量足够，可以作为当前决策参考。"
+        stats_summary = _build_summary_card(
+            conclusion=f"已统计 {total} 个决策会话与 {len(feedback)} 条反馈记录。",
+            basis=[
+                f"采纳率 {accept_rate:.2%}",
+                f"最近会话 {len(recent_sessions)} 条",
+                f"最近反馈 {len(recent_feedback)} 条",
+            ],
+            risk=sample_warning,
+            next_action="先结合最近反馈判断结果，再决定是否继续优化推荐或工作流。",
+            source="decision_session",
+            extra={
+                "total_sessions": total,
+                "accepted_count": accepted_count,
+                "rejected_count": rejected_count,
+                "partial_count": partial_count,
+                "unknown_count": unknown_count,
+                "accept_rate": accept_rate,
+            },
+        )
 
         return {
             "ok": True,
             "summary": f"已统计 {total} 个决策会话与 {len(feedback)} 条反馈记录。",
             "data_source": "decision_session",
+            "stats_summary": stats_summary,
+            "结论": stats_summary["结论"],
+            "依据": stats_summary["依据"],
+            "风险": stats_summary["风险"],
+            "下一步动作": stats_summary["下一步动作"],
+            "conclusion": stats_summary["conclusion"],
+            "basis": stats_summary["basis"],
+            "risk": stats_summary["risk"],
+            "next_action": stats_summary["next_action"],
             "data": {
                 "total_sessions": total,
                 "accepted_count": accepted_count,
@@ -401,10 +457,51 @@ class DecisionSessionStore:
         else:
             optimization_notes.append("当前样本较少，先继续积累真实反馈，再判断优化重点。")
 
+        if optimization_targets:
+            top_target = optimization_targets[0]
+            insight_conclusion = f"当前最值得优先优化的是 {top_target['name']}。"
+            insight_basis = [
+                f"优先项采纳率 {top_target['accept_rate']:.2%}",
+                f"优先项样本 {top_target['total_feedback']} 条",
+                f"总反馈 {total_feedback} 条",
+            ]
+            insight_next_action = f"先围绕 {top_target['name']} 做小步优化，再观察是否提升采纳率。"
+        else:
+            insight_conclusion = "当前反馈样本不足，先继续积累真实反馈。"
+            insight_basis = [
+                f"总反馈 {total_feedback} 条",
+                f"样本门槛 {min_samples} 条",
+            ]
+            insight_next_action = "继续积累反馈后，再判断优先优化点。"
+
+        insight_risk = "样本量偏少，当前洞察只能作为方向参考。" if total_feedback < max(5, min_samples) else "当前洞察可作为阶段性优化参考。"
+        insights_summary = _build_summary_card(
+            conclusion=insight_conclusion,
+            basis=insight_basis,
+            risk=insight_risk,
+            next_action=insight_next_action,
+            source="decision_feedback_insights",
+            extra={
+                "total_sessions": len(sessions),
+                "total_feedback": total_feedback,
+                "optimization_targets": optimization_targets[:3],
+                "high_value_paths": high_value_paths[:3],
+            },
+        )
+
         return {
             "ok": True,
             "summary": f"已汇总 {total_feedback} 条反馈的洞察。",
             "data_source": "decision_feedback_insights",
+            "insights_summary": insights_summary,
+            "结论": insights_summary["结论"],
+            "依据": insights_summary["依据"],
+            "风险": insights_summary["风险"],
+            "下一步动作": insights_summary["下一步动作"],
+            "conclusion": insights_summary["conclusion"],
+            "basis": insights_summary["basis"],
+            "risk": insights_summary["risk"],
+            "next_action": insights_summary["next_action"],
             "data": {
                 "total_sessions": len(sessions),
                 "total_feedback": total_feedback,

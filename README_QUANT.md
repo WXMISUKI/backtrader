@@ -108,8 +108,17 @@ python examples/api_demo.py --host 127.0.0.1 --port 8000 --show-insights
 - `POST /decision`
 - `decision_summary` 四段式摘要
 - 可选 `POST /feedback`
-- 可选 `GET /decision/stats`
-- 可选 `GET /decision/insights`
+- 可选 `GET /decision/stats`，优先展示 `stats_summary`
+- 可选 `GET /decision/insights`，优先展示 `insights_summary`
+
+统一摘要字段建议优先阅读：
+
+- `结论` / `conclusion`
+- `依据` / `basis`
+- `风险` / `risk`
+- `下一步动作` / `next_action`
+
+`decision_summary`、`stats_summary` 和 `insights_summary` 都遵循这套四段式模板；需要排查细节时，再继续查看原始 `data` 明细。
 
 ### 4. 运行回测示例
 
@@ -183,7 +192,7 @@ python examples/agent_demo.py "请分析 000001，并给出建议"
 - 如果真实行情不可用，系统会自动降级到离线模拟数据，并在结果中标记 `mock`
 - 如果你要联调东方财富真实数据，Cookie 需要保持有效；过期后请重新从官网浏览器中获取
 - 如果你想判断下一步该优先优化什么，先看 `/decision/insights`，再决定是否调整工具或工作流
-- 如果你想更快看懂决策结果，优先看 `decision_summary` 的四段式输出
+- 如果你想更快看懂决策、统计和洞察结果，优先看 `decision_summary` / `stats_summary` / `insights_summary` 的四段式输出
 
 ## 功能模块
 

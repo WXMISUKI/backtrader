@@ -81,6 +81,17 @@ def _print_decision_summary(payload: dict) -> None:
     print(f"下一步动作: {summary.get('下一步动作', summary.get('next_action', ''))}")
 
 
+def _print_named_summary(payload: dict, key: str, title: str) -> None:
+    summary = payload.get(key) if isinstance(payload, dict) else None
+    if not isinstance(summary, dict):
+        return
+    print(f"\n== {title} ==")
+    print(f"结论: {summary.get('结论', summary.get('conclusion', ''))}")
+    print(f"依据: {summary.get('依据', summary.get('basis', []))}")
+    print(f"风险: {summary.get('风险', summary.get('risk', ''))}")
+    print(f"下一步动作: {summary.get('下一步动作', summary.get('next_action', ''))}")
+
+
 def main() -> int:
     args = build_parser().parse_args()
     base_url = f"http://{args.host}:{args.port}"
@@ -123,10 +134,12 @@ def main() -> int:
 
         if args.show_stats:
             stats = _request_json("GET", f"{base_url}/decision/stats?limit=20")
+            _print_named_summary(stats, "stats_summary", "stats_summary")
             _print_json("decision_stats", stats)
 
         if args.show_insights:
             insights = _request_json("GET", f"{base_url}/decision/insights?limit=20&min_samples=2")
+            _print_named_summary(insights, "insights_summary", "insights_summary")
             _print_json("decision_insights", insights)
 
         return 0
