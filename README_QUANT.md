@@ -193,6 +193,8 @@ python examples/daily_watchlist_flow.py --watchlist config/watchlist.json --port
 
 `daily_watchlist_daily_run.py` 现在还会输出 `run_cadence`，把今天跑了哪几步、下一步该先看什么说清楚。
 
+现在它也会输出 `prompt_context`，把 `production_gate`、`action_list` 和 `run_cadence` 收成一段可以直接喂给智能体提示词或技能复用的协作语境。
+
 如果你只想先跳过回看或验收，也可以分别加：
 
 ```bash
@@ -503,6 +505,8 @@ python examples/agent_demo.py "请分析 000001，并给出建议"
 核心目标是让默认日常流程先输出统一的 `production_gate`，明确今天结果属于 `pass / warn / block`，再输出 `action_list`，把今天先看什么、先做什么说清楚。
 
 这里的统一质量门禁不是单一评分规则，而是数据治理、日常工作流、Skill / 工具、智能体提示词和输出契约一起协作出来的生产决策协议。
+
+接下来建议继续沿着 `prompt_context` 往上收，把门禁、行动清单和运行节奏变成智能体和 Skill 都能直接消费的日常语境。
 
 ### Phase 1: 核心基础 (当前)
 - Skill 框架搭建

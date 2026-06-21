@@ -23,7 +23,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from examples.daily_watchlist_display import print_bullets, print_kv_pairs, print_section
-from examples.watchlist_shared import build_diagnosis_evidence, build_production_gate
+from examples.watchlist_shared import build_daily_prompt_context, build_diagnosis_evidence, build_production_gate
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
@@ -100,6 +100,7 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
     production_gate = payload.get("production_gate", {}) if isinstance(payload, dict) else {}
     action_list = payload.get("action_list", {}) if isinstance(payload, dict) else {}
     run_cadence = payload.get("run_cadence", {}) if isinstance(payload, dict) else {}
+    prompt_context = payload.get("prompt_context", {}) if isinstance(payload, dict) else {}
     portfolio_summary = payload.get("portfolio_summary", {}) if isinstance(payload, dict) else {}
     health_items = payload.get("health", {}).get("items", []) if isinstance(payload, dict) else []
     diagnosis_evidence = build_diagnosis_evidence(daily_summary=daily_summary, health_items=health_items if isinstance(health_items, list) else [])
@@ -126,6 +127,14 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
             if not isinstance(run_cadence, dict) or not run_cadence:
                 daily_run_status_payload = flow_payload.get("daily_run_status_payload", {}) if isinstance(flow_payload, dict) else {}
                 run_cadence = daily_run_status_payload.get("run_cadence", {}) if isinstance(daily_run_status_payload, dict) else {}
+    if not isinstance(prompt_context, dict) or not prompt_context:
+        prompt_context = build_daily_prompt_context(
+            production_gate=production_gate if isinstance(production_gate, dict) else {},
+            action_list=action_list if isinstance(action_list, dict) else {},
+            run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+            daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
+            diagnosis_evidence=diagnosis_evidence,
+        )
     feedback_records = _load_jsonl_payload(DEFAULT_FEEDBACK_PATH)
     effects_payload = _load_json_payload(DEFAULT_EFFECTS_JSON)
 
@@ -152,6 +161,7 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
             ("行动清单", action_list.get("summary_text", "")),
             ("运行节奏", run_cadence.get("summary_text", "")),
             ("下一步", run_cadence.get("next_step", "")),
+            ("提示语境", prompt_context.get("summary_text", "")),
         ]
     )
     if feedback_records:
@@ -216,6 +226,10 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
                 for item in action_list.get("items", [])[:8]
             ]
         )
+
+    if isinstance(prompt_context, dict) and prompt_context.get("rules"):
+        print_section("提示语境")
+        print_bullets([str(rule) for rule in prompt_context.get("rules", [])[:6]])
 
 
 def main() -> int:

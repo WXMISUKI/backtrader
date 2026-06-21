@@ -547,6 +547,7 @@ def _build_archive_package(
     weekly_report: dict[str, Any],
     stage_report: dict[str, Any],
     portfolio_summary: dict[str, Any],
+    action_list: dict[str, Any],
 ) -> dict[str, Any]:
     name = archive_name or "自选股复盘留档包"
     title = name
@@ -896,6 +897,7 @@ def main() -> int:
                 "market_value": round(portfolio_value, 2),
                 "total_assets": round(total_assets, 2),
             },
+            action_list=action_list,
         )
         print("\n== 复盘留档包 ==")
         for line in archive_package["report_lines"]:

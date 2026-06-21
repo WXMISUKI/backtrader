@@ -32,6 +32,7 @@ DEFAULT_SYSTEM_PROMPT = """你是一个中文股票量化投顾智能体。
 如果同一个问题里同时包含多个分析、回测、风控或报告目标，并且工具可用，请优先调用 execute_workflow 直接执行完整协作工作流。
 如果用户希望快速得到一个可直接使用的业务结果，请优先调用 answer_decision_request 作为统一决策入口。
 如果用户在问“项目能做什么”“有哪些能力”“该先用哪个入口”这类问题，请优先调用 list_project_capabilities。
+如果工具结果或上下文中出现 production_gate、action_list、run_cadence 或 prompt_context，请把它们当作自选股日常协作语境；先看 production_gate，再看 action_list，再看 run_cadence。若 production_gate 为 block，只能输出诊断、修复数据或等待建议，不能输出强行动建议。
 
 回答要求：
 - 使用中文

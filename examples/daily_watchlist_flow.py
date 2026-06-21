@@ -22,7 +22,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from examples.watchlist_shared import build_diagnosis_evidence, build_production_gate
+from examples.watchlist_shared import build_daily_prompt_context, build_diagnosis_evidence, build_production_gate
 
 
 DEFAULT_WATCHLIST_PATH = ROOT_DIR / "config" / "watchlist.json"
@@ -132,6 +132,13 @@ def main() -> int:
         health_items=health_items if isinstance(health_items, list) else [],
         daily_run_status=daily_run_status,
     )
+    prompt_context = build_daily_prompt_context(
+        production_gate=production_gate,
+        action_list=action_list if isinstance(action_list, dict) else {},
+        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
+        diagnosis_evidence=diagnosis_evidence,
+    )
 
     status = "ok"
     if daily_code != 0 or review_code != 0 or acceptance_code != 0:
@@ -150,6 +157,7 @@ def main() -> int:
         "diagnosis_evidence": diagnosis_evidence,
         "action_list": action_list,
         "run_cadence": run_cadence,
+        "prompt_context": prompt_context,
         "production_gate": production_gate,
         "daily_run_code": daily_code,
         "review_code": review_code,
@@ -176,6 +184,8 @@ def main() -> int:
     print(f"门禁摘要: {production_gate.get('summary', '')}")
     if isinstance(action_list, dict) and action_list.get("summary_text"):
         print(f"action_list: {action_list.get('summary_text', '')}")
+    if isinstance(prompt_context, dict) and prompt_context.get("summary_text"):
+        print(f"prompt_context: {prompt_context.get('summary_text', '')}")
     print(f"输出: {output_path}")
 
     if args.show_json:

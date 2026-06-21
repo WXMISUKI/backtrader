@@ -630,6 +630,134 @@ def build_production_gate(
     }
 
 
+def build_daily_prompt_context(
+    *,
+    production_gate: dict[str, Any] | None = None,
+    action_list: dict[str, Any] | None = None,
+    run_cadence: dict[str, Any] | None = None,
+    daily_summary: dict[str, Any] | None = None,
+    diagnosis_evidence: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """把日常门禁、行动清单和运行节奏收成可复用的提示语境。"""
+    production_gate = production_gate if isinstance(production_gate, dict) else {}
+    action_list = action_list if isinstance(action_list, dict) else {}
+    run_cadence = run_cadence if isinstance(run_cadence, dict) else {}
+    daily_summary = daily_summary if isinstance(daily_summary, dict) else {}
+    diagnosis_evidence = diagnosis_evidence if isinstance(diagnosis_evidence, dict) else {}
+
+    gate_status = str(production_gate.get("status", "")).strip() or "unknown"
+    gate_summary = str(production_gate.get("summary", "")).strip()
+    gate_allowed_actions = [
+        str(item).strip()
+        for item in (production_gate.get("allowed_actions", []) if isinstance(production_gate.get("allowed_actions", []), list) else [])
+        if str(item).strip()
+    ]
+    gate_blocked_actions = [
+        str(item).strip()
+        for item in (production_gate.get("blocked_actions", []) if isinstance(production_gate.get("blocked_actions", []), list) else [])
+        if str(item).strip()
+    ]
+
+    action_summary = str(action_list.get("summary_text", "")).strip()
+    action_items = action_list.get("items", []) if isinstance(action_list.get("items", []), list) else []
+    top_actions: list[dict[str, Any]] = []
+    for item in action_items[:3]:
+        if not isinstance(item, dict):
+            continue
+        top_actions.append(
+            {
+                "stock_code": str(item.get("stock_code", "")).strip(),
+                "name": str(item.get("name", "")).strip(),
+                "action": str(item.get("action", "")).strip(),
+                "action_hint": str(item.get("action_hint", "")).strip(),
+                "reason": str(item.get("reason", "")).strip(),
+            }
+        )
+
+    cadence_status = str(run_cadence.get("status", "")).strip() or "unknown"
+    cadence_summary = str(run_cadence.get("summary_text", "")).strip()
+    cadence_next_step = str(run_cadence.get("next_step", "")).strip()
+    diagnosis_summary = str(daily_summary.get("summary_text", "")).strip()
+
+    read_order = ["production_gate", "action_list", "run_cadence", "diagnosis_evidence"]
+    rules = [
+        "先看 production_gate，再看 action_list，再看 run_cadence。",
+        "production_gate 为 block 时，只能给出诊断、修复数据或等待建议，不给强行动建议。",
+        "production_gate 为 warn 时，必须保持谨慎，只输出观察、复核和小心处理建议。",
+        "action_list 的 action_hint 是默认执行语境，不要被更长的报告正文覆盖。",
+    ]
+
+    summary_text = "提示语境已收拢：先看投产门禁，再看行动清单，再看运行节奏。"
+    if gate_status == "block":
+        summary_text += " 门禁为 block 时只做诊断。"
+    elif gate_status == "warn":
+        summary_text += " 门禁为 warn 时谨慎参考。"
+
+    prompt_lines = [
+        "日常协作语境：",
+        f"- 投产门禁: {gate_status}" + (f" / {gate_summary}" if gate_summary else ""),
+        f"- 行动清单: {action_summary or '未提供'}",
+        f"- 运行节奏: {cadence_summary or '未提供'}",
+        f"- 读取顺序: {' -> '.join(read_order)}",
+    ]
+    if top_actions:
+        prompt_lines.append(
+            "- 优先行动: "
+            + "；".join(
+                f"{item.get('stock_code', '')} {item.get('name', '')} [{item.get('action', '')}] {item.get('action_hint', '')}"
+                for item in top_actions
+            )
+        )
+    prompt_lines.extend(
+        [
+            "- 规则: 门禁 block 时只做诊断、修复数据或等待，不给强行动建议。",
+            "- 规则: 门禁 warn 时保持谨慎，不把降级数据当成强信号。",
+        ]
+    )
+    prompt_text = "\n".join(prompt_lines)
+
+    return {
+        "status": gate_status,
+        "summary_text": summary_text,
+        "prompt_text": prompt_text,
+        "read_order": read_order,
+        "rules": rules,
+        "gate_status": gate_status,
+        "gate_summary": gate_summary,
+        "gate_allowed_actions": gate_allowed_actions,
+        "gate_blocked_actions": gate_blocked_actions,
+        "action_summary": action_summary,
+        "action_count": len(action_items),
+        "top_actions": top_actions,
+        "run_cadence_status": cadence_status,
+        "run_cadence_summary": cadence_summary,
+        "run_cadence_next_step": cadence_next_step,
+        "diagnosis_summary": diagnosis_summary,
+        "evidence": {
+            "production_gate": {
+                "status": gate_status,
+                "summary": gate_summary,
+                "allowed_actions": gate_allowed_actions,
+                "blocked_actions": gate_blocked_actions,
+            },
+            "action_list": {
+                "status": str(action_list.get("status", "")).strip() or gate_status,
+                "summary_text": action_summary,
+                "count": len(action_items),
+            },
+            "run_cadence": {
+                "status": cadence_status,
+                "summary_text": cadence_summary,
+                "next_step": cadence_next_step,
+            },
+            "diagnosis_evidence": {
+                "summary_text": str(diagnosis_evidence.get("summary_text", "")).strip(),
+                "top_causes": diagnosis_evidence.get("top_causes", []),
+            },
+        },
+    }
+
+
 def build_action_list(
     *,
     decision_items: list[dict[str, Any]],

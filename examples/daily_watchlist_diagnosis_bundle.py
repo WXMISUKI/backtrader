@@ -19,7 +19,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from examples.watchlist_shared import build_diagnosis_evidence
+from examples.watchlist_shared import build_daily_prompt_context, build_diagnosis_evidence
 from examples.watchlist_shared import build_production_gate
 
 
@@ -82,6 +82,14 @@ def main() -> int:
         health_items=health_items if isinstance(health_items, list) else [],
         daily_run_status=str(flow_payload.get("daily_run_status", "")) if isinstance(flow_payload, dict) else "",
     )
+    run_cadence = flow_payload.get("run_cadence", {}) if isinstance(flow_payload, dict) else {}
+    prompt_context = build_daily_prompt_context(
+        production_gate=production_gate,
+        action_list=action_list if isinstance(action_list, dict) else {},
+        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
+        diagnosis_evidence=diagnosis_evidence,
+    )
 
     bundle = {
         "generated_at": flow_payload.get("generated_at", acceptance_payload.get("generated_at", "")) if isinstance(flow_payload, dict) else "",
@@ -89,6 +97,7 @@ def main() -> int:
         "daily_summary": daily_summary,
         "diagnosis_evidence": diagnosis_evidence,
         "action_list": action_list,
+        "prompt_context": prompt_context,
         "production_gate": production_gate,
         "acceptance": {
             "status": acceptance_payload.get("status", ""),
@@ -116,6 +125,8 @@ def main() -> int:
     print(f"门禁摘要: {production_gate.get('summary', '')}")
     if isinstance(action_list, dict) and action_list.get("summary_text"):
         print(f"行动清单: {action_list.get('summary_text', '')}")
+    if isinstance(prompt_context, dict) and prompt_context.get("summary_text"):
+        print(f"提示语境: {prompt_context.get('summary_text', '')}")
     if isinstance(diagnosis_evidence, dict) and diagnosis_evidence.get("sample_attribution"):
         sample_attribution = diagnosis_evidence.get("sample_attribution", [])
         print("样本归因: " + "；".join(f"{item.get('cause', '')} {item.get('count', 0)}" for item in sample_attribution[:5]))

@@ -23,6 +23,8 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from examples.watchlist_shared import build_daily_prompt_context
+
 
 DEFAULT_WATCHLIST_PATH = ROOT_DIR / "config" / "watchlist.json"
 DEFAULT_PORTFOLIO_PATH = ROOT_DIR / "config" / "portfolio.json"
@@ -234,6 +236,17 @@ def main() -> int:
         archive_status=archive_status,
         view_status=view_status,
     )
+    production_gate = pipeline_payload.get("production_gate", {}) if isinstance(pipeline_payload, dict) else {}
+    action_list = pipeline_payload.get("action_list", {}) if isinstance(pipeline_payload, dict) else {}
+    daily_summary = pipeline_payload.get("daily_summary", {}) if isinstance(pipeline_payload, dict) else {}
+    diagnosis_evidence = pipeline_payload.get("diagnosis_evidence", {}) if isinstance(pipeline_payload, dict) else {}
+    prompt_context = build_daily_prompt_context(
+        production_gate=production_gate if isinstance(production_gate, dict) else {},
+        action_list=action_list if isinstance(action_list, dict) else {},
+        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
+        diagnosis_evidence=diagnosis_evidence if isinstance(diagnosis_evidence, dict) else {},
+    )
     status = _derive_status(
         preflight_ok=preflight_ok,
         pipeline_ok=archive_ok,
@@ -271,6 +284,7 @@ def main() -> int:
             "feedback_count": len(feedback_records),
         },
         "run_cadence": run_cadence,
+        "prompt_context": prompt_context,
         "outputs": {
             "preflight_output": preflight_output.strip(),
             "pipeline_output": pipeline_output.strip(),
@@ -289,6 +303,7 @@ def main() -> int:
     print(f"运行状态: {run_status_path}")
     print(f"查看入口: {viewer_script}")
     print(f"运行节奏: {run_cadence['summary_text']}")
+    print(f"提示语境: {prompt_context['summary_text']}")
     print(f"下一步: {run_cadence['next_step']}")
 
     if not args.skip_view and archive_ok:

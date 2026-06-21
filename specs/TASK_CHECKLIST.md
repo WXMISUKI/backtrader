@@ -936,13 +936,29 @@
 | 66.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE66_DAILY_RUN_CADENCE.md` |
 | 66.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 66 收口 |
 
+## Phase 67: 自选股日常提示语境联动
+
+**SDD规格文档**: `specs/SDD_PHASE67_DAILY_PROMPT_CONTEXT_LINKAGE.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 67.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE67_DAILY_PROMPT_CONTEXT_LINKAGE.md` |
+| 67.1 | 实现共享提示语境构建 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 67.2 | 在日常运行状态中写入提示语境 | P0 | ✅ | - | `examples/daily_watchlist_daily_run.py` |
+| 67.3 | 在默认工作流和留档查看中展示提示语境 | P0 | ✅ | - | `examples/daily_watchlist_flow.py` / `examples/daily_watchlist_archive_viewer.py` |
+| 67.4 | 在诊断收口包中展示提示语境 | P1 | ✅ | - | `examples/daily_watchlist_diagnosis_bundle.py` |
+| 67.5 | 更新智能体默认提示词 | P1 | ✅ | - | `core/agent/client.py` |
+| 67.6 | 在投产验收中检查提示语境 | P1 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 67.7 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE67_DAILY_PROMPT_CONTEXT_LINKAGE.md` |
+| 67.8 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 67 收口 |
+
 ---
 
 ## 下一步行动
 
 1. **当前**: 以 `production_gate` + `action_list` 作为默认日常查看顺序
-2. **随后**: 观察 `review_now / hold_watch / wait / skip_due_to_data / diagnose` 的日常命中是否符合使用习惯
-3. **再后**: 继续推进更细的提示语境联动和更细的回看呈现
+2. **随后**: 以 `prompt_context` 作为日常提示词和 Skill 的共享语境
+3. **再后**: 观察 `review_now / hold_watch / wait / skip_due_to_data / diagnose` 的日常命中是否符合使用习惯
 4. **持续**: 观察反馈效果评估是否稳定
 
 ---
