@@ -22,6 +22,8 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from examples.watchlist_shared import build_diagnosis_evidence
+
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
 DEFAULT_FEEDBACK_FILE = ROOT_DIR / "logs" / "daily_watchlist_feedback.jsonl"
@@ -94,12 +96,21 @@ def main() -> int:
     latest_md = archive_dir / "latest.md"
     viewer_script = ROOT_DIR / "examples" / "daily_watchlist_review.py"
     insights_script = ROOT_DIR / "examples" / "daily_watchlist_feedback_insights.py"
+    latest_payload = _load_json_payload(latest_json)
+    if not latest_payload:
+        latest_payload = _load_json_payload(Path(args.run_status))
+    daily_summary = latest_payload.get("daily_summary", {}) if isinstance(latest_payload, dict) else {}
+    diagnosis_counts = daily_summary.get("diagnosis_counts", {}) if isinstance(daily_summary, dict) else {}
+    diagnosis_ok = isinstance(diagnosis_counts, dict) and bool(diagnosis_counts)
+    health_items = latest_payload.get("health", {}).get("items", []) if isinstance(latest_payload, dict) else []
+    diagnosis_evidence = build_diagnosis_evidence(daily_summary=daily_summary, health_items=health_items if isinstance(health_items, list) else [])
 
     checks = {
         "latest_json": _exists(latest_json),
         "latest_md": _exists(latest_md),
         "run_status": _exists(run_status_path),
         "feedback_file": _exists(feedback_file),
+        "diagnosis_summary": diagnosis_ok,
     }
     checks_ok = sum(1 for value in checks.values() if value)
     checks_total = len(checks)
@@ -118,10 +129,13 @@ def main() -> int:
         "run_status": str(run_status_path),
         "feedback_file": str(feedback_file),
         "checks": checks,
+        "diagnosis_counts": diagnosis_counts if isinstance(diagnosis_counts, dict) else {},
+        "diagnosis_evidence": diagnosis_evidence,
         "review_ok": review_code == 0,
         "insights_ok": insights_code == 0,
         "summary": "投产验收通过。" if status == "ok" else ("部分产物缺失，但主链路可用。" if status == "degraded" else "关键产物或入口不可用。"),
         "data": {
+            "latest_payload": latest_payload,
             "run_status_payload": _load_json_payload(run_status_path),
             "feedback_records": len(_load_jsonl_payload(feedback_file)),
             "review_output": review_output.strip(),
@@ -139,6 +153,8 @@ def main() -> int:
     print(f"latest.md: {'存在' if checks['latest_md'] else '缺失'}")
     print(f"run_status: {'存在' if checks['run_status'] else '缺失'}")
     print(f"feedback_file: {'存在' if checks['feedback_file'] else '缺失'}")
+    print(f"diagnosis_summary: {'存在' if checks['diagnosis_summary'] else '缺失'}")
+    print(f"diagnosis_evidence: {'存在' if bool(diagnosis_evidence.get('top_causes')) else '缺失'}")
     print(f"review: {'可运行' if review_code == 0 else '不可运行'}")
     print(f"insights: {'可运行' if insights_code == 0 else '不可运行'}")
     print(f"验收结果: {acceptance_path}")

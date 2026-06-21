@@ -23,6 +23,7 @@ from core.data.real_provider import RealDataProvider
 from core.orchestrator import create_stock_orchestrator
 from examples.watchlist_shared import (
     build_data_health_summary,
+    build_daily_diagnosis_summary,
     build_portfolio_index,
     build_position_context,
     format_pct,
@@ -82,6 +83,21 @@ def _build_history_summary(*, raw: dict[str, Any], stock_code: str, stock_name: 
             "fundamental_reason": "watchlist 配置缺少 stock_code",
             "health_score": 0,
             "summary": f"{stock_name} 配置不完整，无法预检。",
+            "diagnosis": {
+                "primary_cause": "missing_stock_code",
+                "primary_label": "watchlist 缺少股票代码",
+                "severity": "critical",
+                "cause_tags": ["config_error", "missing_stock_code"],
+                "summary": f"{stock_name} 主要诊断: watchlist 缺少股票代码。",
+                "details": {
+                    "history_source": "config_error",
+                    "fundamental_source": "config_error",
+                    "history_reason": "watchlist 配置缺少 stock_code",
+                    "fundamental_reason": "watchlist 配置缺少 stock_code",
+                    "history_quality_ok": False,
+                    "fundamental_quality_ok": False,
+                },
+            },
             "flags": {"history_degraded": True, "fundamental_degraded": True},
         }
 
@@ -119,6 +135,7 @@ def _build_history_summary(*, raw: dict[str, Any], stock_code: str, stock_name: 
         "history_reason": health["history_reason"],
         "fundamental_reason": health["fundamental_reason"],
         "summary": health["summary"],
+        "diagnosis": health.get("diagnosis", {}),
         "flags": health["flags"],
         "history_rows": safe_int(history.get("quality", {}).get("rows", 0)),
         "fundamental_report_date": str(fundamental.get("payload", {}).get("report_date", "")) if isinstance(fundamental, dict) else "",
@@ -191,45 +208,7 @@ def _build_daily_summary(
     health_groups: dict[str, list[dict[str, Any]]],
     decision_groups: dict[str, list[dict[str, Any]]],
 ) -> dict[str, Any]:
-    health_counts = {key: len(value) for key, value in health_groups.items()}
-    decision_counts = {key: len(value) for key, value in decision_groups.items()}
-    top_focus = [item["stock_code"] + " " + item["name"] for item in decision_groups.get("重点关注", [])[:3]]
-    watch_list = [item["stock_code"] + " " + item["name"] for item in decision_groups.get("继续观察", [])[:3]]
-    held_alerts = [
-        item["stock_code"] + " " + item["name"]
-        for item in decision_groups.get("继续观察", [])
-        if str(item.get("position_label", "")).startswith("已持有")
-    ][:3]
-    status = "平稳"
-    if health_counts.get("明显降级", 0) > 0 or decision_counts.get("数据不足", 0) > 0:
-        status = "需要谨慎"
-    elif decision_counts.get("重点关注", 0) > 0:
-        status = "出现重点关注"
-
-    lines = [
-        f"今日总览: {status}",
-        f"健康状态: 完全可用 {health_counts.get('完全可用', 0)}，部分降级 {health_counts.get('部分降级', 0)}，明显降级 {health_counts.get('明显降级', 0)}",
-        f"决策分布: 重点关注 {decision_counts.get('重点关注', 0)}，继续观察 {decision_counts.get('继续观察', 0)}，暂不行动 {decision_counts.get('暂不行动', 0)}，数据不足 {decision_counts.get('数据不足', 0)}",
-    ]
-    if top_focus:
-        lines.append(f"重点关注: {'，'.join(top_focus)}")
-    if watch_list:
-        lines.append(f"继续观察: {'，'.join(watch_list)}")
-    if held_alerts:
-        lines.append(f"持仓留意: {'，'.join(held_alerts)}")
-
-    return {
-        "status": status,
-        "health_counts": health_counts,
-        "decision_counts": decision_counts,
-        "highlights": {
-            "top_focus": top_focus,
-            "watch_list": watch_list,
-            "held_alerts": held_alerts,
-        },
-        "summary_lines": lines,
-        "summary_text": "；".join(lines),
-    }
+    return build_daily_diagnosis_summary(health_groups=health_groups, decision_groups=decision_groups)
 
 
 def _build_daily_report(
@@ -257,6 +236,11 @@ def _build_daily_report(
         f"决策分布：重点关注 {decision_counts.get('重点关注', 0)}，继续观察 {decision_counts.get('继续观察', 0)}，"
         f"暂不行动 {decision_counts.get('暂不行动', 0)}，数据不足 {decision_counts.get('数据不足', 0)}"
     )
+    diagnosis_counts = daily_summary.get("diagnosis_counts", {}) if isinstance(daily_summary, dict) else {}
+    diagnosis_summary = ""
+    if isinstance(diagnosis_counts, dict) and diagnosis_counts:
+        sorted_diagnosis = sorted(diagnosis_counts.items(), key=lambda item: (-int(item[1]), item[0]))
+        diagnosis_summary = "降级原因：" + "，".join(f"{cause} {count}" for cause, count in sorted_diagnosis)
     highlights = {
         "重点关注": daily_summary["highlights"]["top_focus"],
         "继续观察": daily_summary["highlights"]["watch_list"],
@@ -269,6 +253,8 @@ def _build_daily_report(
         portfolio_summary,
         watchlist_summary,
     ]
+    if diagnosis_summary:
+        report_lines.append(diagnosis_summary)
     if highlights["重点关注"]:
         report_lines.append(f"重点关注：{'，'.join(highlights['重点关注'])}")
     if highlights["继续观察"]:

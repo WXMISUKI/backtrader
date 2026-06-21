@@ -741,6 +741,98 @@
 | 52.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE52_DAILY_WORKFLOW_FLOW.md` |
 | 52.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
+## Phase 53: 自选股日常降级原因分层 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE53_DAILY_DEGRADATION_DIAGNOSIS.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 53.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE53_DAILY_DEGRADATION_DIAGNOSIS.md` |
+| 53.1 | 扩展共享健康摘要诊断字段 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 53.2 | 增加降级原因分层规则 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 53.3 | 汇总日常总览降级原因统计 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 53.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 53.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE53_DAILY_DEGRADATION_DIAGNOSIS.md` |
+| 53.6 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
+## Phase 54: 自选股日常诊断口径贯通 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE54_DAILY_DIAGNOSIS_FLOW.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 54.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE54_DAILY_DIAGNOSIS_FLOW.md` |
+| 54.1 | 默认工作流输出诊断载荷 | P0 | ✅ | - | `examples/daily_watchlist_flow.py` |
+| 54.2 | 投产验收检查诊断摘要 | P0 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 54.3 | 日常统一流程补充诊断行 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 54.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 54.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE54_DAILY_DIAGNOSIS_FLOW.md` |
+| 54.6 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
+## Phase 55: 自选股日常诊断摘要模板化 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE55_DAILY_DIAGNOSIS_TEMPLATE.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 55.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE55_DAILY_DIAGNOSIS_TEMPLATE.md` |
+| 55.1 | 新增日常诊断摘要模板 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 55.2 | 让日常统一流程复用模板 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 55.3 | 更新运行说明 | P1 | ⬜ | - | `README_QUANT.md` |
+| 55.4 | 编写归档文档 | P1 | ⬜ | - | 记录摘要模板化结果 |
+| 55.5 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀公共模板接口 |
+
+## Phase 56: 自选股日常诊断证据视图 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE56_DAILY_DIAGNOSIS_EVIDENCE.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 56.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE56_DAILY_DIAGNOSIS_EVIDENCE.md` |
+| 56.1 | 新增诊断证据视图 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 56.2 | 让投产验收消费证据视图 | P0 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 56.3 | 更新运行说明 | P1 | ⬜ | - | `README_QUANT.md` |
+| 56.4 | 编写归档文档 | P1 | ⬜ | - | 记录证据视图收口结果 |
+| 56.5 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀验收证据模板 |
+
+## Phase 57: 自选股日常诊断回看对齐 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE57_DAILY_DIAGNOSIS_REVIEW_ALIGN.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 57.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE57_DAILY_DIAGNOSIS_REVIEW_ALIGN.md` |
+| 57.1 | 留档查看入口展示诊断证据 | P0 | ✅ | - | `examples/daily_watchlist_archive_viewer.py` |
+| 57.2 | 更新运行说明 | P1 | ⬜ | - | `README_QUANT.md` |
+| 57.3 | 编写归档文档 | P1 | ⬜ | - | 记录回看对齐结果 |
+| 57.4 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀回看对齐模板 |
+
+## Phase 58: 自选股日常诊断收口包 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE58_DAILY_DIAGNOSIS_BUNDLE.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 58.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE58_DAILY_DIAGNOSIS_BUNDLE.md` |
+| 58.1 | 新增诊断收口包脚本 | P0 | ✅ | - | `examples/daily_watchlist_diagnosis_bundle.py` |
+| 58.2 | 聚合日常摘要与证据视图 | P0 | ✅ | - | `examples/daily_watchlist_diagnosis_bundle.py` |
+| 58.3 | 聚合验收状态 | P0 | ✅ | - | `examples/daily_watchlist_diagnosis_bundle.py` |
+| 58.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 58.5 | 编写归档文档 | P1 | ⬜ | - | 记录收口包结果 |
+| 58.6 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀收口包模板 |
+
+## Phase 59: 自选股日常诊断路径说明 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE59_DAILY_DIAGNOSIS_PATH.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 59.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE59_DAILY_DIAGNOSIS_PATH.md` |
+| 59.1 | 编写诊断路径说明文档 | P0 | ✅ | - | `README_QUANT.md` |
+| 59.2 | 更新运行说明指向路径说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 59.3 | 编写归档文档 | P1 | ⬜ | - | 记录路径说明结果 |
+| 59.4 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀路径说明 |
+
 ---
 
 ## 下一步行动

@@ -185,6 +185,17 @@ def build_data_health_summary(*, stock_name: str, history: dict[str, Any], funda
         score += 5
 
     score = min(score, 100)
+    diagnosis = _build_health_diagnosis(
+        stock_name=stock_name,
+        history_source=history_source,
+        fundamental_source=fundamental_source,
+        history_reason=history_reason,
+        fundamental_reason=fundamental_reason,
+        history_degraded=history_degraded,
+        fundamental_degraded=fundamental_degraded,
+        history_quality=history_quality,
+        fundamental_quality=fundamental_quality,
+    )
     return {
         "status": status,
         "health_score": score,
@@ -195,10 +206,202 @@ def build_data_health_summary(*, stock_name: str, history: dict[str, Any], funda
         "history_reason": history_reason,
         "fundamental_reason": fundamental_reason,
         "summary": f"{stock_name} 数据健康状态为{status}，健康分 {score} 分。",
+        "diagnosis": diagnosis,
         "flags": {
             "history_degraded": history_degraded,
             "fundamental_degraded": fundamental_degraded,
             "history_quality_ok": bool(history_quality.get("ok", False)),
             "fundamental_quality_ok": bool(fundamental_quality.get("ok", False)),
+        },
+    }
+
+
+def build_daily_diagnosis_summary(*, health_groups: dict[str, list[dict[str, Any]]], decision_groups: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
+    """把日常健康分组和决策分组收成统一摘要模板。"""
+    health_counts = {key: len(value) for key, value in health_groups.items()}
+    decision_counts = {key: len(value) for key, value in decision_groups.items()}
+    top_focus = [item["stock_code"] + " " + item["name"] for item in decision_groups.get("重点关注", [])[:3]]
+    watch_list = [item["stock_code"] + " " + item["name"] for item in decision_groups.get("继续观察", [])[:3]]
+    held_alerts = [
+        item["stock_code"] + " " + item["name"]
+        for item in decision_groups.get("继续观察", [])
+        if str(item.get("position_label", "")).startswith("已持有")
+    ][:3]
+    diagnosis_counts: dict[str, int] = {}
+    for group_items in health_groups.values():
+        for item in group_items:
+            diagnosis = item.get("diagnosis", {}) if isinstance(item, dict) else {}
+            primary_cause = str(diagnosis.get("primary_cause", "")) if isinstance(diagnosis, dict) else ""
+            if primary_cause and primary_cause != "healthy":
+                diagnosis_counts[primary_cause] = diagnosis_counts.get(primary_cause, 0) + 1
+
+    status = "平稳"
+    if health_counts.get("明显降级", 0) > 0 or decision_counts.get("数据不足", 0) > 0:
+        status = "需要谨慎"
+    elif decision_counts.get("重点关注", 0) > 0:
+        status = "出现重点关注"
+
+    summary_lines = [
+        f"今日总览: {status}",
+        f"健康状态: 完全可用 {health_counts.get('完全可用', 0)}，部分降级 {health_counts.get('部分降级', 0)}，明显降级 {health_counts.get('明显降级', 0)}",
+        f"决策分布: 重点关注 {decision_counts.get('重点关注', 0)}，继续观察 {decision_counts.get('继续观察', 0)}，暂不行动 {decision_counts.get('暂不行动', 0)}，数据不足 {decision_counts.get('数据不足', 0)}",
+    ]
+    if top_focus:
+        summary_lines.append(f"重点关注: {'，'.join(top_focus)}")
+    if watch_list:
+        summary_lines.append(f"继续观察: {'，'.join(watch_list)}")
+    if held_alerts:
+        summary_lines.append(f"持仓留意: {'，'.join(held_alerts)}")
+    if diagnosis_counts:
+        sorted_diagnosis = sorted(diagnosis_counts.items(), key=lambda item: (-item[1], item[0]))
+        summary_lines.append("降级原因: " + "，".join(f"{cause} {count}" for cause, count in sorted_diagnosis))
+
+    return {
+        "status": status,
+        "health_counts": health_counts,
+        "decision_counts": decision_counts,
+        "diagnosis_counts": diagnosis_counts,
+        "highlights": {
+            "top_focus": top_focus,
+            "watch_list": watch_list,
+            "held_alerts": held_alerts,
+        },
+        "summary_lines": summary_lines,
+        "summary_text": "；".join(summary_lines),
+    }
+
+
+def build_diagnosis_evidence(*, daily_summary: dict[str, Any], health_items: list[dict[str, Any]]) -> dict[str, Any]:
+    """把日常诊断摘要进一步整理成可给验收和回看消费的证据视图。"""
+    diagnosis_counts = daily_summary.get("diagnosis_counts", {}) if isinstance(daily_summary, dict) else {}
+    top_causes = []
+    if isinstance(diagnosis_counts, dict):
+        top_causes = sorted(diagnosis_counts.items(), key=lambda item: (-item[1], item[0]))
+    sample_items = []
+    for item in health_items[:5]:
+        diagnosis = item.get("diagnosis", {}) if isinstance(item, dict) else {}
+        sample_items.append(
+            {
+                "stock_code": item.get("stock_code", ""),
+                "name": item.get("name", ""),
+                "status": item.get("status", ""),
+                "primary_cause": diagnosis.get("primary_cause", ""),
+                "primary_label": diagnosis.get("primary_label", ""),
+                "summary": diagnosis.get("summary", ""),
+            }
+        )
+
+    return {
+        "summary_text": daily_summary.get("summary_text", "") if isinstance(daily_summary, dict) else "",
+        "status": daily_summary.get("status", "") if isinstance(daily_summary, dict) else "",
+        "diagnosis_counts": diagnosis_counts if isinstance(diagnosis_counts, dict) else {},
+        "top_causes": top_causes,
+        "sample_items": sample_items,
+    }
+
+
+def _build_health_diagnosis(
+    *,
+    stock_name: str,
+    history_source: str,
+    fundamental_source: str,
+    history_reason: str,
+    fundamental_reason: str,
+    history_degraded: bool,
+    fundamental_degraded: bool,
+    history_quality: dict[str, Any],
+    fundamental_quality: dict[str, Any],
+) -> dict[str, Any]:
+    cause = "healthy"
+    label = "历史和基本面都正常"
+    severity = "ok"
+
+    history_ok = bool(history_quality.get("ok", False))
+    fundamental_ok = bool(fundamental_quality.get("ok", False))
+    cause_tags: list[str] = []
+
+    if history_source == "mock" and fundamental_source == "mock":
+        cause = "double_mock_fallback"
+        label = "历史与基本面均回退到 mock"
+        severity = "critical"
+    elif history_source == "mock":
+        cause = "history_mock_fallback"
+        label = "历史行情回退到 mock"
+        severity = "critical"
+    elif fundamental_source == "mock":
+        cause = "fundamental_mock_fallback"
+        label = "基本面回退到 mock"
+        severity = "critical"
+    elif history_source == "error" and fundamental_source == "error":
+        cause = "double_error"
+        label = "历史与基本面都发生异常"
+        severity = "critical"
+    elif history_source == "error":
+        cause = "history_error"
+        label = "历史行情链路异常"
+        severity = "critical"
+    elif fundamental_source == "error":
+        cause = "fundamental_error"
+        label = "基本面链路异常"
+        severity = "critical"
+    elif history_degraded and fundamental_degraded:
+        cause = "double_degraded"
+        label = "历史与基本面都处于降级"
+        severity = "warning"
+    elif history_degraded:
+        cause = "history_degraded"
+        label = "历史行情处于降级"
+        severity = "warning"
+    elif fundamental_degraded:
+        cause = "fundamental_degraded"
+        label = "基本面处于降级"
+        severity = "warning"
+    elif not history_ok and not fundamental_ok:
+        cause = "double_quality_issue"
+        label = "历史与基本面质量都不稳定"
+        severity = "warning"
+    elif not history_ok:
+        cause = "history_quality_issue"
+        label = "历史行情质量不稳定"
+        severity = "warning"
+    elif not fundamental_ok:
+        cause = "fundamental_quality_issue"
+        label = "基本面质量不稳定"
+        severity = "warning"
+
+    if history_source != "real":
+        cause_tags.append(f"history_source:{history_source}")
+    if fundamental_source != "real":
+        cause_tags.append(f"fundamental_source:{fundamental_source}")
+    if history_degraded:
+        cause_tags.append("history_degraded")
+    if fundamental_degraded:
+        cause_tags.append("fundamental_degraded")
+    if not history_ok:
+        cause_tags.append("history_quality_not_ok")
+    if not fundamental_ok:
+        cause_tags.append("fundamental_quality_not_ok")
+
+    detail_parts = [
+        f"历史={history_source}({history_reason or 'ok'})",
+        f"基本面={fundamental_source}({fundamental_reason or 'ok'})",
+    ]
+    summary = f"{stock_name} 主要诊断: {label}。"
+    if cause != "healthy":
+        summary = f"{stock_name} 主要诊断: {label}；" + "；".join(detail_parts)
+
+    return {
+        "primary_cause": cause,
+        "primary_label": label,
+        "severity": severity,
+        "cause_tags": cause_tags,
+        "summary": summary,
+        "details": {
+            "history_source": history_source,
+            "fundamental_source": fundamental_source,
+            "history_reason": history_reason,
+            "fundamental_reason": fundamental_reason,
+            "history_quality_ok": history_ok,
+            "fundamental_quality_ok": fundamental_ok,
         },
     }

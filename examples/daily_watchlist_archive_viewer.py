@@ -23,6 +23,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from examples.daily_watchlist_display import print_bullets, print_kv_pairs, print_section
+from examples.watchlist_shared import build_diagnosis_evidence
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
@@ -94,6 +95,8 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
     stage_report = payload.get("stage_report", {}) if isinstance(payload, dict) else {}
     archive_package = payload.get("archive_package", {}) if isinstance(payload, dict) else {}
     portfolio_summary = payload.get("portfolio_summary", {}) if isinstance(payload, dict) else {}
+    health_items = payload.get("health", {}).get("items", []) if isinstance(payload, dict) else []
+    diagnosis_evidence = build_diagnosis_evidence(daily_summary=daily_summary, health_items=health_items if isinstance(health_items, list) else [])
     feedback_records = _load_jsonl_payload(DEFAULT_FEEDBACK_PATH)
 
     print_section("自选股日常留档查看")
@@ -103,6 +106,7 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
             ("归档Markdown", md_path or "未找到"),
             ("生成时间", payload.get("generated_at", "")),
             ("日常总览", daily_summary.get("status", "")),
+            ("诊断摘要", diagnosis_evidence.get("summary_text", "")),
             (
                 "持仓摘要",
                 f"数量 {portfolio_summary.get('count', 0)}，市值 {portfolio_summary.get('market_value', 0.0):.2f}，总资产 {portfolio_summary.get('total_assets', 0.0):.2f}",
@@ -136,6 +140,13 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
     if archive_package and archive_package.get("report_text"):
         print_section("复盘留档包")
         print(_shorten_lines(str(archive_package.get("report_text", "")), limit_lines))
+
+    if diagnosis_evidence.get("top_causes"):
+        print_section("诊断证据")
+        print_bullets([f"{cause} {count}" for cause, count in diagnosis_evidence.get("top_causes", [])])
+        samples = diagnosis_evidence.get("sample_items", [])
+        if samples:
+            print_bullets([f"{item.get('stock_code', '')} {item.get('name', '')} [{item.get('status', '')}] {item.get('primary_label', '')}" for item in samples])
 
 
 def main() -> int:

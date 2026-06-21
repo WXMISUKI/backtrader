@@ -206,6 +206,36 @@ python examples/daily_watchlist_decision.py --watchlist config/watchlist.json --
 python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --portfolio config/portfolio.json --output-json logs/daily_watchlist_pipeline.json
 ```
 
+如果你想在日常结果里顺手看出“为什么会降级”，可以重点看健康摘要里的 `diagnosis`，默认工作流 JSON 里的 `diagnosis_counts`，以及总览里的降级原因统计。
+
+日常总览现在由公共摘要模板统一生成，`daily_watchlist_pipeline.py` 只是把健康分组和决策分组喂进去。
+
+投产验收现在还能直接消费一个 `diagnosis_evidence` 视图，用来快速确认今天主要的降级原因和样例项。
+
+留档查看入口也会展示同一份 `diagnosis_evidence`，方便回看时和验收入口对齐。
+
+如果你想一条命令把日常摘要、诊断证据和验收状态收成一个收口包，可以跑：
+
+```bash
+python examples/daily_watchlist_diagnosis_bundle.py --show-json
+```
+
+如果你想快速看懂这条诊断链路，推荐顺序是：
+
+1. `daily_watchlist_flow.py`
+2. `daily_watchlist_acceptance.py`
+3. `daily_watchlist_archive_viewer.py`
+4. `daily_watchlist_diagnosis_bundle.py`
+
+这几步共享同一套 `daily_summary / diagnosis_evidence / acceptance` 语义。
+
+如果你想做一次更完整的默认日常检查，推荐直接跑默认工作流，再看验收入口：
+
+```bash
+python examples/daily_watchlist_flow.py --watchlist config/watchlist.json --portfolio config/portfolio.json --archive-dir logs/daily_watchlist_archive --output-json logs/daily_watchlist_flow.json
+python examples/daily_watchlist_acceptance.py
+```
+
 如果你想把今天的结果和上一份日报做对比，可以加上 `--compare-with`：
 
 ```bash

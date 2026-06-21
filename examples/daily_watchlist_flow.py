@@ -49,6 +49,17 @@ def _run_script(script: Path, args: list[str]) -> tuple[int, str]:
     return completed.returncode, output
 
 
+def _load_json_payload(path: Path) -> dict[str, object]:
+    if not path.exists():
+        return {}
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            payload = json.load(f)
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
 def main() -> int:
     args = build_parser().parse_args()
     daily_run_script = ROOT_DIR / "examples" / "daily_watchlist_daily_run.py"
@@ -92,13 +103,14 @@ def main() -> int:
         )
     outputs["acceptance"] = {"code": acceptance_code, "output": acceptance_output.strip()}
 
+    daily_run_status_payload = _load_json_payload(DEFAULT_RUN_STATUS)
+    pipeline_payload = _load_json_payload(ROOT_DIR / "logs" / "daily_watchlist_pipeline.json")
+    daily_summary = pipeline_payload.get("daily_summary", {}) if isinstance(pipeline_payload, dict) else {}
+    diagnosis_counts = daily_summary.get("diagnosis_counts", {}) if isinstance(daily_summary, dict) else {}
+
     daily_run_status = "unknown"
-    try:
-        daily_status_payload = json.loads(DEFAULT_RUN_STATUS.read_text(encoding="utf-8")) if DEFAULT_RUN_STATUS.exists() else {}
-        if isinstance(daily_status_payload, dict):
-            daily_run_status = str(daily_status_payload.get("status", "unknown"))
-    except Exception:
-        daily_run_status = "unknown"
+    if isinstance(daily_run_status_payload, dict):
+        daily_run_status = str(daily_run_status_payload.get("status", "unknown"))
 
     status = "ok"
     if daily_code != 0 or review_code != 0 or acceptance_code != 0:
@@ -110,6 +122,9 @@ def main() -> int:
         "status": status,
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "daily_run_status": daily_run_status,
+        "daily_run_status_payload": daily_run_status_payload,
+        "pipeline_payload": pipeline_payload,
+        "diagnosis_counts": diagnosis_counts,
         "daily_run_code": daily_code,
         "review_code": review_code,
         "acceptance_code": acceptance_code,
