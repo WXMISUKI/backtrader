@@ -22,8 +22,11 @@ from core.data.eastmoney_api import fetch_stock_hist_governed
 from core.data.real_provider import RealDataProvider
 from core.orchestrator import create_stock_orchestrator
 from examples.watchlist_shared import (
+    build_action_list,
     build_data_health_summary,
     build_daily_diagnosis_summary,
+    build_diagnosis_evidence,
+    build_production_gate,
     build_portfolio_index,
     build_position_context,
     format_pct,
@@ -232,6 +235,7 @@ def _build_daily_report(
     health_groups: dict[str, list[dict[str, Any]]],
     decision_groups: dict[str, list[dict[str, Any]]],
     daily_summary: dict[str, Any],
+    action_list: dict[str, Any],
     portfolio_count: int,
     portfolio_value: float,
     total_assets: float,
@@ -256,6 +260,9 @@ def _build_daily_report(
     if isinstance(diagnosis_counts, dict) and diagnosis_counts:
         sorted_diagnosis = sorted(diagnosis_counts.items(), key=lambda item: (-int(item[1]), item[0]))
         diagnosis_summary = "降级原因：" + "，".join(f"{cause} {count}" for cause, count in sorted_diagnosis)
+    action_summary = ""
+    if isinstance(action_list, dict) and action_list.get("summary_text"):
+        action_summary = str(action_list.get("summary_text", ""))
     confidence_summary = ""
     if isinstance(confidence_counts, dict) and confidence_counts:
         confidence_summary = (
@@ -279,6 +286,8 @@ def _build_daily_report(
     ]
     if diagnosis_summary:
         report_lines.append(diagnosis_summary)
+    if action_summary:
+        report_lines.append(action_summary)
     if confidence_summary:
         report_lines.append(confidence_summary)
     if highlights["重点关注"]:
@@ -592,6 +601,7 @@ def _build_archive_package(
         "portfolio_summary": portfolio_summary,
         "report_lines": report_lines,
         "report_text": "\n".join(report_lines),
+        "action_list": action_list,
     }
 
 
@@ -812,6 +822,19 @@ def main() -> int:
         "数据不足": [item for item in decision_items if item.get("group") == "数据不足"],
     }
     daily_summary = _build_daily_summary(health_groups=health_groups, decision_groups=decision_groups)
+    production_gate = build_production_gate(
+        daily_summary=daily_summary,
+        diagnosis_evidence=build_diagnosis_evidence(daily_summary=daily_summary, health_items=health_items),
+        acceptance={"status": "unknown"},
+        health_items=health_items,
+        daily_run_status="unknown",
+    )
+    action_list = build_action_list(
+        decision_items=decision_items,
+        health_items=health_items,
+        production_gate=production_gate,
+        limit=5,
+    )
     daily_report = _build_daily_report(
         generated_at=datetime.now().isoformat(timespec="seconds"),
         watchlist_path=watchlist_path,
@@ -819,6 +842,7 @@ def main() -> int:
         health_groups=health_groups,
         decision_groups=decision_groups,
         daily_summary=daily_summary,
+        action_list=action_list,
         portfolio_count=portfolio_count,
         portfolio_value=portfolio_value,
         total_assets=total_assets,
@@ -892,6 +916,11 @@ def main() -> int:
             print(f"- {item['stock_code']} {item['name']} [{item['group']}] {item['结论']}")
             print(f"  持仓: {item.get('position_summary', '')}")
 
+    print("\n== 日常行动清单 ==")
+    print(f"总计: {len(action_list.get('items', []))} 条，复核 {len(action_list.get('groups', {}).get('review_now', []))}，持有观察 {len(action_list.get('groups', {}).get('hold_watch', []))}，等待 {len(action_list.get('groups', {}).get('wait', []))}，跳过 {len(action_list.get('groups', {}).get('skip_due_to_data', []))}，诊断 {len(action_list.get('groups', {}).get('diagnose', []))}")
+    for item in action_list.get("items", []):
+        print(f"- {item.get('stock_code', '')} {item.get('name', '')} [{item.get('action', '')}] {item.get('reason', '')}")
+
     output_path = Path(args.output_json) if args.output_json else None
     generated_at = datetime.now().isoformat(timespec="seconds")
     payload = {
@@ -907,6 +936,7 @@ def main() -> int:
         "health": {"items": health_items, "groups": health_groups},
         "decision": {"items": decision_items, "groups": decision_groups},
         "daily_summary": daily_summary,
+        "action_list": action_list,
         "daily_report": daily_report,
         "daily_comparison": daily_comparison,
         "weekly_report": weekly_report,

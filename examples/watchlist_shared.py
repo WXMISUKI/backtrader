@@ -591,6 +591,136 @@ def build_production_gate(
     }
 
 
+def build_action_list(
+    *,
+    decision_items: list[dict[str, Any]],
+    health_items: list[dict[str, Any]],
+    production_gate: dict[str, Any] | None = None,
+    limit: int = 5,
+) -> dict[str, Any]:
+    """把日常决策和门禁结果收成可执行的行动清单。"""
+    production_gate = production_gate if isinstance(production_gate, dict) else {}
+    gate_status = str(production_gate.get("status", "")).strip()
+    gate_allowed = production_gate.get("allowed_actions", []) if isinstance(production_gate, dict) else []
+
+    health_index: dict[str, dict[str, Any]] = {}
+    for item in health_items:
+        if not isinstance(item, dict):
+            continue
+        stock_code = str(item.get("stock_code", "")).strip()
+        if stock_code:
+            health_index[stock_code] = item
+
+    actions: list[dict[str, Any]] = []
+    for item in decision_items:
+        if not isinstance(item, dict):
+            continue
+        stock_code = str(item.get("stock_code", "")).strip()
+        stock_name = str(item.get("name", stock_code or "unknown"))
+        group = str(item.get("group", "")).strip()
+        position_label = str(item.get("position_label", "")).strip()
+        data_confidence = safe_float(item.get("data_confidence"), 0.0)
+        confidence = safe_float(item.get("confidence"), 0.0)
+        health_item = health_index.get(stock_code, {})
+        health_status = str(health_item.get("status", item.get("health_status", "")) or "")
+        diagnosis = health_item.get("diagnosis", {}) if isinstance(health_item, dict) else {}
+
+        action = "wait"
+        priority = 50
+        if group == "重点关注" and confidence >= 0.65 and data_confidence >= 0.6:
+            action = "review_now"
+            priority = 10
+        elif group == "继续观察" and position_label.startswith("已持有"):
+            action = "hold_watch"
+            priority = 20
+        elif group == "继续观察":
+            action = "wait"
+            priority = 30
+        elif group == "暂不行动":
+            action = "wait"
+            priority = 40
+        elif group == "数据不足" or data_confidence < 0.55:
+            action = "skip_due_to_data"
+            priority = 5 if gate_status == "block" else 15
+
+        if gate_status == "block":
+            if action == "review_now":
+                action = "diagnose"
+                priority = 5
+            elif action in {"hold_watch", "wait"}:
+                action = "diagnose"
+                priority = min(priority, 10)
+        elif gate_status == "warn" and action == "review_now":
+            priority = 15
+
+        reason_parts = [
+            f"分组 {group}",
+            f"置信度 {format_pct(confidence)}",
+            f"可信度 {format_pct(data_confidence)}",
+            f"健康状态 {health_status or 'unknown'}",
+        ]
+        if diagnosis:
+            reason_parts.append(str(diagnosis.get("primary_label", "")) or str(diagnosis.get("summary", "")))
+        if position_label:
+            reason_parts.append(position_label)
+
+        actions.append(
+            {
+                "stock_code": stock_code,
+                "name": stock_name,
+                "group": group,
+                "action": action,
+                "priority": priority,
+                "position_label": position_label,
+                "confidence": round(confidence, 4),
+                "data_confidence": round(data_confidence, 4),
+                "health_status": health_status,
+                "reason": "；".join(part for part in reason_parts if part),
+                "watch_reason": str(item.get("watch_reason", "") or ""),
+                "risk_profile": item.get("risk_profile", ""),
+                "latest_price": item.get("latest_price"),
+                "target_price": item.get("target_price"),
+                "stop_loss": item.get("stop_loss"),
+                "position_ratio": item.get("position_ratio"),
+                "gate_status": gate_status,
+                "gate_allowed": gate_allowed,
+            }
+        )
+
+    action_groups: dict[str, list[dict[str, Any]]] = {
+        "review_now": [],
+        "hold_watch": [],
+        "wait": [],
+        "skip_due_to_data": [],
+        "diagnose": [],
+    }
+    for item in actions:
+        action_groups.setdefault(str(item.get("action", "wait")), []).append(item)
+    for group_items in action_groups.values():
+        group_items.sort(key=lambda item: (int(item.get("priority", 99)), -safe_float(item.get("confidence"), 0.0), item.get("stock_code", "")))
+
+    sorted_actions = sorted(actions, key=lambda item: (int(item.get("priority", 99)), -safe_float(item.get("confidence"), 0.0), item.get("stock_code", "")))
+    summary_counts = {key: len(value) for key, value in action_groups.items()}
+    summary_lines = [
+        f"行动分布: 复核 {summary_counts.get('review_now', 0)}，持有观察 {summary_counts.get('hold_watch', 0)}，等待 {summary_counts.get('wait', 0)}，跳过 {summary_counts.get('skip_due_to_data', 0)}，诊断 {summary_counts.get('diagnose', 0)}",
+    ]
+    if sorted_actions:
+        top_actions = [
+            f"{item['stock_code']} {item['name']} [{item['action']}] {item['reason']}"
+            for item in sorted_actions[:limit]
+        ]
+        summary_lines.append("优先行动: " + "；".join(top_actions))
+
+    return {
+        "status": gate_status or "unknown",
+        "counts": summary_counts,
+        "items": sorted_actions[:limit],
+        "groups": action_groups,
+        "summary_lines": summary_lines,
+        "summary_text": "；".join(summary_lines),
+    }
+
+
 def _build_health_diagnosis(
     *,
     stock_name: str,

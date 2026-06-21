@@ -185,6 +185,8 @@ python examples/daily_watchlist_acceptance.py --output-json logs/daily_watchlist
 python examples/daily_watchlist_flow.py --watchlist config/watchlist.json --portfolio config/portfolio.json --archive-dir logs/daily_watchlist_archive --output-json logs/daily_watchlist_flow.json
 ```
 
+默认工作流现在会同时输出 `production_gate` 和 `action_list`，也就是先看今天能不能参考，再看今天先做什么。
+
 如果你只想先跳过回看或验收，也可以分别加：
 
 ```bash
@@ -481,14 +483,17 @@ python examples/agent_demo.py "请分析 000001，并给出建议"
 
 ## 开发计划
 
-### 当前下一阶段: 日常投产质量门禁
+### 当前推荐顺序: 先门禁，再行动
 
-下一阶段开发方向已经收敛为“日常投产质量门禁与真实决策闭环”，详见：
+当前日常主线已经收敛为“日常投产质量门禁与真实决策闭环”，详见：
 
 - `specs/NEXT_STAGE_DEVELOPMENT_ROADMAP.md`
 - `specs/SDD_PHASE60_DAILY_PRODUCTION_GATE.md`
+- `specs/SDD_PHASE63_DAILY_ACTION_LIST.md`
 
-核心目标是让默认日常流程输出统一的 `production_gate`，明确今天结果属于 `pass / warn / block`，并约束智能体、Skill、CLI 和后续 API 在门禁不足时只输出观察、复核或诊断建议，不输出强行动建议。
+核心目标是让默认日常流程先输出统一的 `production_gate`，明确今天结果属于 `pass / warn / block`，再输出 `action_list`，把今天先看什么、先做什么说清楚。
+
+这里的统一质量门禁不是单一评分规则，而是数据治理、日常工作流、Skill / 工具、智能体提示词和输出契约一起协作出来的生产决策协议。
 
 ### Phase 1: 核心基础 (当前)
 - Skill 框架搭建

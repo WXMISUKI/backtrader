@@ -98,12 +98,14 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
     stage_report = payload.get("stage_report", {}) if isinstance(payload, dict) else {}
     archive_package = payload.get("archive_package", {}) if isinstance(payload, dict) else {}
     production_gate = payload.get("production_gate", {}) if isinstance(payload, dict) else {}
+    action_list = payload.get("action_list", {}) if isinstance(payload, dict) else {}
     portfolio_summary = payload.get("portfolio_summary", {}) if isinstance(payload, dict) else {}
     health_items = payload.get("health", {}).get("items", []) if isinstance(payload, dict) else []
     diagnosis_evidence = build_diagnosis_evidence(daily_summary=daily_summary, health_items=health_items if isinstance(health_items, list) else [])
     if not production_gate:
         flow_payload = _load_json_payload(DEFAULT_FLOW_JSON)
         acceptance_payload = _load_json_payload(DEFAULT_ACCEPTANCE_JSON)
+        action_list = flow_payload.get("pipeline_payload", {}).get("action_list", action_list) if isinstance(flow_payload, dict) else action_list
         production_gate = build_production_gate(
             daily_summary=flow_payload.get("pipeline_payload", {}).get("daily_summary", daily_summary)
             if isinstance(flow_payload, dict)
@@ -136,6 +138,7 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
                 f"命中率 {effects_payload.get('overall', {}).get('hit_rate', 0.0):.1%}，"
                 f"平均回报 {effects_payload.get('overall', {}).get('avg_return', 0.0):.1%}",
             ),
+            ("行动清单", action_list.get("summary_text", "")),
         ]
     )
     if feedback_records:
@@ -181,6 +184,15 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
                 ("评估行数", overall.get("evaluated_rows", 0)),
                 ("平均回报", f"{overall.get('avg_return', 0.0):.1%}"),
                 ("命中率", f"{overall.get('hit_rate', 0.0):.1%}"),
+            ]
+        )
+
+    if isinstance(action_list, dict) and action_list.get("items"):
+        print_section("行动清单")
+        print_bullets(
+            [
+                f"{item.get('stock_code', '')} {item.get('name', '')} [{item.get('action', '')}] {item.get('reason', '')}"
+                for item in action_list.get("items", [])[:8]
             ]
         )
 

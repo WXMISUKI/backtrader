@@ -880,13 +880,27 @@
 | 62.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE62_FEEDBACK_EFFECT_EVALUATION.md` |
 | 62.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 62 已收口 |
 
+## Phase 63: 自选股日常行动清单收口
+
+**SDD规格文档**: `specs/SDD_PHASE63_DAILY_ACTION_LIST.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 63.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE63_DAILY_ACTION_LIST.md` |
+| 63.1 | 实现共享行动清单构建 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 63.2 | 接入统一流程输出行动清单 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 63.3 | 接入默认日常流程和回看入口 | P0 | ✅ | - | `examples/daily_watchlist_flow.py` / `examples/daily_watchlist_review.py` / `examples/daily_watchlist_archive_viewer.py` |
+| 63.4 | 接入投产验收 | P1 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 63.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE63_DAILY_ACTION_LIST.md` |
+| 63.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 63 已收口 |
+
 ---
 
 ## 下一步行动
 
-1. **立即**: 实现 Phase 63 日常行动清单收口
-2. **随后**: 输出 review_now / hold_watch / wait / skip_due_to_data
-3. **再后**: 优化日常终端短摘要
+1. **当前**: 以 `production_gate` + `action_list` 作为默认日常查看顺序
+2. **随后**: 观察 `review_now / hold_watch / wait / skip_due_to_data / diagnose` 的日常命中是否符合使用习惯
+3. **再后**: 优先增强提示语句和样本归因，而不是继续拆入口
 4. **持续**: 观察反馈效果评估是否稳定
 
 ---

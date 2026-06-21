@@ -111,6 +111,7 @@ def main() -> int:
     daily_summary = pipeline_payload.get("daily_summary", {}) if isinstance(pipeline_payload, dict) else {}
     diagnosis_counts = daily_summary.get("diagnosis_counts", {}) if isinstance(daily_summary, dict) else {}
     health_items = pipeline_payload.get("health", {}).get("items", []) if isinstance(pipeline_payload, dict) else []
+    action_list = pipeline_payload.get("action_list", {}) if isinstance(pipeline_payload, dict) else {}
     diagnosis_evidence = build_diagnosis_evidence(
         daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
         health_items=health_items if isinstance(health_items, list) else [],
@@ -146,6 +147,7 @@ def main() -> int:
         "acceptance_payload": acceptance_payload,
         "diagnosis_counts": diagnosis_counts,
         "diagnosis_evidence": diagnosis_evidence,
+        "action_list": action_list,
         "production_gate": production_gate,
         "daily_run_code": daily_code,
         "review_code": review_code,
@@ -167,6 +169,8 @@ def main() -> int:
     print(f"acceptance: {'成功' if acceptance_code == 0 else '失败'}")
     print(f"production_gate: {production_gate.get('status', 'unknown')}")
     print(f"门禁摘要: {production_gate.get('summary', '')}")
+    if isinstance(action_list, dict) and action_list.get("summary_text"):
+        print(f"action_list: {action_list.get('summary_text', '')}")
     print(f"输出: {output_path}")
 
     if args.show_json:

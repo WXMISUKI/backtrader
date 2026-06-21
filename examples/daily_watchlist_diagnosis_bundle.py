@@ -62,6 +62,9 @@ def main() -> int:
     latest_payload = _load_json_payload(archive_dir / "latest.json")
     if not latest_payload:
         latest_payload = flow_payload.get("pipeline_payload", {}) if isinstance(flow_payload, dict) else {}
+    action_list = flow_payload.get("pipeline_payload", {}).get("action_list", {}) if isinstance(flow_payload, dict) else {}
+    if not isinstance(action_list, dict) or not action_list:
+        action_list = latest_payload.get("action_list", {}) if isinstance(latest_payload, dict) else {}
 
     daily_summary = flow_payload.get("pipeline_payload", {}).get("daily_summary", {}) if isinstance(flow_payload, dict) else {}
     if not isinstance(daily_summary, dict) or not daily_summary:
@@ -85,6 +88,7 @@ def main() -> int:
         "archive_dir": str(archive_dir),
         "daily_summary": daily_summary,
         "diagnosis_evidence": diagnosis_evidence,
+        "action_list": action_list,
         "production_gate": production_gate,
         "acceptance": {
             "status": acceptance_payload.get("status", ""),
@@ -110,6 +114,8 @@ def main() -> int:
     print(f"验收状态: {acceptance_payload.get('status', '')}")
     print(f"投产门禁: {production_gate.get('status', '')}")
     print(f"门禁摘要: {production_gate.get('summary', '')}")
+    if isinstance(action_list, dict) and action_list.get("summary_text"):
+        print(f"行动清单: {action_list.get('summary_text', '')}")
     print(f"输出: {output_json}")
 
     if args.show_json:
