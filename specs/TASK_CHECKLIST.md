@@ -553,6 +553,21 @@
 | 41.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE41_DAILY_ARCHIVE_VIEWER.md` |
 | 41.6 | 更新知识库与任务清单 | P1 | ✅ | - | 沉淀查看入口规范 |
 
+## Phase 42: 自选股日常生产运行守门与一键执行 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE42_DAILY_PRODUCTION_RUNNER.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 42.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE42_DAILY_PRODUCTION_RUNNER.md` |
+| 42.1 | 增加一键运行脚本 | P0 | ✅ | - | `examples/daily_watchlist_daily_run.py` |
+| 42.2 | 增加预检与状态判定 | P0 | ✅ | - | `examples/daily_watchlist_daily_run.py` |
+| 42.3 | 增加自动执行与留档编排 | P0 | ✅ | - | `examples/daily_watchlist_daily_run.py` |
+| 42.4 | 增加 run_status 输出 | P1 | ✅ | - | `examples/daily_watchlist_daily_run.py` |
+| 42.5 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 42.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE42_DAILY_PRODUCTION_RUNNER.md` |
+| 42.7 | 更新知识库与任务清单 | P1 | ✅ | - | 沉淀生产运行守门规范 |
+
 ---
 
 ## 已完成任务归档

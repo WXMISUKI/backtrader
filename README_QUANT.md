@@ -177,6 +177,14 @@ python examples/daily_watchlist_archive_viewer.py --archive-dir logs/daily_watch
 
 如果你想看完整 Markdown 或 JSON，可以分别加上 `--show-markdown` 或 `--show-json`。
 
+如果你想直接做一次“预检 -> 执行 -> 留档 -> 查看”的日常运行，可以跑：
+
+```bash
+python examples/daily_watchlist_daily_run.py --watchlist config/watchlist.json --portfolio config/portfolio.json --archive-dir logs/daily_watchlist_archive
+```
+
+这个命令会先做数据健康预检，再执行统一日常流程，最后自动归档并打开最近一次留档查看结果。
+
 留档包现在会按固定结构输出：
 
 1. 复盘总览
