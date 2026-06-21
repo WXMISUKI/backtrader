@@ -833,14 +833,33 @@
 | 59.3 | 编写归档文档 | P1 | ⬜ | - | 记录路径说明结果 |
 | 59.4 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀路径说明 |
 
+## Phase 60: 自选股日常投产质量门禁 (下一阶段)
+
+**SDD规格文档**: `specs/SDD_PHASE60_DAILY_PRODUCTION_GATE.md` ✅ 已完成
+
+**阶段路线图**: `specs/NEXT_STAGE_DEVELOPMENT_ROADMAP.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 60.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE60_DAILY_PRODUCTION_GATE.md` |
+| 60.1 | 写入下一阶段开发路线图 | P0 | ✅ | - | `specs/NEXT_STAGE_DEVELOPMENT_ROADMAP.md` |
+| 60.2 | 新增门禁构建函数 | P0 | ✅ | - | 生成 `production_gate` |
+| 60.3 | 在默认日常流程接入门禁 | P0 | ✅ | - | `examples/daily_watchlist_flow.py` |
+| 60.4 | 在诊断收口包展示门禁 | P0 | ✅ | - | `examples/daily_watchlist_diagnosis_bundle.py` |
+| 60.5 | 输出门禁终端摘要 | P1 | ✅ | - | 显示 `pass / warn / block` |
+| 60.6 | 更新 README 使用说明 | P1 | ✅ | - | 每天优先查看投产门禁 |
+| 60.7 | 轻量验证门禁输出 | P1 | ✅ | - | 已完成语法与分支验证 |
+| 60.8 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE60_DAILY_PRODUCTION_GATE.md` |
+| 60.9 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 60 已收口 |
+
 ---
 
 ## 下一步行动
 
-1. **立即**: 实现技术指标计算模块 (Sprint 2)
-2. **本周**: 完成 Skill 框架和信号系统
-3. **下周**: 完成个股分析功能
-4. **验证**: 运行完整的分析流程
+1. **立即**: 实现 Phase 60 自选股日常投产质量门禁
+2. **随后**: 增强真实数据可信度和降级原因归类
+3. **再后**: 建立 T+1 / T+3 / T+5 反馈效果评估
+4. **收口**: 输出每日行动清单，减少人工翻阅长报告
 
 ---
 

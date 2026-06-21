@@ -300,6 +300,145 @@ def build_diagnosis_evidence(*, daily_summary: dict[str, Any], health_items: lis
     }
 
 
+def build_production_gate(
+    *,
+    daily_summary: dict[str, Any],
+    diagnosis_evidence: dict[str, Any],
+    acceptance: dict[str, Any],
+    health_items: list[dict[str, Any]],
+    daily_run_status: str,
+) -> dict[str, Any]:
+    """把日常摘要、证据、验收和健康项汇总成统一投产门禁。"""
+    summary_status = str(daily_summary.get("status", "")).strip()
+    acceptance_status = str(acceptance.get("status", "")).strip()
+    daily_run_status = str(daily_run_status or "").strip() or "unknown"
+    diagnosis_counts = daily_summary.get("diagnosis_counts", {}) if isinstance(daily_summary, dict) else {}
+
+    total_items = len(health_items)
+    pass_count = 0
+    warn_count = 0
+    block_count = 0
+    degraded_items: list[dict[str, Any]] = []
+    critical_items: list[dict[str, Any]] = []
+
+    for item in health_items:
+        if not isinstance(item, dict):
+            continue
+        status = str(item.get("status", "")).strip()
+        diagnosis = item.get("diagnosis", {}) if isinstance(item.get("diagnosis", {}), dict) else {}
+        severity = str(diagnosis.get("severity", "")).strip()
+        primary_cause = str(diagnosis.get("primary_cause", "")).strip()
+        item_summary = {
+            "stock_code": item.get("stock_code", ""),
+            "name": item.get("name", ""),
+            "status": status,
+            "primary_cause": primary_cause,
+            "primary_label": diagnosis.get("primary_label", ""),
+        }
+        if status == "明显降级" or severity == "critical":
+            block_count += 1
+            critical_items.append(item_summary)
+        elif status == "部分降级" or severity == "warning":
+            warn_count += 1
+            degraded_items.append(item_summary)
+        else:
+            pass_count += 1
+
+    data_ratio = (block_count / total_items) if total_items else 0.0
+    reasons: list[str] = []
+    allowed_actions = ["review_now", "hold_watch", "wait"]
+    blocked_actions: list[str] = []
+    risk_level = "normal"
+    status = "pass"
+
+    if daily_run_status in {"failed", "error"}:
+        reasons.append("daily_run_failed")
+        status = "block"
+    if acceptance_status in {"failed", "error"}:
+        reasons.append("acceptance_failed")
+        status = "block"
+    if total_items and (block_count >= max(1, total_items // 2 + total_items % 2) or data_ratio >= 0.6):
+        reasons.append("core_data_unavailable")
+        status = "block"
+    if summary_status in {"需要谨慎"} and status != "block":
+        reasons.append("daily_summary_cautious")
+        status = "warn"
+    if summary_status in {"出现重点关注"} and status == "pass":
+        reasons.append("summary_contains_focus_items")
+        status = "warn"
+    if warn_count > 0 and status == "pass":
+        reasons.append("partial_degradation")
+        status = "warn"
+    if diagnosis_counts and status == "pass":
+        reasons.append("diagnosis_signals_present")
+        status = "warn"
+    if acceptance_status == "degraded" and status == "pass":
+        reasons.append("acceptance_degraded")
+        status = "warn"
+    if daily_run_status == "degraded" and status == "pass":
+        reasons.append("daily_run_degraded")
+        status = "warn"
+    if acceptance_status in {"", "unknown"} and status == "pass":
+        reasons.append("acceptance_missing")
+        status = "warn"
+    if daily_run_status in {"", "unknown"} and status == "pass":
+        reasons.append("daily_run_status_missing")
+        status = "warn"
+
+    if status == "pass":
+        allowed_actions = ["review_now", "hold_watch", "wait"]
+        blocked_actions = []
+        risk_level = "normal"
+    elif status == "warn":
+        allowed_actions = ["review_now", "hold_watch", "wait", "skip_due_to_data"]
+        blocked_actions = ["new_buy", "add_position", "strong_action"]
+        risk_level = "cautious"
+    else:
+        allowed_actions = ["diagnose", "repair_data", "wait"]
+        blocked_actions = ["review_now", "review_now_strong", "hold_watch", "new_buy", "add_position", "strong_action"]
+        risk_level = "unsafe"
+
+    summary_map = {
+        "pass": "今日数据和验收整体可用，可以参考日常决策。",
+        "warn": "今日存在部分降级或验收警告，只建议谨慎参考。",
+        "block": "今日核心数据或验收存在阻断问题，不建议用于交易决策。",
+    }
+
+    evidence = {
+        "daily_run_status": daily_run_status,
+        "daily_summary_status": summary_status,
+        "acceptance_status": acceptance_status,
+        "diagnosis_counts": diagnosis_counts if isinstance(diagnosis_counts, dict) else {},
+        "degraded_count": warn_count,
+        "blocked_count": block_count,
+        "total_items": total_items,
+        "pass_count": pass_count,
+        "data_unavailable_ratio": round(data_ratio, 4),
+        "top_causes": diagnosis_evidence.get("top_causes", []) if isinstance(diagnosis_evidence, dict) else [],
+        "sample_items": diagnosis_evidence.get("sample_items", []) if isinstance(diagnosis_evidence, dict) else [],
+        "critical_items": critical_items[:5],
+        "degraded_items": degraded_items[:5],
+    }
+
+    if total_items == 0:
+        reasons.append("no_health_items")
+        if status == "pass":
+            status = "warn"
+            risk_level = "cautious"
+            allowed_actions = ["review_now", "hold_watch", "wait", "skip_due_to_data"]
+            blocked_actions = ["new_buy", "add_position", "strong_action"]
+
+    return {
+        "status": status,
+        "summary": summary_map[status],
+        "allowed_actions": allowed_actions,
+        "blocked_actions": blocked_actions,
+        "risk_level": risk_level,
+        "reasons": reasons,
+        "evidence": evidence,
+    }
+
+
 def _build_health_diagnosis(
     *,
     stock_name: str,

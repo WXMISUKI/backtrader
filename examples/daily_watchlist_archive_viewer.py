@@ -23,11 +23,13 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from examples.daily_watchlist_display import print_bullets, print_kv_pairs, print_section
-from examples.watchlist_shared import build_diagnosis_evidence
+from examples.watchlist_shared import build_diagnosis_evidence, build_production_gate
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
 DEFAULT_FEEDBACK_PATH = ROOT_DIR / "logs" / "daily_watchlist_feedback.jsonl"
+DEFAULT_FLOW_JSON = ROOT_DIR / "logs" / "daily_watchlist_flow.json"
+DEFAULT_ACCEPTANCE_JSON = ROOT_DIR / "logs" / "daily_watchlist_acceptance.json"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -94,9 +96,22 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
     weekly_report = payload.get("weekly_report", {}) if isinstance(payload, dict) else {}
     stage_report = payload.get("stage_report", {}) if isinstance(payload, dict) else {}
     archive_package = payload.get("archive_package", {}) if isinstance(payload, dict) else {}
+    production_gate = payload.get("production_gate", {}) if isinstance(payload, dict) else {}
     portfolio_summary = payload.get("portfolio_summary", {}) if isinstance(payload, dict) else {}
     health_items = payload.get("health", {}).get("items", []) if isinstance(payload, dict) else []
     diagnosis_evidence = build_diagnosis_evidence(daily_summary=daily_summary, health_items=health_items if isinstance(health_items, list) else [])
+    if not production_gate:
+        flow_payload = _load_json_payload(DEFAULT_FLOW_JSON)
+        acceptance_payload = _load_json_payload(DEFAULT_ACCEPTANCE_JSON)
+        production_gate = build_production_gate(
+            daily_summary=flow_payload.get("pipeline_payload", {}).get("daily_summary", daily_summary)
+            if isinstance(flow_payload, dict)
+            else daily_summary,
+            diagnosis_evidence=diagnosis_evidence,
+            acceptance=acceptance_payload,
+            health_items=health_items if isinstance(health_items, list) else [],
+            daily_run_status=str(flow_payload.get("daily_run_status", "")) if isinstance(flow_payload, dict) else "",
+        )
     feedback_records = _load_jsonl_payload(DEFAULT_FEEDBACK_PATH)
 
     print_section("自选股日常留档查看")
@@ -106,6 +121,8 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
             ("归档Markdown", md_path or "未找到"),
             ("生成时间", payload.get("generated_at", "")),
             ("日常总览", daily_summary.get("status", "")),
+            ("投产门禁", production_gate.get("status", "")),
+            ("门禁摘要", production_gate.get("summary", "")),
             ("诊断摘要", diagnosis_evidence.get("summary_text", "")),
             (
                 "持仓摘要",

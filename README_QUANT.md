@@ -214,6 +214,8 @@ python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --
 
 留档查看入口也会展示同一份 `diagnosis_evidence`，方便回看时和验收入口对齐。
 
+默认日常流程现在还会输出统一的 `production_gate`，你每天优先看它就行：`pass` 表示可以参考，`warn` 表示谨慎参考，`block` 表示先别拿来做交易判断。
+
 如果你想一条命令把日常摘要、诊断证据和验收状态收成一个收口包，可以跑：
 
 ```bash
@@ -469,6 +471,15 @@ python examples/agent_demo.py "请分析 000001，并给出建议"
 | [easytrader](https://github.com/shidenggui/easytrader) | 8k+ | 自动交易参考 |
 
 ## 开发计划
+
+### 当前下一阶段: 日常投产质量门禁
+
+下一阶段开发方向已经收敛为“日常投产质量门禁与真实决策闭环”，详见：
+
+- `specs/NEXT_STAGE_DEVELOPMENT_ROADMAP.md`
+- `specs/SDD_PHASE60_DAILY_PRODUCTION_GATE.md`
+
+核心目标是让默认日常流程输出统一的 `production_gate`，明确今天结果属于 `pass / warn / block`，并约束智能体、Skill、CLI 和后续 API 在门禁不足时只输出观察、复核或诊断建议，不输出强行动建议。
 
 ### Phase 1: 核心基础 (当前)
 - Skill 框架搭建

@@ -22,12 +22,15 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from examples.watchlist_shared import build_diagnosis_evidence, build_production_gate
+
 
 DEFAULT_WATCHLIST_PATH = ROOT_DIR / "config" / "watchlist.json"
 DEFAULT_PORTFOLIO_PATH = ROOT_DIR / "config" / "portfolio.json"
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
 DEFAULT_OUTPUT_JSON = ROOT_DIR / "logs" / "daily_watchlist_flow.json"
 DEFAULT_RUN_STATUS = ROOT_DIR / "logs" / "daily_watchlist_run_status.json"
+DEFAULT_ACCEPTANCE_JSON = ROOT_DIR / "logs" / "daily_watchlist_acceptance.json"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -107,10 +110,26 @@ def main() -> int:
     pipeline_payload = _load_json_payload(ROOT_DIR / "logs" / "daily_watchlist_pipeline.json")
     daily_summary = pipeline_payload.get("daily_summary", {}) if isinstance(pipeline_payload, dict) else {}
     diagnosis_counts = daily_summary.get("diagnosis_counts", {}) if isinstance(daily_summary, dict) else {}
+    health_items = pipeline_payload.get("health", {}).get("items", []) if isinstance(pipeline_payload, dict) else []
+    diagnosis_evidence = build_diagnosis_evidence(
+        daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
+        health_items=health_items if isinstance(health_items, list) else [],
+    )
+    acceptance_payload = {}
+    if not args.skip_acceptance and acceptance_code == 0:
+        acceptance_payload = _load_json_payload(DEFAULT_ACCEPTANCE_JSON)
 
     daily_run_status = "unknown"
     if isinstance(daily_run_status_payload, dict):
         daily_run_status = str(daily_run_status_payload.get("status", "unknown"))
+
+    production_gate = build_production_gate(
+        daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
+        diagnosis_evidence=diagnosis_evidence,
+        acceptance=acceptance_payload,
+        health_items=health_items if isinstance(health_items, list) else [],
+        daily_run_status=daily_run_status,
+    )
 
     status = "ok"
     if daily_code != 0 or review_code != 0 or acceptance_code != 0:
@@ -124,7 +143,10 @@ def main() -> int:
         "daily_run_status": daily_run_status,
         "daily_run_status_payload": daily_run_status_payload,
         "pipeline_payload": pipeline_payload,
+        "acceptance_payload": acceptance_payload,
         "diagnosis_counts": diagnosis_counts,
+        "diagnosis_evidence": diagnosis_evidence,
+        "production_gate": production_gate,
         "daily_run_code": daily_code,
         "review_code": review_code,
         "acceptance_code": acceptance_code,
@@ -143,6 +165,8 @@ def main() -> int:
     print(f"daily_run: {'成功' if daily_code == 0 else '失败'}")
     print(f"review: {'成功' if review_code == 0 else '失败'}")
     print(f"acceptance: {'成功' if acceptance_code == 0 else '失败'}")
+    print(f"production_gate: {production_gate.get('status', 'unknown')}")
+    print(f"门禁摘要: {production_gate.get('summary', '')}")
     print(f"输出: {output_path}")
 
     if args.show_json:

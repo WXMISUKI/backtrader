@@ -20,6 +20,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from examples.watchlist_shared import build_diagnosis_evidence
+from examples.watchlist_shared import build_production_gate
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
@@ -71,12 +72,20 @@ def main() -> int:
         daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
         health_items=health_items if isinstance(health_items, list) else [],
     )
+    production_gate = build_production_gate(
+        daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
+        diagnosis_evidence=diagnosis_evidence,
+        acceptance=acceptance_payload if isinstance(acceptance_payload, dict) else {},
+        health_items=health_items if isinstance(health_items, list) else [],
+        daily_run_status=str(flow_payload.get("daily_run_status", "")) if isinstance(flow_payload, dict) else "",
+    )
 
     bundle = {
         "generated_at": flow_payload.get("generated_at", acceptance_payload.get("generated_at", "")) if isinstance(flow_payload, dict) else "",
         "archive_dir": str(archive_dir),
         "daily_summary": daily_summary,
         "diagnosis_evidence": diagnosis_evidence,
+        "production_gate": production_gate,
         "acceptance": {
             "status": acceptance_payload.get("status", ""),
             "summary": acceptance_payload.get("summary", ""),
@@ -99,6 +108,8 @@ def main() -> int:
     print(f"日常总览: {daily_summary.get('status', '') if isinstance(daily_summary, dict) else ''}")
     print(f"诊断摘要: {diagnosis_evidence.get('summary_text', '')}")
     print(f"验收状态: {acceptance_payload.get('status', '')}")
+    print(f"投产门禁: {production_gate.get('status', '')}")
+    print(f"门禁摘要: {production_gate.get('summary', '')}")
     print(f"输出: {output_json}")
 
     if args.show_json:
