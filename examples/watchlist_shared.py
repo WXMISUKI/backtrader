@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -147,6 +148,85 @@ def build_position_context(
     }
 
 
+def _normalize_reason_code(value: Any) -> str:
+    text = str(value or "").strip().lower()
+    if not text:
+        return "ok"
+    mapping = {
+        "missing stock_code": "missing_stock_code",
+        "watchlist 配置缺少 stock_code": "missing_stock_code",
+        "dataframe is none": "dataframe_none",
+        "dataframe is empty": "dataframe_empty",
+        "not a dict": "not_a_dict",
+        "dict is empty": "dict_empty",
+        "missing columns": "missing_columns",
+        "financial indicators unavailable or empty fallback": "financial_unavailable",
+        "watchlist 配置缺少 stock_code": "missing_stock_code",
+    }
+    for needle, code in mapping.items():
+        if needle in text:
+            return code
+    normalized = re.sub(r"[^a-z0-9]+", "_", text).strip("_")
+    return normalized or "unknown_reason"
+
+
+def _confidence_level(score: float) -> str:
+    if score >= 0.8:
+        return "high"
+    if score >= 0.55:
+        return "medium"
+    return "low"
+
+
+def _source_confidence_score(*, source: str, degraded: bool, quality: dict[str, Any], reason: str) -> dict[str, Any]:
+    base_score_map = {
+        "real": 0.92,
+        "cache": 0.78,
+        "mock": 0.42,
+        "config": 0.2,
+        "config_error": 0.15,
+        "error": 0.12,
+        "unknown": 0.3,
+    }
+    source_key = str(source or "unknown").strip().lower()
+    score = base_score_map.get(source_key, 0.3)
+    reason_codes = [f"source:{_normalize_reason_code(source_key)}"]
+
+    if degraded:
+        score -= 0.18
+        reason_codes.append("degraded")
+
+    quality_ok = bool(quality.get("ok", False))
+    if quality_ok:
+        score += 0.08
+    else:
+        score -= 0.18
+
+    quality_reason = str(quality.get("reason", "")).strip()
+    if quality_reason:
+        reason_codes.append(f"quality:{_normalize_reason_code(quality_reason)}")
+        lowered = quality_reason.lower()
+        if any(token in lowered for token in ("empty", "missing", "none", "error", "failed")):
+            score -= 0.08
+
+    normalized_reason = _normalize_reason_code(reason)
+    if normalized_reason != "ok":
+        reason_codes.append(f"reason:{normalized_reason}")
+        lowered_reason = str(reason).lower()
+        if any(token in lowered_reason for token in ("empty", "missing", "none", "error", "failed")):
+            score -= 0.06
+
+    score = max(0.0, min(1.0, round(score, 4)))
+    return {
+        "score": score,
+        "level": _confidence_level(score),
+        "reason_codes": list(dict.fromkeys(reason_codes)),
+        "source": source_key,
+        "degraded": degraded,
+        "quality_ok": quality_ok,
+    }
+
+
 def build_data_health_summary(*, stock_name: str, history: dict[str, Any], fundamental: dict[str, Any]) -> dict[str, Any]:
     """把历史行情和基本面治理结果收成统一健康摘要。"""
     history_quality = history.get("quality", {}) if isinstance(history, dict) else {}
@@ -185,6 +265,25 @@ def build_data_health_summary(*, stock_name: str, history: dict[str, Any], funda
         score += 5
 
     score = min(score, 100)
+    history_confidence = _source_confidence_score(
+        source=history_source,
+        degraded=history_degraded,
+        quality=history_quality,
+        reason=history_reason,
+    )
+    fundamental_confidence = _source_confidence_score(
+        source=fundamental_source,
+        degraded=fundamental_degraded,
+        quality=fundamental_quality,
+        reason=fundamental_reason,
+    )
+    data_confidence = round((history_confidence["score"] + fundamental_confidence["score"]) / 2, 4)
+    confidence_level = _confidence_level(data_confidence)
+    normalized_reasons = list(
+        dict.fromkeys(
+            history_confidence["reason_codes"] + fundamental_confidence["reason_codes"]
+        )
+    )
     diagnosis = _build_health_diagnosis(
         stock_name=stock_name,
         history_source=history_source,
@@ -205,6 +304,13 @@ def build_data_health_summary(*, stock_name: str, history: dict[str, Any], funda
         "fundamental_quality": fundamental_quality,
         "history_reason": history_reason,
         "fundamental_reason": fundamental_reason,
+        "data_confidence": data_confidence,
+        "confidence_level": confidence_level,
+        "confidence_breakdown": {
+            "history": history_confidence,
+            "fundamental": fundamental_confidence,
+        },
+        "normalized_reasons": normalized_reasons,
         "summary": f"{stock_name} 数据健康状态为{status}，健康分 {score} 分。",
         "diagnosis": diagnosis,
         "flags": {
@@ -220,6 +326,8 @@ def build_daily_diagnosis_summary(*, health_groups: dict[str, list[dict[str, Any
     """把日常健康分组和决策分组收成统一摘要模板。"""
     health_counts = {key: len(value) for key, value in health_groups.items()}
     decision_counts = {key: len(value) for key, value in decision_groups.items()}
+    confidence_scores: list[float] = []
+    confidence_counts = {"high": 0, "medium": 0, "low": 0}
     top_focus = [item["stock_code"] + " " + item["name"] for item in decision_groups.get("重点关注", [])[:3]]
     watch_list = [item["stock_code"] + " " + item["name"] for item in decision_groups.get("继续观察", [])[:3]]
     held_alerts = [
@@ -230,10 +338,16 @@ def build_daily_diagnosis_summary(*, health_groups: dict[str, list[dict[str, Any
     diagnosis_counts: dict[str, int] = {}
     for group_items in health_groups.values():
         for item in group_items:
+            confidence = safe_float(item.get("data_confidence"), 0.0)
+            if "data_confidence" in item:
+                confidence_scores.append(confidence)
+                confidence_counts[_confidence_level(confidence)] += 1
             diagnosis = item.get("diagnosis", {}) if isinstance(item, dict) else {}
             primary_cause = str(diagnosis.get("primary_cause", "")) if isinstance(diagnosis, dict) else ""
             if primary_cause and primary_cause != "healthy":
                 diagnosis_counts[primary_cause] = diagnosis_counts.get(primary_cause, 0) + 1
+
+    average_confidence = round(sum(confidence_scores) / len(confidence_scores), 4) if confidence_scores else 0.0
 
     status = "平稳"
     if health_counts.get("明显降级", 0) > 0 or decision_counts.get("数据不足", 0) > 0:
@@ -246,6 +360,12 @@ def build_daily_diagnosis_summary(*, health_groups: dict[str, list[dict[str, Any
         f"健康状态: 完全可用 {health_counts.get('完全可用', 0)}，部分降级 {health_counts.get('部分降级', 0)}，明显降级 {health_counts.get('明显降级', 0)}",
         f"决策分布: 重点关注 {decision_counts.get('重点关注', 0)}，继续观察 {decision_counts.get('继续观察', 0)}，暂不行动 {decision_counts.get('暂不行动', 0)}，数据不足 {decision_counts.get('数据不足', 0)}",
     ]
+    if confidence_scores:
+        summary_lines.append(
+            "可信度分布: "
+            f"高 {confidence_counts['high']}，中 {confidence_counts['medium']}，低 {confidence_counts['low']}，"
+            f"平均 {average_confidence:.1%}"
+        )
     if top_focus:
         summary_lines.append(f"重点关注: {'，'.join(top_focus)}")
     if watch_list:
@@ -261,6 +381,8 @@ def build_daily_diagnosis_summary(*, health_groups: dict[str, list[dict[str, Any
         "health_counts": health_counts,
         "decision_counts": decision_counts,
         "diagnosis_counts": diagnosis_counts,
+        "confidence_counts": confidence_counts,
+        "average_confidence": average_confidence,
         "highlights": {
             "top_focus": top_focus,
             "watch_list": watch_list,
@@ -274,6 +396,7 @@ def build_daily_diagnosis_summary(*, health_groups: dict[str, list[dict[str, Any
 def build_diagnosis_evidence(*, daily_summary: dict[str, Any], health_items: list[dict[str, Any]]) -> dict[str, Any]:
     """把日常诊断摘要进一步整理成可给验收和回看消费的证据视图。"""
     diagnosis_counts = daily_summary.get("diagnosis_counts", {}) if isinstance(daily_summary, dict) else {}
+    confidence_counts = daily_summary.get("confidence_counts", {}) if isinstance(daily_summary, dict) else {}
     top_causes = []
     if isinstance(diagnosis_counts, dict):
         top_causes = sorted(diagnosis_counts.items(), key=lambda item: (-item[1], item[0]))
@@ -287,7 +410,10 @@ def build_diagnosis_evidence(*, daily_summary: dict[str, Any], health_items: lis
                 "status": item.get("status", ""),
                 "primary_cause": diagnosis.get("primary_cause", ""),
                 "primary_label": diagnosis.get("primary_label", ""),
+                "data_confidence": item.get("data_confidence", 0.0),
+                "confidence_level": item.get("confidence_level", ""),
                 "summary": diagnosis.get("summary", ""),
+                "normalized_reasons": item.get("normalized_reasons", []),
             }
         )
 
@@ -295,8 +421,10 @@ def build_diagnosis_evidence(*, daily_summary: dict[str, Any], health_items: lis
         "summary_text": daily_summary.get("summary_text", "") if isinstance(daily_summary, dict) else "",
         "status": daily_summary.get("status", "") if isinstance(daily_summary, dict) else "",
         "diagnosis_counts": diagnosis_counts if isinstance(diagnosis_counts, dict) else {},
+        "confidence_counts": confidence_counts if isinstance(confidence_counts, dict) else {},
         "top_causes": top_causes,
         "sample_items": sample_items,
+        "average_confidence": daily_summary.get("average_confidence", 0.0) if isinstance(daily_summary, dict) else 0.0,
     }
 
 
@@ -313,17 +441,28 @@ def build_production_gate(
     acceptance_status = str(acceptance.get("status", "")).strip()
     daily_run_status = str(daily_run_status or "").strip() or "unknown"
     diagnosis_counts = daily_summary.get("diagnosis_counts", {}) if isinstance(daily_summary, dict) else {}
+    confidence_counts = daily_summary.get("confidence_counts", {}) if isinstance(daily_summary, dict) else {}
+    average_confidence = safe_float(daily_summary.get("average_confidence"), 0.0) if isinstance(daily_summary, dict) else 0.0
 
     total_items = len(health_items)
     pass_count = 0
     warn_count = 0
     block_count = 0
+    low_confidence_count = 0
+    high_confidence_count = 0
+    confidence_scores: list[float] = []
     degraded_items: list[dict[str, Any]] = []
     critical_items: list[dict[str, Any]] = []
 
     for item in health_items:
         if not isinstance(item, dict):
             continue
+        confidence = safe_float(item.get("data_confidence"), 0.0)
+        confidence_scores.append(confidence)
+        if confidence < 0.45:
+            low_confidence_count += 1
+        if confidence >= 0.8:
+            high_confidence_count += 1
         status = str(item.get("status", "")).strip()
         diagnosis = item.get("diagnosis", {}) if isinstance(item.get("diagnosis", {}), dict) else {}
         severity = str(diagnosis.get("severity", "")).strip()
@@ -360,6 +499,12 @@ def build_production_gate(
     if total_items and (block_count >= max(1, total_items // 2 + total_items % 2) or data_ratio >= 0.6):
         reasons.append("core_data_unavailable")
         status = "block"
+    if total_items and average_confidence < 0.45 and status != "block":
+        reasons.append("average_confidence_too_low")
+        status = "block"
+    elif total_items and average_confidence < 0.65 and status == "pass":
+        reasons.append("average_confidence_low")
+        status = "warn"
     if summary_status in {"需要谨慎"} and status != "block":
         reasons.append("daily_summary_cautious")
         status = "warn"
@@ -383,6 +528,9 @@ def build_production_gate(
         status = "warn"
     if daily_run_status in {"", "unknown"} and status == "pass":
         reasons.append("daily_run_status_missing")
+        status = "warn"
+    if low_confidence_count > 0 and status == "pass":
+        reasons.append("low_confidence_items_present")
         status = "warn"
 
     if status == "pass":
@@ -409,8 +557,12 @@ def build_production_gate(
         "daily_summary_status": summary_status,
         "acceptance_status": acceptance_status,
         "diagnosis_counts": diagnosis_counts if isinstance(diagnosis_counts, dict) else {},
+        "confidence_counts": confidence_counts if isinstance(confidence_counts, dict) else {},
+        "average_confidence": average_confidence,
         "degraded_count": warn_count,
         "blocked_count": block_count,
+        "low_confidence_count": low_confidence_count,
+        "high_confidence_count": high_confidence_count,
         "total_items": total_items,
         "pass_count": pass_count,
         "data_unavailable_ratio": round(data_ratio, 4),

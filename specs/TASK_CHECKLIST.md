@@ -852,14 +852,28 @@
 | 60.8 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE60_DAILY_PRODUCTION_GATE.md` |
 | 60.9 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 60 已收口 |
 
+## Phase 61: 自选股数据可信度增强 (下一阶段)
+
+**SDD规格文档**: `specs/SDD_PHASE61_DATA_CONFIDENCE.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 61.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE61_DATA_CONFIDENCE.md` |
+| 61.1 | 实现统一数据可信度计算 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 61.2 | 健康摘要输出可信度字段 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 61.3 | 决策清单接入可信度门槛 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 61.4 | 门禁接入可信度依据 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 61.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE61_DATA_CONFIDENCE.md` |
+| 61.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 61 已收口 |
+
 ---
 
 ## 下一步行动
 
-1. **立即**: 实现 Phase 60 自选股日常投产质量门禁
-2. **随后**: 增强真实数据可信度和降级原因归类
-3. **再后**: 建立 T+1 / T+3 / T+5 反馈效果评估
-4. **收口**: 输出每日行动清单，减少人工翻阅长报告
+1. **立即**: 实现 Phase 62 反馈效果评估
+2. **随后**: 输出 T+1 / T+3 / T+5 轻量回看
+3. **再后**: 收口每日行动清单
+4. **持续**: 观察可信度分布是否贴近日常数据状态
 
 ---
 

@@ -81,6 +81,13 @@ def _build_history_summary(*, raw: dict[str, Any], stock_code: str, stock_name: 
             "fundamental_quality": {"ok": False, "reason": "missing stock_code"},
             "history_reason": "watchlist 配置缺少 stock_code",
             "fundamental_reason": "watchlist 配置缺少 stock_code",
+            "data_confidence": 0.0,
+            "confidence_level": "low",
+            "confidence_breakdown": {
+                "history": {"score": 0.0, "level": "low", "reason_codes": ["reason:missing_stock_code"], "source": "config_error", "degraded": True, "quality_ok": False},
+                "fundamental": {"score": 0.0, "level": "low", "reason_codes": ["reason:missing_stock_code"], "source": "config_error", "degraded": True, "quality_ok": False},
+            },
+            "normalized_reasons": ["reason:missing_stock_code"],
             "health_score": 0,
             "summary": f"{stock_name} 配置不完整，无法预检。",
             "diagnosis": {
@@ -149,12 +156,14 @@ def _build_decision_summary(
     result: dict[str, Any],
     default_risk_profile: str,
     position_context: dict[str, Any],
+    health_item: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     analysis = result.get("data", {}) if isinstance(result, dict) else {}
     recommendation = analysis.get("recommendation", {}) if isinstance(analysis, dict) else {}
     risk = analysis.get("risk", {}) if isinstance(analysis, dict) else {}
     stock = analysis.get("stock", {}) if isinstance(analysis, dict) else {}
     governance = result.get("governance", {}) if isinstance(result, dict) else {}
+    health_item = health_item if isinstance(health_item, dict) else {}
 
     stock_code = str(stock.get("code") or item.get("stock_code") or "").strip()
     stock_name = str(stock.get("name") or item.get("name") or stock_code or "unknown")
@@ -162,10 +171,12 @@ def _build_decision_summary(
     confidence = safe_float(recommendation.get("confidence"), 0.0)
     data_source = str(result.get("data_source") or analysis.get("data_source") or stock.get("source") or "unknown")
     is_degraded = bool(governance.get("is_degraded")) or data_source == "mock"
+    data_confidence = safe_float(health_item.get("data_confidence"), 0.0)
+    confidence_level = str(health_item.get("confidence_level", "low") or "low")
     group = "继续观察"
-    if is_degraded or data_source == "mock":
+    if is_degraded or data_source == "mock" or data_confidence < 0.55:
         group = "数据不足"
-    elif action == "BUY" and confidence >= 0.65:
+    elif action == "BUY" and confidence >= 0.65 and data_confidence >= 0.6:
         group = "重点关注"
     elif action == "SELL":
         group = "暂不行动"
@@ -187,6 +198,8 @@ def _build_decision_summary(
         "action": action,
         "confidence": round(confidence, 4),
         "data_source": data_source,
+        "data_confidence": round(data_confidence, 4),
+        "confidence_level": confidence_level,
         "risk_level": risk.get("risk_level", ""),
         "reason": str(recommendation.get("reason", "")),
         "watch_reason": str(item.get("reason", "")),
@@ -237,10 +250,21 @@ def _build_daily_report(
         f"暂不行动 {decision_counts.get('暂不行动', 0)}，数据不足 {decision_counts.get('数据不足', 0)}"
     )
     diagnosis_counts = daily_summary.get("diagnosis_counts", {}) if isinstance(daily_summary, dict) else {}
+    confidence_counts = daily_summary.get("confidence_counts", {}) if isinstance(daily_summary, dict) else {}
+    average_confidence = safe_float(daily_summary.get("average_confidence"), 0.0)
     diagnosis_summary = ""
     if isinstance(diagnosis_counts, dict) and diagnosis_counts:
         sorted_diagnosis = sorted(diagnosis_counts.items(), key=lambda item: (-int(item[1]), item[0]))
         diagnosis_summary = "降级原因：" + "，".join(f"{cause} {count}" for cause, count in sorted_diagnosis)
+    confidence_summary = ""
+    if isinstance(confidence_counts, dict) and confidence_counts:
+        confidence_summary = (
+            "可信度分布："
+            f"高 {confidence_counts.get('high', 0)}，"
+            f"中 {confidence_counts.get('medium', 0)}，"
+            f"低 {confidence_counts.get('low', 0)}，"
+            f"平均 {average_confidence:.1%}"
+        )
     highlights = {
         "重点关注": daily_summary["highlights"]["top_focus"],
         "继续观察": daily_summary["highlights"]["watch_list"],
@@ -255,6 +279,8 @@ def _build_daily_report(
     ]
     if diagnosis_summary:
         report_lines.append(diagnosis_summary)
+    if confidence_summary:
+        report_lines.append(confidence_summary)
     if highlights["重点关注"]:
         report_lines.append(f"重点关注：{'，'.join(highlights['重点关注'])}")
     if highlights["继续观察"]:
@@ -712,6 +738,8 @@ def main() -> int:
                     "action": "ERROR",
                     "confidence": 0.0,
                     "data_source": "config_error",
+                    "data_confidence": 0.0,
+                    "confidence_level": "low",
                     "degraded": True,
                     **build_position_context(
                         stock_code="",
@@ -744,6 +772,7 @@ def main() -> int:
                         portfolio_index=portfolio_index,
                         total_assets=total_assets,
                     ),
+                    health_item=health_item,
                 )
             )
         except Exception as exc:
@@ -759,6 +788,8 @@ def main() -> int:
                     "action": "ERROR",
                     "confidence": 0.0,
                     "data_source": "error",
+                    "data_confidence": 0.0,
+                    "confidence_level": "low",
                     "degraded": True,
                     **build_position_context(
                         stock_code=stock_code,

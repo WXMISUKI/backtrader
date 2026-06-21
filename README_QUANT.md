@@ -216,6 +216,8 @@ python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --
 
 默认日常流程现在还会输出统一的 `production_gate`，你每天优先看它就行：`pass` 表示可以参考，`warn` 表示谨慎参考，`block` 表示先别拿来做交易判断。
 
+如果你想进一步看明白为什么会被降级，还可以看日常摘要里的可信度分布和平均可信度，它会把 `data_confidence`、低可信样本和主要降级原因一起收进来。
+
 如果你想一条命令把日常摘要、诊断证据和验收状态收成一个收口包，可以跑：
 
 ```bash
