@@ -1,0 +1,24 @@
+{
+  "portfolio": [
+    {
+      "stock_code": "000001",
+      "name": "平安银行",
+      "size": 3000,
+      "avg_cost": 10.85,
+      "market_price": 11.24,
+      "target_weight": 0.15,
+      "note": "核心观察持仓"
+    },
+    {
+      "stock_code": "601318",
+      "name": "中国平安",
+      "size": 1000,
+      "avg_cost": 41.2,
+      "market_price": 42.8,
+      "target_weight": 0.12,
+      "note": "保险金融持仓"
+    }
+  ],
+  "cash": 500000,
+  "total_assets": 1000000
+}

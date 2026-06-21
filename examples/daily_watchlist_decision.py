@@ -25,6 +25,7 @@ from core.orchestrator import create_stock_orchestrator
 
 
 DEFAULT_WATCHLIST_PATH = ROOT_DIR / "config" / "watchlist.json"
+DEFAULT_PORTFOLIO_PATH = ROOT_DIR / "config" / "portfolio.json"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -33,6 +34,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--watchlist",
         default=str(DEFAULT_WATCHLIST_PATH),
         help="Watchlist JSON file path.",
+    )
+    parser.add_argument(
+        "--portfolio",
+        default=str(DEFAULT_PORTFOLIO_PATH),
+        help="Portfolio JSON file path.",
     )
     parser.add_argument(
         "--risk-profile",
@@ -68,6 +74,47 @@ def _load_watchlist(path: Path) -> list[dict[str, Any]]:
     if not isinstance(items, list):
         return []
     return [item for item in items if isinstance(item, dict) and item.get("enabled", True)]
+
+
+def _load_portfolio(path: Path) -> tuple[list[dict[str, Any]], float]:
+    if not path.exists():
+        return [], 0.0
+    with path.open("r", encoding="utf-8") as f:
+        payload = json.load(f)
+
+    if isinstance(payload, dict):
+        items = payload.get("portfolio", [])
+        total_assets = _safe_float(payload.get("total_assets"), 0.0)
+        cash = _safe_float(payload.get("cash"), 0.0)
+    elif isinstance(payload, list):
+        items = payload
+        total_assets = 0.0
+        cash = 0.0
+    else:
+        return [], 0.0
+
+    if not isinstance(items, list):
+        return [], 0.0
+
+    portfolio_items = [item for item in items if isinstance(item, dict) and item.get("stock_code")]
+    if total_assets <= 0:
+        total_assets = cash + sum(
+            _safe_float(entry.get("market_price"), 0.0) * _safe_float(entry.get("size"), 0.0)
+            for entry in portfolio_items
+        )
+    return portfolio_items, total_assets
+
+
+def _build_portfolio_index(
+    portfolio_items: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    portfolio_index: dict[str, dict[str, Any]] = {}
+    for item in portfolio_items:
+        stock_code = str(item.get("stock_code", "")).strip()
+        if not stock_code:
+            continue
+        portfolio_index[stock_code] = item
+    return portfolio_index
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
@@ -179,6 +226,68 @@ def _build_item_summary(item: dict[str, Any], result: dict[str, Any], default_ri
     return summary
 
 
+def _build_position_context(
+    *,
+    stock_code: str,
+    stock_name: str,
+    portfolio_index: dict[str, dict[str, Any]],
+    total_assets: float,
+) -> dict[str, Any]:
+    position = portfolio_index.get(stock_code, {})
+    is_position = bool(position)
+    position_size = int(_safe_float(position.get("size"), 0.0)) if is_position else 0
+    avg_cost = position.get("avg_cost") if is_position else None
+    market_price = position.get("market_price") if is_position else None
+    target_weight = position.get("target_weight") if is_position else None
+
+    if market_price is None and avg_cost is not None and is_position:
+        market_price = avg_cost
+
+    position_value = None
+    if is_position:
+        position_value = _safe_float(market_price, 0.0) * position_size
+
+    position_weight = None
+    if position_value is not None and total_assets > 0:
+        position_weight = position_value / total_assets
+
+    if is_position:
+        position_label = "已持有"
+        if position_weight is not None and target_weight is not None:
+            target_weight_value = _safe_float(target_weight, 0.0)
+            if position_weight >= target_weight_value * 1.2 and target_weight_value > 0:
+                position_label = "已持有 / 仓位偏高"
+            elif position_weight <= target_weight_value * 0.8 and target_weight_value > 0:
+                position_label = "已持有 / 仓位偏低"
+    else:
+        position_label = "未持有"
+
+    summary_parts = [position_label]
+    if is_position:
+        summary_parts.append(f"持仓 {position_size} 股")
+        if avg_cost is not None:
+            summary_parts.append(f"均价 {_safe_float(avg_cost, 0.0):.2f}")
+        if market_price is not None:
+            summary_parts.append(f"市价 {_safe_float(market_price, 0.0):.2f}")
+        if position_weight is not None:
+            summary_parts.append(f"仓位 {_format_pct(position_weight)}")
+        if target_weight is not None:
+            summary_parts.append(f"目标仓位 {_format_pct(target_weight)}")
+    else:
+        summary_parts.append("当前配置中无持仓记录")
+
+    return {
+        "is_position": is_position,
+        "position_size": position_size,
+        "avg_cost": avg_cost,
+        "market_price": market_price,
+        "position_value": round(position_value, 2) if position_value is not None else None,
+        "position_weight": round(position_weight, 4) if position_weight is not None else None,
+        "position_label": position_label,
+        "position_summary": "；".join(summary_parts),
+    }
+
+
 def _build_risk_text(*, group: str, group_reason: str, risk: dict[str, Any], data_source: str, is_degraded: bool) -> str:
     parts = [group_reason]
     risk_level = risk.get("risk_level")
@@ -204,12 +313,13 @@ def _print_item(summary: dict[str, Any]) -> None:
     print(f"  风险: {summary['风险']}")
     print(f"  下一步动作: {summary['下一步动作']}")
     extra = []
+    extra.append(summary.get("position_summary", ""))
     if summary.get("latest_price") is not None:
         extra.append(f"最新价 {summary['latest_price']:.2f}")
     extra.append(f"动作 {summary['action']}")
     extra.append(f"置信度 {_format_pct(summary['confidence'])}")
     extra.append(f"数据 {summary['data_source']}")
-    print(f"  详情: {' | '.join(extra)}")
+    print(f"  详情: {' | '.join([part for part in extra if part])}")
 
 
 def _print_group(title: str, items: list[dict[str, Any]]) -> None:
@@ -224,6 +334,7 @@ def _print_group(title: str, items: list[dict[str, Any]]) -> None:
 def main() -> int:
     args = build_parser().parse_args()
     watchlist_path = Path(args.watchlist)
+    portfolio_path = Path(args.portfolio)
     orchestrator = create_stock_orchestrator()
 
     try:
@@ -239,10 +350,20 @@ def main() -> int:
         print("watchlist 为空，未执行分析。")
         return 1
 
+    portfolio_items, total_assets = _load_portfolio(portfolio_path)
+    portfolio_index = _build_portfolio_index(portfolio_items)
+    portfolio_count = len(portfolio_index)
+    portfolio_value = sum(
+        _safe_float(item.get("market_price"), 0.0) * _safe_float(item.get("size"), 0.0)
+        for item in portfolio_items
+    )
+
     print("== 自选股日常决策清单 ==")
     print(f"生成时间: {datetime.now().isoformat(timespec='seconds')}")
     print(f"watchlist: {watchlist_path}")
+    print(f"portfolio: {portfolio_path}")
     print(f"默认风险: {args.risk_profile}")
+    print(f"持仓数量: {portfolio_count}，持仓市值: {portfolio_value:.2f}，总资产: {total_assets:.2f}")
 
     items: list[dict[str, Any]] = []
     errors: list[dict[str, Any]] = []
@@ -252,6 +373,12 @@ def main() -> int:
         stock_name = str(item.get("name", stock_code or "unknown"))
         risk_profile = str(item.get("risk_profile", args.risk_profile) or args.risk_profile)
         if not stock_code:
+            position_context = _build_position_context(
+                stock_code="",
+                stock_name=stock_name,
+                portfolio_index=portfolio_index,
+                total_assets=total_assets,
+            )
             errors.append(
                 {
                     "stock_code": "",
@@ -265,6 +392,7 @@ def main() -> int:
                     "confidence": 0.0,
                     "data_source": "config_error",
                     "degraded": True,
+                    **position_context,
                 }
             )
             continue
@@ -272,8 +400,22 @@ def main() -> int:
         try:
             result = orchestrator.analyze(stock_code, risk_profile=risk_profile)
             summary = _build_item_summary(item, result, args.risk_profile)
+            summary.update(
+                _build_position_context(
+                    stock_code=stock_code,
+                    stock_name=stock_name,
+                    portfolio_index=portfolio_index,
+                    total_assets=total_assets,
+                )
+            )
             items.append(summary)
         except Exception as exc:
+            position_context = _build_position_context(
+                stock_code=stock_code,
+                stock_name=stock_name,
+                portfolio_index=portfolio_index,
+                total_assets=total_assets,
+            )
             errors.append(
                 {
                     "stock_code": stock_code,
@@ -287,6 +429,7 @@ def main() -> int:
                     "confidence": 0.0,
                     "data_source": "error",
                     "degraded": True,
+                    **position_context,
                 }
             )
 
@@ -315,10 +458,16 @@ def main() -> int:
         payload = {
             "generated_at": datetime.now().isoformat(timespec="seconds"),
             "watchlist_path": str(watchlist_path),
+            "portfolio_path": str(portfolio_path),
             "default_risk_profile": args.risk_profile,
             "counts": counts,
             "items": items,
             "groups": groups,
+            "portfolio_summary": {
+                "count": portfolio_count,
+                "market_value": round(portfolio_value, 2),
+                "total_assets": round(total_assets, 2),
+            },
         }
         with output_path.open("w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2, default=str)

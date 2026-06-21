@@ -116,6 +116,18 @@ python examples/watchlist_data_health.py --watchlist config/watchlist.json --out
 
 推荐顺序是先看数据健康，再看日常决策清单。
 
+如果你还想把持仓上下文一起带进去，可以这样跑：
+
+```bash
+python examples/daily_watchlist_decision.py --watchlist config/watchlist.json --portfolio config/portfolio.json --output-json logs/daily_watchlist.json
+```
+
+现在更推荐的顺序是：
+
+1. 先看数据健康
+2. 再看带持仓上下文的日常决策清单
+3. 最后再回看原始分析或导出结果
+
 联调用例会依次检查：
 
 - `GET /health`

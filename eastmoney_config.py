@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 import requests
+from pathlib import Path
 
 _DEFAULT_EASTMONEY_COOKIES = {
     "wsc_checkuser_ok": "1",
@@ -42,6 +43,28 @@ def _parse_cookie_string(cookie_str: str) -> dict:
     return cookies
 
 
+def _load_env_file() -> dict:
+    """读取本地 .env 中的简单 KEY=VALUE 配置。"""
+    env_path = Path(__file__).resolve().parent / ".env"
+    if not env_path.exists():
+        return {}
+
+    result: dict[str, str] = {}
+    try:
+        for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            key, value = line.split("=", 1)
+            key = key.strip()
+            value = value.strip()
+            if key and value and key not in result:
+                result[key] = value
+    except Exception:
+        return {}
+    return result
+
+
 def _load_cookies() -> dict:
     """加载 cookie，优先使用环境变量 EASTMONEY_COOKIE。"""
     cookie_str = os.getenv("EASTMONEY_COOKIE", "").strip()
@@ -49,6 +72,14 @@ def _load_cookies() -> dict:
         parsed = _parse_cookie_string(cookie_str)
         if parsed:
             return parsed
+
+    env_file = _load_env_file()
+    cookie_str = env_file.get("EASTMONEY_COOKIE", "").strip()
+    if cookie_str:
+        parsed = _parse_cookie_string(cookie_str)
+        if parsed:
+            return parsed
+
     return _DEFAULT_EASTMONEY_COOKIES.copy()
 
 

@@ -384,6 +384,20 @@
 | 29.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE29_WATCHLIST_DATA_HEALTH.md` |
 | 29.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
+## Phase 30: 自选股持仓上下文接入 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE30_WATCHLIST_PORTFOLIO_CONTEXT.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 30.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE30_WATCHLIST_PORTFOLIO_CONTEXT.md` |
+| 30.1 | 新增持仓配置样例 | P0 | ✅ | - | `config/portfolio.json` |
+| 30.2 | 扩展日常清单脚本读取持仓 | P0 | ✅ | - | `examples/daily_watchlist_decision.py` |
+| 30.3 | 增加持仓摘要与仓位占用 | P0 | ✅ | - | `examples/daily_watchlist_decision.py` |
+| 30.4 | 增加持仓相关运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 30.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE30_WATCHLIST_PORTFOLIO_CONTEXT.md` |
+| 30.6 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
 ---
 
 ## 已完成任务归档
