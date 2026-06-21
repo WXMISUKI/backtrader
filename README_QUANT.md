@@ -125,6 +125,42 @@ python examples/watchlist_data_health.py --watchlist config/watchlist.json --out
 - `history_reason`
 - `fundamental_reason`
 
+如果你想给最近一次日常结果记一条轻量反馈，可以跑：
+
+```bash
+python examples/daily_watchlist_feedback.py --feedback watching --comment "继续观察"
+```
+
+如果你想对某只股票单独记反馈，可以加上 `--stock-code`：
+
+```bash
+python examples/daily_watchlist_feedback.py --archive-dir logs/daily_watchlist_archive --stock-code 000001 --feedback accepted --comment "这次判断可采纳"
+```
+
+如果你想看看最近反馈的统计趋势，可以跑：
+
+```bash
+python examples/daily_watchlist_feedback_insights.py
+```
+
+如果你想把反馈洞察导出成 JSON，可以加上 `--output-json`：
+
+```bash
+python examples/daily_watchlist_feedback_insights.py --output-json logs/daily_watchlist_feedback_insights.json
+```
+
+如果你想一条命令看最新留档和最近反馈趋势，可以跑：
+
+```bash
+python examples/daily_watchlist_review.py
+```
+
+如果你还想把 JSON 细节一起看出来，可以加上 `--show-json`：
+
+```bash
+python examples/daily_watchlist_review.py --show-json
+```
+
 如果你还想把持仓上下文一起带进去，可以这样跑：
 
 ```bash
@@ -329,6 +365,8 @@ python examples/agent_demo.py "请分析 000001，并给出建议"
 - 如果你想每天拿一份自选股清单，优先跑 `examples/daily_watchlist_decision.py`
 - 如果你想先判断当天数据靠不靠谱，优先跑 `examples/watchlist_data_health.py`
 - 如果你想一次看懂东财数据状态，优先看统一健康摘要里的 `status`
+- 如果你想记一条轻量反馈，优先跑 `examples/daily_watchlist_feedback.py`
+- 如果你想快速看反馈趋势，优先跑 `examples/daily_watchlist_feedback_insights.py`
 
 ## 功能模块
 

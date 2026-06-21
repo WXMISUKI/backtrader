@@ -29,6 +29,7 @@ DEFAULT_PORTFOLIO_PATH = ROOT_DIR / "config" / "portfolio.json"
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
 DEFAULT_PIPELINE_JSON = ROOT_DIR / "logs" / "daily_watchlist_pipeline.json"
 DEFAULT_RUN_STATUS = ROOT_DIR / "logs" / "daily_watchlist_run_status.json"
+DEFAULT_FEEDBACK_PATH = ROOT_DIR / "logs" / "daily_watchlist_feedback.jsonl"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -52,6 +53,24 @@ def _load_json_payload(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:
         payload = json.load(f)
     return payload if isinstance(payload, dict) else {}
+
+
+def _load_jsonl_payload(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    records: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                item = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(item, dict):
+                records.append(item)
+    return records
 
 
 def _call_script(script: Path, args: list[str]) -> tuple[int, str]:
@@ -92,6 +111,7 @@ def main() -> int:
     archive_dir = Path(args.archive_dir)
     output_json = Path(args.output_json)
     run_status_path = Path(args.run_status)
+    feedback_records = _load_jsonl_payload(DEFAULT_FEEDBACK_PATH)
 
     timestamp = datetime.now().isoformat(timespec="seconds")
     preflight_script = ROOT_DIR / "examples" / "watchlist_data_health.py"
@@ -190,6 +210,7 @@ def main() -> int:
         },
         "summary": {
             "message": "预检通过并已完成归档。" if status == "ok" else ("存在降级，但已完成归档。" if status == "degraded" else "预检或执行失败。"),
+            "feedback_count": len(feedback_records),
         },
         "outputs": {
             "preflight_output": preflight_output.strip(),
@@ -203,6 +224,7 @@ def main() -> int:
     print(f"预检: {'通过' if preflight_ok else '失败'}")
     print(f"执行: {'成功' if archive_ok else '失败'}")
     print(f"东财 Cookie: {'已加载' if cookie_loaded else '未加载'} ({cookie_source})")
+    print(f"反馈记录: {len(feedback_records)} 条")
     print(f"归档目录: {archive_dir}")
     print(f"运行状态: {run_status_path}")
     print(f"查看入口: {viewer_script}")

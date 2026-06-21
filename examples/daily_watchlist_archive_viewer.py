@@ -22,8 +22,11 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from examples.daily_watchlist_display import print_bullets, print_kv_pairs, print_section
+
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
+DEFAULT_FEEDBACK_PATH = ROOT_DIR / "logs" / "daily_watchlist_feedback.jsonl"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -41,6 +44,24 @@ def _load_json_payload(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as f:
         payload = json.load(f)
     return payload if isinstance(payload, dict) else {}
+
+
+def _load_jsonl_payload(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    records: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                item = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(item, dict):
+                records.append(item)
+    return records
 
 
 def _find_latest_run(archive_dir: Path) -> tuple[Path | None, Path | None]:
@@ -73,31 +94,47 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
     stage_report = payload.get("stage_report", {}) if isinstance(payload, dict) else {}
     archive_package = payload.get("archive_package", {}) if isinstance(payload, dict) else {}
     portfolio_summary = payload.get("portfolio_summary", {}) if isinstance(payload, dict) else {}
+    feedback_records = _load_jsonl_payload(DEFAULT_FEEDBACK_PATH)
 
-    print("== 自选股日常留档查看 ==")
-    print(f"归档JSON: {json_path or '未找到'}")
-    print(f"归档Markdown: {md_path or '未找到'}")
-    print(f"生成时间: {payload.get('generated_at', '')}")
-    print(f"日常总览: {daily_summary.get('status', '')}")
-    print(f"持仓数量: {portfolio_summary.get('count', 0)}，持仓市值: {portfolio_summary.get('market_value', 0.0):.2f}，总资产: {portfolio_summary.get('total_assets', 0.0):.2f}")
+    print_section("自选股日常留档查看")
+    print_kv_pairs(
+        [
+            ("归档JSON", json_path or "未找到"),
+            ("归档Markdown", md_path or "未找到"),
+            ("生成时间", payload.get("generated_at", "")),
+            ("日常总览", daily_summary.get("status", "")),
+            (
+                "持仓摘要",
+                f"数量 {portfolio_summary.get('count', 0)}，市值 {portfolio_summary.get('market_value', 0.0):.2f}，总资产 {portfolio_summary.get('total_assets', 0.0):.2f}",
+            ),
+            ("最近反馈", f"{len(feedback_records)} 条"),
+        ]
+    )
+    if feedback_records:
+        print_bullets(
+            [
+                f"{item.get('stock_code', '')} {item.get('stock_name', '')} [{item.get('feedback', '')}] {item.get('comment', '')}"
+                for item in feedback_records[-3:]
+            ]
+        )
 
-    print("\n== 日更报告 ==")
+    print_section("日更报告")
     print(_shorten_lines(str(daily_report.get("report_text", "") or "未提供"), limit_lines))
 
     if daily_comparison and daily_comparison.get("summary_text"):
-        print("\n== 日报对比 ==")
+        print_section("日报对比")
         print(daily_comparison.get("summary_text", ""))
 
     if weekly_report and weekly_report.get("report_text"):
-        print("\n== 周报模板 ==")
+        print_section("周报模板")
         print(_shorten_lines(str(weekly_report.get("report_text", "")), limit_lines))
 
     if stage_report and stage_report.get("report_text"):
-        print("\n== 阶段报告模板 ==")
+        print_section("阶段报告模板")
         print(_shorten_lines(str(stage_report.get("report_text", "")), limit_lines))
 
     if archive_package and archive_package.get("report_text"):
-        print("\n== 复盘留档包 ==")
+        print_section("复盘留档包")
         print(_shorten_lines(str(archive_package.get("report_text", "")), limit_lines))
 
 
@@ -126,4 +163,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -650,6 +650,52 @@
 | 46.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE46_DATA_SOURCE_HEALTH_SUMMARY.md` |
 | 46.6 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
+## Phase 47: 自选股日常决策反馈闭环 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE47_DAILY_DECISION_FEEDBACK_LOOP.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 47.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE47_DAILY_DECISION_FEEDBACK_LOOP.md` |
+| 47.1 | 新增日常反馈脚本 | P0 | ✅ | - | `examples/daily_watchlist_feedback.py` |
+| 47.2 | 支持 latest 留档定位 | P0 | ✅ | - | `examples/daily_watchlist_feedback.py` |
+| 47.3 | 支持 JSONL 追加写入 | P0 | ✅ | - | `examples/daily_watchlist_feedback.py` |
+| 47.4 | 查看器展示反馈摘要 | P1 | ✅ | - | `examples/daily_watchlist_archive_viewer.py` |
+| 47.5 | 日常运行状态带反馈计数 | P1 | ✅ | - | `examples/daily_watchlist_daily_run.py` |
+| 47.6 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 47.7 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE47_DAILY_DECISION_FEEDBACK_LOOP.md` |
+| 47.8 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
+## Phase 48: 自选股日常反馈统计洞察 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE48_DAILY_FEEDBACK_INSIGHTS.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 48.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE48_DAILY_FEEDBACK_INSIGHTS.md` |
+| 48.1 | 新增反馈洞察脚本 | P0 | ✅ | - | `examples/daily_watchlist_feedback_insights.py` |
+| 48.2 | 统计动作分布 | P0 | ✅ | - | `examples/daily_watchlist_feedback_insights.py` |
+| 48.3 | 统计股票频次 | P0 | ✅ | - | `examples/daily_watchlist_feedback_insights.py` |
+| 48.4 | 支持 JSON 导出 | P1 | ✅ | - | `examples/daily_watchlist_feedback_insights.py` |
+| 48.5 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 48.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE48_DAILY_FEEDBACK_INSIGHTS.md` |
+| 48.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
+## Phase 49: 自选股日常回看流程收口 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE49_DAILY_REVIEW_FLOW.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 49.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE49_DAILY_REVIEW_FLOW.md` |
+| 49.1 | 新增日常回看脚本 | P0 | ✅ | - | `examples/daily_watchlist_review.py` |
+| 49.2 | 串起 latest 留档查看 | P0 | ✅ | - | `examples/daily_watchlist_review.py` |
+| 49.3 | 串起反馈洞察查看 | P0 | ✅ | - | `examples/daily_watchlist_review.py` |
+| 49.4 | 支持 JSON 细节输出 | P1 | ✅ | - | `examples/daily_watchlist_review.py` |
+| 49.5 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 49.6 | 编写归档文档 | P1 | ⬜ | - | 记录回看流程结果 |
+| 49.7 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀回看流程模板 |
+
 ---
 
 ## 下一步行动
