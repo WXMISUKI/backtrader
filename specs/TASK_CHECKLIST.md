@@ -369,6 +369,21 @@
 | 28.7 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE28_DAILY_WATCHLIST_DECISION.md` |
 | 28.8 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
+## Phase 29: 自选股数据健康透明化 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE29_WATCHLIST_DATA_HEALTH.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 29.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE29_WATCHLIST_DATA_HEALTH.md |
+| 29.1 | 实现 watchlist 数据健康脚本 | P0 | ✅ | - | `examples/watchlist_data_health.py` |
+| 29.2 | 复用行情治理入口 | P0 | ✅ | - | `core/data/eastmoney_api.py` |
+| 29.3 | 复用基本面治理入口 | P0 | ✅ | - | `core/data/real_provider.py` |
+| 29.4 | 增加分级输出与 JSON 导出 | P1 | ✅ | - | `examples/watchlist_data_health.py` |
+| 29.5 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 29.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE29_WATCHLIST_DATA_HEALTH.md` |
+| 29.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
 ---
 
 ## 已完成任务归档

@@ -108,6 +108,14 @@ python examples/api_demo.py --host 127.0.0.1 --port 8000 --show-insights
 python examples/daily_watchlist_decision.py --watchlist config/watchlist.json --output-json logs/daily_watchlist.json
 ```
 
+如果你想先看这份清单的数据健康情况，可以先跑：
+
+```bash
+python examples/watchlist_data_health.py --watchlist config/watchlist.json --output-json logs/watchlist_health.json
+```
+
+推荐顺序是先看数据健康，再看日常决策清单。
+
 联调用例会依次检查：
 
 - `GET /health`
@@ -200,6 +208,7 @@ python examples/agent_demo.py "请分析 000001，并给出建议"
 - 如果你想判断下一步该优先优化什么，先看 `/decision/insights`，再决定是否调整工具或工作流
 - 如果你想更快看懂决策、统计和洞察结果，优先看 `decision_summary` / `stats_summary` / `insights_summary` 的四段式输出
 - 如果你想每天拿一份自选股清单，优先跑 `examples/daily_watchlist_decision.py`
+- 如果你想先判断当天数据靠不靠谱，优先跑 `examples/watchlist_data_health.py`
 
 ## 功能模块
 
