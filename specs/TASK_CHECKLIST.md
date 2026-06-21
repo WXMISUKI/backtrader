@@ -866,14 +866,28 @@
 | 61.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE61_DATA_CONFIDENCE.md` |
 | 61.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 61 已收口 |
 
+## Phase 62: 自选股反馈效果评估 (下一阶段)
+
+**SDD规格文档**: `specs/SDD_PHASE62_FEEDBACK_EFFECT_EVALUATION.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 62.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE62_FEEDBACK_EFFECT_EVALUATION.md` |
+| 62.1 | 反馈记录补充基线字段 | P0 | ✅ | - | `examples/daily_watchlist_feedback.py` |
+| 62.2 | 新增反馈效果评估脚本 | P0 | ✅ | - | `examples/daily_watchlist_feedback_effects.py` |
+| 62.3 | 回看入口展示反馈效果 | P0 | ✅ | - | `examples/daily_watchlist_review.py` / `examples/daily_watchlist_archive_viewer.py` |
+| 62.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 62.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE62_FEEDBACK_EFFECT_EVALUATION.md` |
+| 62.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 62 已收口 |
+
 ---
 
 ## 下一步行动
 
-1. **立即**: 实现 Phase 62 反馈效果评估
-2. **随后**: 输出 T+1 / T+3 / T+5 轻量回看
-3. **再后**: 收口每日行动清单
-4. **持续**: 观察可信度分布是否贴近日常数据状态
+1. **立即**: 实现 Phase 63 日常行动清单收口
+2. **随后**: 输出 review_now / hold_watch / wait / skip_due_to_data
+3. **再后**: 优化日常终端短摘要
+4. **持续**: 观察反馈效果评估是否稳定
 
 ---
 

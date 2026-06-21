@@ -143,6 +143,12 @@ python examples/daily_watchlist_feedback.py --archive-dir logs/daily_watchlist_a
 python examples/daily_watchlist_feedback_insights.py
 ```
 
+如果你想看反馈后续效果和 T+1 / T+3 / T+5 的轻量回看，可以跑：
+
+```bash
+python examples/daily_watchlist_feedback_effects.py
+```
+
 如果你想把反馈洞察导出成 JSON，可以加上 `--output-json`：
 
 ```bash
@@ -428,6 +434,7 @@ python examples/agent_demo.py "请分析 000001，并给出建议"
 - 如果你想一次看懂东财数据状态，优先看统一健康摘要里的 `status`
 - 如果你想记一条轻量反馈，优先跑 `examples/daily_watchlist_feedback.py`
 - 如果你想快速看反馈趋势，优先跑 `examples/daily_watchlist_feedback_insights.py`
+- 如果你想看反馈后续效果，优先跑 `examples/daily_watchlist_feedback_effects.py`
 
 ## 功能模块
 

@@ -28,6 +28,7 @@ from examples.watchlist_shared import build_diagnosis_evidence, build_production
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
 DEFAULT_FEEDBACK_PATH = ROOT_DIR / "logs" / "daily_watchlist_feedback.jsonl"
+DEFAULT_EFFECTS_JSON = ROOT_DIR / "logs" / "daily_watchlist_feedback_effects.json"
 DEFAULT_FLOW_JSON = ROOT_DIR / "logs" / "daily_watchlist_flow.json"
 DEFAULT_ACCEPTANCE_JSON = ROOT_DIR / "logs" / "daily_watchlist_acceptance.json"
 
@@ -113,6 +114,7 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
             daily_run_status=str(flow_payload.get("daily_run_status", "")) if isinstance(flow_payload, dict) else "",
         )
     feedback_records = _load_jsonl_payload(DEFAULT_FEEDBACK_PATH)
+    effects_payload = _load_json_payload(DEFAULT_EFFECTS_JSON)
 
     print_section("自选股日常留档查看")
     print_kv_pairs(
@@ -129,6 +131,11 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
                 f"数量 {portfolio_summary.get('count', 0)}，市值 {portfolio_summary.get('market_value', 0.0):.2f}，总资产 {portfolio_summary.get('total_assets', 0.0):.2f}",
             ),
             ("最近反馈", f"{len(feedback_records)} 条"),
+            (
+                "反馈效果",
+                f"命中率 {effects_payload.get('overall', {}).get('hit_rate', 0.0):.1%}，"
+                f"平均回报 {effects_payload.get('overall', {}).get('avg_return', 0.0):.1%}",
+            ),
         ]
     )
     if feedback_records:
@@ -164,6 +171,18 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
         samples = diagnosis_evidence.get("sample_items", [])
         if samples:
             print_bullets([f"{item.get('stock_code', '')} {item.get('name', '')} [{item.get('status', '')}] {item.get('primary_label', '')}" for item in samples])
+
+    if effects_payload:
+        print_section("反馈效果")
+        overall = effects_payload.get("overall", {}) if isinstance(effects_payload, dict) else {}
+        print_kv_pairs(
+            [
+                ("可用反馈", overall.get("usable_feedback", 0)),
+                ("评估行数", overall.get("evaluated_rows", 0)),
+                ("平均回报", f"{overall.get('avg_return', 0.0):.1%}"),
+                ("命中率", f"{overall.get('hit_rate', 0.0):.1%}"),
+            ]
+        )
 
 
 def main() -> int:

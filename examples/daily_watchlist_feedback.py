@@ -81,11 +81,19 @@ def _load_existing_records(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+def _safe_float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def main() -> int:
     args = build_parser().parse_args()
     archive_dir = Path(args.archive_dir)
     output_path = Path(args.output_json)
     latest_payload = _find_latest_payload(archive_dir)
+    latest_generated_at = str(latest_payload.get("generated_at", "")) if isinstance(latest_payload, dict) else ""
 
     decision_items = latest_payload.get("decision", {}).get("items", []) if isinstance(latest_payload, dict) else []
     target_item: dict[str, Any] = {}
@@ -111,6 +119,10 @@ def main() -> int:
     elif args.feedback == "watching" and not args.accepted:
         accepted = None
 
+    reference_price = _safe_float(target_item.get("latest_price"), 0.0)
+    if reference_price <= 0:
+        reference_price = _safe_float(target_item.get("market_price"), 0.0)
+
     feedback_payload = session_store.submit_feedback(
         session_id=args.session_id or str(target_item.get("session_id", "") or ""),
         workflow_id=args.workflow_id or str(target_item.get("workflow_id", "") or ""),
@@ -126,6 +138,13 @@ def main() -> int:
             "stock_name": str(args.stock_name or target_item.get("name", "") or ""),
             "feedback_type": args.feedback,
             "latest_json": str(archive_dir / "latest.json"),
+            "reference_generated_at": latest_generated_at,
+            "reference_group": str(target_item.get("group", "") or ""),
+            "reference_action": str(target_item.get("action", "") or ""),
+            "reference_confidence": _safe_float(target_item.get("confidence"), 0.0),
+            "reference_data_confidence": _safe_float(target_item.get("data_confidence"), 0.0),
+            "reference_price": reference_price,
+            "reference_gate_status": str(latest_payload.get("production_gate", {}).get("status", "")) if isinstance(latest_payload, dict) else "",
         },
     )
 
@@ -141,6 +160,13 @@ def main() -> int:
             "accepted": accepted,
             "rating": args.rating if args.rating > 0 else None,
             "comment": comment,
+            "reference_generated_at": latest_generated_at,
+            "reference_group": str(target_item.get("group", "") or ""),
+            "reference_action": str(target_item.get("action", "") or ""),
+            "reference_confidence": _safe_float(target_item.get("confidence"), 0.0),
+            "reference_data_confidence": _safe_float(target_item.get("data_confidence"), 0.0),
+            "reference_price": reference_price,
+            "reference_gate_status": str(latest_payload.get("production_gate", {}).get("status", "")) if isinstance(latest_payload, dict) else "",
             "session_id": feedback_payload.get("session_id", ""),
             "workflow_id": feedback_payload.get("workflow_id", ""),
             "feedback_id": feedback_payload.get("feedback_id", ""),

@@ -25,6 +25,7 @@ from examples.daily_watchlist_display import print_block, print_section
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
 DEFAULT_FEEDBACK_FILE = ROOT_DIR / "logs" / "daily_watchlist_feedback.jsonl"
+DEFAULT_EFFECTS_JSON = ROOT_DIR / "logs" / "daily_watchlist_feedback_effects.json"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,6 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--feedback-file", default=str(DEFAULT_FEEDBACK_FILE), help="Feedback JSONL file path.")
     parser.add_argument("--feedback-limit", type=int, default=10, help="Limit feedback samples in insights output.")
     parser.add_argument("--min-samples", type=int, default=2, help="Minimum samples for stable stock insight.")
+    parser.add_argument("--effects-json", default=str(DEFAULT_EFFECTS_JSON), help="Feedback effects JSON output path.")
     parser.add_argument("--show-json", action="store_true", help="Print JSON payloads from viewer and insights.")
     return parser
 
@@ -49,6 +51,7 @@ def main() -> int:
     args = build_parser().parse_args()
     viewer_script = ROOT_DIR / "examples" / "daily_watchlist_archive_viewer.py"
     insights_script = ROOT_DIR / "examples" / "daily_watchlist_feedback_insights.py"
+    effects_script = ROOT_DIR / "examples" / "daily_watchlist_feedback_effects.py"
 
     viewer_code, viewer_output = _run_script(
         viewer_script,
@@ -65,11 +68,25 @@ def main() -> int:
             str(args.min_samples),
         ],
     )
+    effects_code, effects_output = _run_script(
+        effects_script,
+        [
+            "--feedback-file",
+            str(args.feedback_file),
+            "--archive-dir",
+            str(args.archive_dir),
+            "--output-json",
+            str(args.effects_json),
+        ],
+    )
 
     print_section("自选股日常回看")
     print(viewer_output.strip())
     print_section("自选股反馈洞察")
     print(insights_output.strip())
+
+    print_section("自选股反馈效果")
+    print(effects_output.strip())
 
     if args.show_json:
         viewer_json_script = ROOT_DIR / "examples" / "daily_watchlist_archive_viewer.py"
@@ -82,7 +99,7 @@ def main() -> int:
         if viewer_json_code != 0:
             viewer_code = viewer_json_code
 
-    return 0 if viewer_code == 0 and insights_code == 0 else 1
+    return 0 if viewer_code == 0 and insights_code == 0 and effects_code == 0 else 1
 
 
 if __name__ == "__main__":
