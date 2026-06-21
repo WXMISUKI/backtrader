@@ -524,6 +524,21 @@
 | 39.5 | 编写归档文档 | P1 | ⬜ | - | 记录标题归一化结果 |
 | 39.6 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀统一命名 |
 
+## Phase 40: 自选股日常运行固化与自动留档 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE40_DAILY_RUN_ARTIFACTS.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 40.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE40_DAILY_RUN_ARTIFACTS.md` |
+| 40.1 | 增加日常归档目录参数 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 40.2 | 增加 Markdown 导出逻辑 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 40.3 | 增加 latest 指针更新逻辑 | P1 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 40.4 | 保留 JSON 与日常目录并存 | P1 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 40.5 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 40.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE40_DAILY_RUN_ARTIFACTS.md` |
+| 40.7 | 更新知识库与任务清单 | P1 | ✅ | - | 沉淀日常留档规范 |
+
 ---
 
 ## 已完成任务归档

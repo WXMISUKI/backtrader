@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from datetime import datetime
 from pathlib import Path
 import sys
@@ -33,6 +34,7 @@ from examples.watchlist_shared import (
 
 DEFAULT_WATCHLIST_PATH = ROOT_DIR / "config" / "watchlist.json"
 DEFAULT_PORTFOLIO_PATH = ROOT_DIR / "config" / "portfolio.json"
+DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -45,6 +47,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--limit", type=int, default=0, help="Limit number of watchlist items. 0 means no limit.")
     parser.add_argument("--output-json", default="", help="Optional JSON output file path.")
     parser.add_argument("--compare-with", default="", help="Optional baseline daily report JSON file path.")
+    parser.add_argument("--archive-dir", default=str(DEFAULT_ARCHIVE_DIR), help="Archive directory for daily artifacts.")
+    parser.add_argument("--export-markdown", action="store_true", help="Export a Markdown summary into the archive directory.")
+    parser.add_argument("--write-latest", action="store_true", help="Update latest.json and latest.md in the archive directory.")
     parser.add_argument(
         "--weekly-reports",
         nargs="*",
@@ -613,6 +618,92 @@ def _build_archive_package(
     }
 
 
+def _build_markdown_document(*, generated_at: str, payload: dict[str, Any]) -> str:
+    daily_summary = payload.get("daily_summary", {}) if isinstance(payload, dict) else {}
+    daily_report = payload.get("daily_report", {}) if isinstance(payload, dict) else {}
+    daily_comparison = payload.get("daily_comparison", {}) if isinstance(payload, dict) else {}
+    weekly_report = payload.get("weekly_report", {}) if isinstance(payload, dict) else {}
+    stage_report = payload.get("stage_report", {}) if isinstance(payload, dict) else {}
+    archive_package = payload.get("archive_package", {}) if isinstance(payload, dict) else {}
+    portfolio_summary = payload.get("portfolio_summary", {}) if isinstance(payload, dict) else {}
+
+    lines = [
+        "# 自选股日常运行留档",
+        "",
+        f"- 生成时间: {generated_at}",
+        f"- 日常总览: {daily_summary.get('status', '')}",
+        f"- 持仓数量: {portfolio_summary.get('count', 0)}",
+        f"- 持仓市值: {portfolio_summary.get('market_value', 0.0):.2f}",
+        f"- 总资产: {portfolio_summary.get('total_assets', 0.0):.2f}",
+        "",
+        "## 日更报告",
+        "",
+        daily_report.get("report_text", "") or "未提供",
+        "",
+    ]
+
+    if daily_comparison and daily_comparison.get("summary_text"):
+        lines.extend(["## 日报对比", "", daily_comparison.get("summary_text", ""), ""])
+
+    if weekly_report and weekly_report.get("report_text"):
+        lines.extend(["## 周报模板", "", weekly_report.get("report_text", ""), ""])
+
+    if stage_report and stage_report.get("report_text"):
+        lines.extend(["## 阶段报告模板", "", stage_report.get("report_text", ""), ""])
+
+    if archive_package and archive_package.get("report_text"):
+        lines.extend(["## 复盘留档包", "", archive_package.get("report_text", ""), ""])
+
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def _write_daily_artifacts(
+    *,
+    archive_dir: Path,
+    generated_at: str,
+    payload: dict[str, Any],
+    export_markdown: bool,
+    write_latest: bool,
+    source_json_path: Path | None,
+) -> dict[str, str]:
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    generated_dt = datetime.fromisoformat(generated_at)
+    date_key = generated_dt.strftime("%Y%m%d")
+    time_key = generated_dt.strftime("%H%M%S")
+    run_dir = archive_dir / date_key
+    run_dir.mkdir(parents=True, exist_ok=True)
+
+    json_path = run_dir / f"daily_watchlist_pipeline_{date_key}_{time_key}.json"
+    with json_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2, default=str)
+
+    md_path = ""
+    if export_markdown:
+        md_path_obj = run_dir / f"daily_watchlist_pipeline_{date_key}_{time_key}.md"
+        markdown = _build_markdown_document(generated_at=generated_at, payload=payload)
+        with md_path_obj.open("w", encoding="utf-8") as f:
+            f.write(markdown)
+        md_path = str(md_path_obj)
+
+    if write_latest:
+        latest_json = archive_dir / "latest.json"
+        shutil.copyfile(json_path, latest_json)
+        if export_markdown:
+            latest_md = archive_dir / "latest.md"
+            shutil.copyfile(run_dir / "daily_watchlist_pipeline.md", latest_md)
+
+    if source_json_path is not None and source_json_path != json_path:
+        source_json_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(json_path, source_json_path)
+
+    return {
+        "archive_dir": str(archive_dir),
+        "run_dir": str(run_dir),
+        "json_path": str(json_path),
+        "markdown_path": md_path,
+    }
+
+
 def main() -> int:
     args = build_parser().parse_args()
     watchlist_path = Path(args.watchlist)
@@ -820,32 +911,50 @@ def main() -> int:
             print(f"  持仓: {item.get('position_summary', '')}")
 
     output_path = Path(args.output_json) if args.output_json else None
+    generated_at = datetime.now().isoformat(timespec="seconds")
+    payload = {
+        "generated_at": generated_at,
+        "watchlist_path": str(watchlist_path),
+        "portfolio_path": str(portfolio_path),
+        "history_start_date": args.start_date,
+        "history_end_date": args.end_date,
+        "counts": {
+            "health": {key: len(value) for key, value in health_groups.items()},
+            "decision": {key: len(value) for key, value in decision_groups.items()},
+        },
+        "health": {"items": health_items, "groups": health_groups},
+        "decision": {"items": decision_items, "groups": decision_groups},
+        "daily_summary": daily_summary,
+        "daily_report": daily_report,
+        "daily_comparison": daily_comparison,
+        "weekly_report": weekly_report,
+        "stage_report": stage_report,
+        "archive_package": archive_package,
+        "portfolio_summary": {
+            "count": portfolio_count,
+            "market_value": round(portfolio_value, 2),
+            "total_assets": round(total_assets, 2),
+        },
+    }
+
+    archive_info = {}
+    if args.archive_dir:
+        archive_info = _write_daily_artifacts(
+            archive_dir=Path(args.archive_dir),
+            generated_at=generated_at,
+            payload=payload,
+            export_markdown=bool(args.export_markdown),
+            write_latest=bool(args.write_latest),
+            source_json_path=output_path,
+        )
+        print(f"\n已归档: {archive_info['json_path']}")
+        if archive_info.get("markdown_path"):
+            print(f"已导出 Markdown: {archive_info['markdown_path']}")
+        if args.write_latest:
+            print(f"已更新 latest: {archive_info['archive_dir']}")
+
     if output_path is not None:
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        payload = {
-            "generated_at": datetime.now().isoformat(timespec="seconds"),
-            "watchlist_path": str(watchlist_path),
-            "portfolio_path": str(portfolio_path),
-            "history_start_date": args.start_date,
-            "history_end_date": args.end_date,
-            "counts": {
-                "health": {key: len(value) for key, value in health_groups.items()},
-                "decision": {key: len(value) for key, value in decision_groups.items()},
-            },
-            "health": {"items": health_items, "groups": health_groups},
-            "decision": {"items": decision_items, "groups": decision_groups},
-            "daily_summary": daily_summary,
-            "daily_report": daily_report,
-            "daily_comparison": daily_comparison,
-            "weekly_report": weekly_report,
-            "stage_report": stage_report,
-            "archive_package": archive_package,
-            "portfolio_summary": {
-                "count": portfolio_count,
-                "market_value": round(portfolio_value, 2),
-                "total_assets": round(total_assets, 2),
-            },
-        }
         with output_path.open("w", encoding="utf-8") as f:
             json.dump(payload, f, ensure_ascii=False, indent=2, default=str)
         print(f"\n已导出: {output_path}")

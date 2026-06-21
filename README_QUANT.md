@@ -158,6 +158,17 @@ python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --
 python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --portfolio config/portfolio.json --archive-package --archive-name "月度复盘包" --output-json logs/daily_watchlist_pipeline.json
 ```
 
+如果你想把当天结果按日期目录自动留档，并顺手导出 Markdown，可以这样跑：
+
+```bash
+python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --portfolio config/portfolio.json --archive-package --export-markdown --write-latest --output-json logs/daily_watchlist_pipeline.json
+```
+
+默认会把结果写到 `logs/daily_watchlist_archive/YYYYMMDD/`，并在启用 `--write-latest` 时更新：
+
+- `logs/daily_watchlist_archive/latest.json`
+- `logs/daily_watchlist_archive/latest.md`
+
 留档包现在会按固定结构输出：
 
 1. 复盘总览
