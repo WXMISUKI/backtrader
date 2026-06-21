@@ -1,0 +1,39 @@
+{
+  "watchlist": [
+    {
+      "stock_code": "000001",
+      "name": "平安银行",
+      "risk_profile": "moderate",
+      "tags": ["银行", "稳健"],
+      "reason": "核心观察标的"
+    },
+    {
+      "stock_code": "600519",
+      "name": "贵州茅台",
+      "risk_profile": "conservative",
+      "tags": ["消费", "长期"],
+      "reason": "高质量蓝筹"
+    },
+    {
+      "stock_code": "300750",
+      "name": "宁德时代",
+      "risk_profile": "moderate",
+      "tags": ["新能源", "成长"],
+      "reason": "高弹性成长标的"
+    },
+    {
+      "stock_code": "601318",
+      "name": "中国平安",
+      "risk_profile": "moderate",
+      "tags": ["金融", "稳健"],
+      "reason": "保险金融核心仓位候选"
+    },
+    {
+      "stock_code": "000858",
+      "name": "五粮液",
+      "risk_profile": "conservative",
+      "tags": ["消费", "防御"],
+      "reason": "消费白马观察位"
+    }
+  ]
+}

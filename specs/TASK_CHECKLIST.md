@@ -353,6 +353,22 @@
 | 27.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE27_INSIGHT_SUMMARY_STANDARDIZATION.md` |
 | 27.6 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
+## Phase 28: 自选股日常决策清单 MVP (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE28_DAILY_WATCHLIST_DECISION.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 28.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE28_DAILY_WATCHLIST_DECISION.md |
+| 28.1 | 新增 watchlist 配置样例 | P0 | ✅ | - | `config/watchlist.json` |
+| 28.2 | 实现批量决策脚本 | P0 | ✅ | - | `examples/daily_watchlist_decision.py` |
+| 28.3 | 复用现有个股分析编排 | P0 | ✅ | - | `core/orchestrator.py` |
+| 28.4 | 增加分组与摘要输出 | P0 | ✅ | - | `examples/daily_watchlist_decision.py` |
+| 28.5 | 增加可选 JSON 导出 | P1 | ✅ | - | `examples/daily_watchlist_decision.py` |
+| 28.6 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 28.7 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE28_DAILY_WATCHLIST_DECISION.md` |
+| 28.8 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
 ---
 
 ## 已完成任务归档
