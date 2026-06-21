@@ -197,6 +197,8 @@ python examples/daily_watchlist_flow.py --watchlist config/watchlist.json --port
 
 现在它也会输出 `prompt_context`，把 `production_gate`、`action_list` 和 `run_cadence` 收成一段可以直接喂给智能体提示词或技能复用的协作语境。
 
+它还会输出 `schedule_hint`，把“今天跑完后下一次是否适合继续自动推进”说得更清楚。这里的重点不是新调度系统，而是一个很薄的运行就绪提示。
+
 留档查看入口同样会先展示 `review_brief`，让你先看摘要，再看正文和证据。
 
 如果你只想先跳过回看或验收，也可以分别加：
@@ -507,12 +509,13 @@ python examples/agent_demo.py "请分析 000001，并给出建议"
 - `specs/SDD_PHASE66_DAILY_RUN_CADENCE.md`
 - `specs/SDD_PHASE67_DAILY_PROMPT_CONTEXT_LINKAGE.md`
 - `specs/SDD_PHASE68_DAILY_REVIEW_BRIEF.md`
+- `specs/SDD_PHASE69_DAILY_SCHEDULE_PREP.md`
 
 核心目标是让默认日常流程先输出统一的 `production_gate`，明确今天结果属于 `pass / warn / block`，再输出 `action_list`，把今天先看什么、先做什么说清楚。
 
 这里的统一质量门禁不是单一评分规则，而是数据治理、日常工作流、Skill / 工具、智能体提示词和输出契约一起协作出来的生产决策协议。
 
-接下来建议继续沿着 `review_brief` 和 `prompt_context` 往上收，把门禁、行动清单、运行节奏和回看摘要变成智能体和 Skill 都能直接消费的日常语境。
+接下来建议继续沿着 `review_brief` 和 `schedule_hint` 往上收，把门禁、行动清单、运行节奏、回看摘要和运行就绪提示变成智能体和 Skill 都能直接消费的日常语境。
 
 ### Phase 1: 核心基础 (当前)
 - Skill 框架搭建

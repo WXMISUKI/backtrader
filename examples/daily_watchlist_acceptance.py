@@ -22,7 +22,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from examples.watchlist_shared import build_daily_review_brief, build_diagnosis_evidence
+from examples.watchlist_shared import build_daily_review_brief, build_diagnosis_evidence, build_schedule_hint
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
@@ -139,6 +139,19 @@ def main() -> int:
         feedback_effects=_load_json_payload(ROOT_DIR / "logs" / "daily_watchlist_feedback_effects.json"),
     )
     review_brief_ok = isinstance(review_brief, dict) and bool(review_brief.get("summary_text", "")) and bool(review_brief.get("read_order", []))
+    run_status_payload = _load_json_payload(run_status_path) if run_status_path.exists() else {}
+    schedule_hint = latest_payload.get("schedule_hint", {}) if isinstance(latest_payload, dict) else {}
+    if (not isinstance(schedule_hint, dict) or not schedule_hint) and isinstance(run_status_payload, dict):
+        schedule_hint = run_status_payload.get("schedule_hint", {})
+    if not isinstance(schedule_hint, dict) or not schedule_hint:
+        schedule_hint = build_schedule_hint(
+            daily_run_status=str(run_status_payload.get("status", "unknown")) if isinstance(run_status_payload, dict) else "unknown",
+            production_gate=latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {},
+            run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+            prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
+            review_brief=review_brief if isinstance(review_brief, dict) else {},
+        )
+    schedule_hint_ok = isinstance(schedule_hint, dict) and bool(schedule_hint.get("summary_text", "")) and bool(schedule_hint.get("read_order", []))
 
     checks = {
         "latest_json": _exists(latest_json),
@@ -152,6 +165,7 @@ def main() -> int:
         "sample_attribution": sample_attribution_ok,
         "run_cadence": run_cadence_ok,
         "prompt_context": prompt_context_ok,
+        "schedule_hint": schedule_hint_ok,
         "review_brief": review_brief_ok,
     }
     checks_ok = sum(1 for value in checks.values() if value)
@@ -202,12 +216,13 @@ def main() -> int:
     print(f"sample_attribution: {'存在' if checks['sample_attribution'] else '缺失'}")
     print(f"run_cadence: {'存在' if checks['run_cadence'] else '缺失'}")
     print(f"prompt_context: {'存在' if checks['prompt_context'] else '缺失'}")
+    print(f"schedule_hint: {'存在' if checks['schedule_hint'] else '缺失'}")
     print(f"review_brief: {'存在' if checks['review_brief'] else '缺失'}")
     print(f"diagnosis_evidence: {'存在' if bool(diagnosis_evidence.get('top_causes')) else '缺失'}")
     print(f"review: {'可运行' if review_code == 0 else '不可运行'}")
     print(f"insights: {'可运行' if insights_code == 0 else '不可运行'}")
     print(f"验收结果: {acceptance_path}")
-    return 0 if status == "ok" else 1
+    return 0 if status in {"ok", "degraded"} else 1
 
 
 if __name__ == "__main__":

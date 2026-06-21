@@ -23,7 +23,13 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from examples.daily_watchlist_display import print_bullets, print_kv_pairs, print_section
-from examples.watchlist_shared import build_daily_prompt_context, build_daily_review_brief, build_diagnosis_evidence, build_production_gate
+from examples.watchlist_shared import (
+    build_daily_prompt_context,
+    build_daily_review_brief,
+    build_diagnosis_evidence,
+    build_production_gate,
+    build_schedule_hint,
+)
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
@@ -101,6 +107,7 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
     action_list = payload.get("action_list", {}) if isinstance(payload, dict) else {}
     run_cadence = payload.get("run_cadence", {}) if isinstance(payload, dict) else {}
     prompt_context = payload.get("prompt_context", {}) if isinstance(payload, dict) else {}
+    schedule_hint = payload.get("schedule_hint", {}) if isinstance(payload, dict) else {}
     portfolio_summary = payload.get("portfolio_summary", {}) if isinstance(payload, dict) else {}
     health_items = payload.get("health", {}).get("items", []) if isinstance(payload, dict) else []
     diagnosis_evidence = build_diagnosis_evidence(daily_summary=daily_summary, health_items=health_items if isinstance(health_items, list) else [])
@@ -134,6 +141,13 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
             run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
             daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
             diagnosis_evidence=diagnosis_evidence,
+        )
+    if not isinstance(schedule_hint, dict) or not schedule_hint:
+        schedule_hint = build_schedule_hint(
+            daily_run_status=str(payload.get("daily_run_status", "")) if isinstance(payload, dict) else "",
+            production_gate=production_gate if isinstance(production_gate, dict) else {},
+            run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+            prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
         )
     feedback_records = _load_jsonl_payload(DEFAULT_FEEDBACK_PATH)
     effects_payload = _load_json_payload(DEFAULT_EFFECTS_JSON)
@@ -171,6 +185,9 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
             ("运行节奏", run_cadence.get("summary_text", "")),
             ("下一步", run_cadence.get("next_step", "")),
             ("提示语境", prompt_context.get("summary_text", "")),
+            ("调度准备", schedule_hint.get("summary_text", "")),
+            ("下次运行模式", schedule_hint.get("next_run_mode", "")),
+            ("下次运行窗口", schedule_hint.get("next_run_window", "")),
         ]
     )
     if feedback_records:
@@ -239,6 +256,10 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
     if isinstance(prompt_context, dict) and prompt_context.get("rules"):
         print_section("提示语境")
         print_bullets([str(rule) for rule in prompt_context.get("rules", [])[:6]])
+
+    if isinstance(schedule_hint, dict) and schedule_hint.get("rules"):
+        print_section("调度准备")
+        print_bullets([str(rule) for rule in schedule_hint.get("rules", [])[:6]])
 
     if isinstance(review_brief, dict) and review_brief.get("key_points"):
         print_section("回看重点")

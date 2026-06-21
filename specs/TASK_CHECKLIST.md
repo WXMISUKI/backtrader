@@ -966,6 +966,21 @@
 | 68.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE68_DAILY_REVIEW_BRIEF.md` |
 | 68.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 68 收口 |
 
+## Phase 69: 自选股轻量调度准备
+
+**SDD规格文档**: `specs/SDD_PHASE69_DAILY_SCHEDULE_PREP.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 69.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE69_DAILY_SCHEDULE_PREP.md` |
+| 69.1 | 实现共享调度准备构建 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 69.2 | 在日常运行状态中写入调度准备 | P0 | ✅ | - | `examples/daily_watchlist_daily_run.py` |
+| 69.3 | 在默认工作流和留档查看中展示调度准备 | P0 | ✅ | - | `examples/daily_watchlist_flow.py` / `examples/daily_watchlist_archive_viewer.py` |
+| 69.4 | 在投产验收中检查调度准备 | P1 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 69.5 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 69.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE69_DAILY_SCHEDULE_PREP.md` |
+| 69.7 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 69 收口 |
+
 ---
 
 ## 下一步行动
@@ -973,7 +988,7 @@
 1. **当前**: 以 `production_gate` + `action_list` 作为默认日常查看顺序
 2. **随后**: 以 `prompt_context` 作为日常提示词和 Skill 的共享语境
 3. **再后**: 以 `review_brief` 作为回看的第一眼摘要
-4. **持续**: 观察反馈效果评估是否稳定
+4. **持续**: 观察反馈效果评估与 `schedule_hint` 是否稳定
 
 ---
 

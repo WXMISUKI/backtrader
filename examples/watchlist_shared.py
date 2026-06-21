@@ -870,6 +870,88 @@ def build_daily_review_brief(
     }
 
 
+def build_schedule_hint(
+    *,
+    daily_run_status: str | None = None,
+    production_gate: dict[str, Any] | None = None,
+    run_cadence: dict[str, Any] | None = None,
+    prompt_context: dict[str, Any] | None = None,
+    review_brief: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """把运行就绪状态收成一份轻量调度准备提示。"""
+    production_gate = production_gate if isinstance(production_gate, dict) else {}
+    run_cadence = run_cadence if isinstance(run_cadence, dict) else {}
+    prompt_context = prompt_context if isinstance(prompt_context, dict) else {}
+    review_brief = review_brief if isinstance(review_brief, dict) else {}
+
+    run_status = str(daily_run_status or "").strip() or "unknown"
+    gate_status = str(production_gate.get("status", "")).strip() or "unknown"
+    gate_summary = str(production_gate.get("summary", "")).strip()
+    cadence_status = str(run_cadence.get("status", "")).strip() or "unknown"
+    cadence_summary = str(run_cadence.get("summary_text", "")).strip()
+    prompt_summary = str(prompt_context.get("summary_text", "")).strip()
+    review_status = str(review_brief.get("status", "")).strip() or "unknown"
+    review_summary = str(review_brief.get("summary_text", "")).strip()
+
+    blocked_states = {"failed", "block"}
+    caution_states = {"degraded", "warn"}
+
+    if run_status in blocked_states or gate_status == "block" or review_status == "block":
+        status = "blocked"
+        summary_text = "调度准备未就绪：当前有阻断或运行失败，先修复再排下一次自动运行。"
+        next_step = "先看门禁、运行输出和数据问题，再决定是否恢复自动推进。"
+        next_run_mode = "pause"
+        next_run_window = "待门禁恢复后"
+    elif run_status in caution_states or gate_status == "warn" or cadence_status == "degraded" or review_status == "warn":
+        status = "caution"
+        summary_text = "调度准备可继续，但存在降级，建议先复核后再进入下一次自动运行。"
+        next_step = "先复核门禁、回看摘要和运行节奏，再决定是否继续自动推进。"
+        next_run_mode = "manual_review"
+        next_run_window = "下次自动运行前"
+    else:
+        status = "ready"
+        summary_text = "调度准备就绪：可以按日常节奏继续下一次运行。"
+        next_step = "继续按固定节奏运行，并保持门禁和回看顺序。"
+        next_run_mode = "daily_auto"
+        next_run_window = "下一次日常运行时"
+
+    read_order = ["production_gate", "run_cadence", "review_brief", "prompt_context"]
+    rules = [
+        "schedule_hint 只回答是否适合继续自动推进，不替代 production_gate。",
+        "status 为 blocked 时先处理门禁和运行失败，不要直接进入下一次自动运行。",
+        "status 为 caution 时保留人工复核，不要把降级当作完全放行。",
+        "status 为 ready 时可以按日常节奏继续，但仍保留回看顺序。",
+    ]
+
+    return {
+        "status": status,
+        "summary_text": summary_text,
+        "next_step": next_step,
+        "next_run_mode": next_run_mode,
+        "next_run_window": next_run_window,
+        "read_order": read_order,
+        "rules": rules,
+        "evidence": {
+            "daily_run_status": run_status,
+            "production_gate": {
+                "status": gate_status,
+                "summary": gate_summary,
+            },
+            "run_cadence": {
+                "status": cadence_status,
+                "summary_text": cadence_summary,
+            },
+            "prompt_context": {
+                "summary_text": prompt_summary,
+            },
+            "review_brief": {
+                "status": review_status,
+                "summary_text": review_summary,
+            },
+        },
+    }
+
+
 def build_action_list(
     *,
     decision_items: list[dict[str, Any]],

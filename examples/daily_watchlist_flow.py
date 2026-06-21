@@ -22,7 +22,12 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from examples.watchlist_shared import build_daily_prompt_context, build_diagnosis_evidence, build_production_gate
+from examples.watchlist_shared import (
+    build_daily_prompt_context,
+    build_diagnosis_evidence,
+    build_production_gate,
+    build_schedule_hint,
+)
 
 
 DEFAULT_WATCHLIST_PATH = ROOT_DIR / "config" / "watchlist.json"
@@ -139,6 +144,12 @@ def main() -> int:
         daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
         diagnosis_evidence=diagnosis_evidence,
     )
+    schedule_hint = build_schedule_hint(
+        daily_run_status=daily_run_status,
+        production_gate=production_gate,
+        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        prompt_context=prompt_context,
+    )
 
     status = "ok"
     if daily_code != 0 or review_code != 0 or acceptance_code != 0:
@@ -158,6 +169,7 @@ def main() -> int:
         "action_list": action_list,
         "run_cadence": run_cadence,
         "prompt_context": prompt_context,
+        "schedule_hint": schedule_hint,
         "production_gate": production_gate,
         "daily_run_code": daily_code,
         "review_code": review_code,
@@ -186,13 +198,16 @@ def main() -> int:
         print(f"action_list: {action_list.get('summary_text', '')}")
     if isinstance(prompt_context, dict) and prompt_context.get("summary_text"):
         print(f"prompt_context: {prompt_context.get('summary_text', '')}")
+    if isinstance(schedule_hint, dict) and schedule_hint.get("summary_text"):
+        print(f"schedule_hint: {schedule_hint.get('summary_text', '')}")
+        print(f"schedule_mode: {schedule_hint.get('next_run_mode', '')}")
     print(f"输出: {output_path}")
 
     if args.show_json:
         print("\n== 工作流 JSON ==")
         print(json.dumps(payload, ensure_ascii=False, indent=2, default=str))
 
-    return 0 if status == "ok" else 1
+    return 0 if status in {"ok", "degraded"} else 1
 
 
 if __name__ == "__main__":

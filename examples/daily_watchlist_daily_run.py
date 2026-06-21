@@ -23,7 +23,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from examples.watchlist_shared import build_daily_prompt_context
+from examples.watchlist_shared import build_daily_prompt_context, build_schedule_hint
 
 
 DEFAULT_WATCHLIST_PATH = ROOT_DIR / "config" / "watchlist.json"
@@ -253,6 +253,12 @@ def main() -> int:
         archive_ok=archive_ok,
         degraded=degraded,
     )
+    schedule_hint = build_schedule_hint(
+        daily_run_status=status,
+        production_gate=production_gate if isinstance(production_gate, dict) else {},
+        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
+    )
 
     run_status = {
         "status": status,
@@ -285,6 +291,7 @@ def main() -> int:
         },
         "run_cadence": run_cadence,
         "prompt_context": prompt_context,
+        "schedule_hint": schedule_hint,
         "outputs": {
             "preflight_output": preflight_output.strip(),
             "pipeline_output": pipeline_output.strip(),
@@ -304,7 +311,10 @@ def main() -> int:
     print(f"查看入口: {viewer_script}")
     print(f"运行节奏: {run_cadence['summary_text']}")
     print(f"提示语境: {prompt_context['summary_text']}")
+    print(f"调度准备: {schedule_hint['summary_text']}")
     print(f"下一步: {run_cadence['next_step']}")
+    print(f"下次运行模式: {schedule_hint['next_run_mode']}")
+    print(f"下次运行窗口: {schedule_hint['next_run_window']}")
 
     if not args.skip_view and archive_ok:
         print("\n== 留档查看 ==")
@@ -316,7 +326,7 @@ def main() -> int:
         return 1
     if not archive_ok:
         return 1
-    return 0
+    return 0 if status in {"ok", "degraded"} else 1
 
 
 if __name__ == "__main__":
