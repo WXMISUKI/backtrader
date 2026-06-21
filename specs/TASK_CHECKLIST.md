@@ -412,6 +412,118 @@
 | 31.5 | 编写归档文档 | P1 | ⬜ | - | 记录统一入口结果 |
 | 31.6 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀统一入口模板 |
 
+## Phase 32: 自选股日更摘要压缩 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE32_DAILY_SUMMARY_COMPRESSION.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 32.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE32_DAILY_SUMMARY_COMPRESSION.md` |
+| 32.1 | 增加日更摘要构建逻辑 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 32.2 | 增加首屏摘要输出 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 32.3 | 增加摘要 JSON 字段 | P1 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 32.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 32.5 | 编写归档文档 | P1 | ⬜ | - | 记录摘要压缩结果 |
+| 32.6 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀摘要模板 |
+
+## Phase 33: 自选股日更报告格式化 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE33_DAILY_REPORT_FORMAT.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 33.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE33_DAILY_REPORT_FORMAT.md` |
+| 33.1 | 增加日更报告构建逻辑 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 33.2 | 增加报告文本输出 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 33.3 | 增加报告 JSON 字段 | P1 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 33.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 33.5 | 编写归档文档 | P1 | ⬜ | - | 记录报告格式化结果 |
+| 33.6 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀报告模板 |
+
+## Phase 34: 自选股日更报告对比 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE34_DAILY_REPORT_COMPARISON.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 34.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE34_DAILY_REPORT_COMPARISON.md` |
+| 34.1 | 增加日报对比输入参数 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 34.2 | 增加对比构建逻辑 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 34.3 | 增加对比输出与 JSON 字段 | P1 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 34.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 34.5 | 编写归档文档 | P1 | ⬜ | - | 记录日报对比结果 |
+| 34.6 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀对比模板 |
+
+## Phase 35: 自选股周报模板 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE35_WEEKLY_REPORT_TEMPLATE.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 35.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE35_WEEKLY_REPORT_TEMPLATE.md` |
+| 35.1 | 增加周报聚合输入参数 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 35.2 | 增加周报构建逻辑 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 35.3 | 增加周报输出与 JSON 字段 | P1 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 35.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 35.5 | 编写归档文档 | P1 | ⬜ | - | 记录周报模板结果 |
+| 35.6 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀周报模板 |
+
+## Phase 36: 自选股阶段报告模板 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE36_STAGE_REPORT_TEMPLATE.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 36.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE36_STAGE_REPORT_TEMPLATE.md` |
+| 36.1 | 增加阶段报告输入参数 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 36.2 | 增加阶段报告构建逻辑 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 36.3 | 增加阶段报告输出与 JSON 字段 | P1 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 36.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 36.5 | 编写归档文档 | P1 | ⬜ | - | 记录阶段报告模板结果 |
+| 36.6 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀阶段报告模板 |
+
+## Phase 37: 自选股复盘留档包 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE37_REVIEW_ARCHIVE_PACKAGE.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 37.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE37_REVIEW_ARCHIVE_PACKAGE.md` |
+| 37.1 | 增加留档包输入参数 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 37.2 | 增加留档包构建逻辑 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 37.3 | 增加留档包输出与 JSON 字段 | P1 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 37.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 37.5 | 编写归档文档 | P1 | ⬜ | - | 记录留档包结果 |
+| 37.6 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀留档包模板 |
+
+## Phase 38: 复盘留档包结构清理 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE38_ARCHIVE_PACKAGE_CLEANUP.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 38.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE38_ARCHIVE_PACKAGE_CLEANUP.md` |
+| 38.1 | 清理留档包标题层级 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 38.2 | 统一留档包字段命名 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 38.3 | 重构留档包输出结构 | P1 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 38.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 38.5 | 编写归档文档 | P1 | ⬜ | - | 记录结构清理结果 |
+| 38.6 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀统一结构 |
+
+## Phase 39: 报告标题与摘要归一化 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE39_REPORT_TITLE_NORMALIZATION.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 39.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE39_REPORT_TITLE_NORMALIZATION.md` |
+| 39.1 | 统一周报标题表达 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 39.2 | 统一阶段报告标题表达 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 39.3 | 统一留档包总览表达 | P1 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 39.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 39.5 | 编写归档文档 | P1 | ⬜ | - | 记录标题归一化结果 |
+| 39.6 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀统一命名 |
+
 ---
 
 ## 已完成任务归档

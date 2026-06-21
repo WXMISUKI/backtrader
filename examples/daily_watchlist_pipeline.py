@@ -44,6 +44,21 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--risk-profile", default="moderate", choices=("conservative", "moderate", "aggressive"))
     parser.add_argument("--limit", type=int, default=0, help="Limit number of watchlist items. 0 means no limit.")
     parser.add_argument("--output-json", default="", help="Optional JSON output file path.")
+    parser.add_argument("--compare-with", default="", help="Optional baseline daily report JSON file path.")
+    parser.add_argument(
+        "--weekly-reports",
+        nargs="*",
+        default=[],
+        help="Daily report JSON file paths. Accepts space-separated paths or a single comma-separated string.",
+    )
+    parser.add_argument(
+        "--stage-reports",
+        nargs="*",
+        default=[],
+        help="Weekly or daily report JSON file paths for stage report aggregation.",
+    )
+    parser.add_argument("--archive-package", action="store_true", help="Build a consolidated review archive package.")
+    parser.add_argument("--archive-name", default="", help="Optional archive package name.")
     return parser
 
 
@@ -201,10 +216,410 @@ def _build_decision_summary(
     }
 
 
+def _build_daily_summary(
+    *,
+    health_groups: dict[str, list[dict[str, Any]]],
+    decision_groups: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
+    health_counts = {key: len(value) for key, value in health_groups.items()}
+    decision_counts = {key: len(value) for key, value in decision_groups.items()}
+    top_focus = [item["stock_code"] + " " + item["name"] for item in decision_groups.get("重点关注", [])[:3]]
+    watch_list = [item["stock_code"] + " " + item["name"] for item in decision_groups.get("继续观察", [])[:3]]
+    held_alerts = [
+        item["stock_code"] + " " + item["name"]
+        for item in decision_groups.get("继续观察", [])
+        if str(item.get("position_label", "")).startswith("已持有")
+    ][:3]
+    status = "平稳"
+    if health_counts.get("明显降级", 0) > 0 or decision_counts.get("数据不足", 0) > 0:
+        status = "需要谨慎"
+    elif decision_counts.get("重点关注", 0) > 0:
+        status = "出现重点关注"
+
+    lines = [
+        f"今日总览: {status}",
+        f"健康状态: 完全可用 {health_counts.get('完全可用', 0)}，部分降级 {health_counts.get('部分降级', 0)}，明显降级 {health_counts.get('明显降级', 0)}",
+        f"决策分布: 重点关注 {decision_counts.get('重点关注', 0)}，继续观察 {decision_counts.get('继续观察', 0)}，暂不行动 {decision_counts.get('暂不行动', 0)}，数据不足 {decision_counts.get('数据不足', 0)}",
+    ]
+    if top_focus:
+        lines.append(f"重点关注: {'，'.join(top_focus)}")
+    if watch_list:
+        lines.append(f"继续观察: {'，'.join(watch_list)}")
+    if held_alerts:
+        lines.append(f"持仓留意: {'，'.join(held_alerts)}")
+
+    return {
+        "status": status,
+        "health_counts": health_counts,
+        "decision_counts": decision_counts,
+        "highlights": {
+            "top_focus": top_focus,
+            "watch_list": watch_list,
+            "held_alerts": held_alerts,
+        },
+        "summary_lines": lines,
+        "summary_text": "；".join(lines),
+    }
+
+
+def _build_daily_report(
+    *,
+    generated_at: str,
+    watchlist_path: Path,
+    portfolio_path: Path,
+    health_groups: dict[str, list[dict[str, Any]]],
+    decision_groups: dict[str, list[dict[str, Any]]],
+    daily_summary: dict[str, Any],
+    portfolio_count: int,
+    portfolio_value: float,
+    total_assets: float,
+) -> dict[str, Any]:
+    health_counts = daily_summary["health_counts"]
+    decision_counts = daily_summary["decision_counts"]
+    headline = f"今日总览：{daily_summary['status']}"
+    overview = daily_summary["summary_text"]
+    health_summary = (
+        f"健康状态：完全可用 {health_counts.get('完全可用', 0)}，部分降级 {health_counts.get('部分降级', 0)}，"
+        f"明显降级 {health_counts.get('明显降级', 0)}"
+    )
+    portfolio_summary = f"持仓数量 {portfolio_count}，持仓市值 {portfolio_value:.2f}，总资产 {total_assets:.2f}"
+    watchlist_summary = (
+        f"决策分布：重点关注 {decision_counts.get('重点关注', 0)}，继续观察 {decision_counts.get('继续观察', 0)}，"
+        f"暂不行动 {decision_counts.get('暂不行动', 0)}，数据不足 {decision_counts.get('数据不足', 0)}"
+    )
+    highlights = {
+        "重点关注": daily_summary["highlights"]["top_focus"],
+        "继续观察": daily_summary["highlights"]["watch_list"],
+        "持仓留意": daily_summary["highlights"]["held_alerts"],
+    }
+    report_lines = [
+        headline,
+        overview,
+        health_summary,
+        portfolio_summary,
+        watchlist_summary,
+    ]
+    if highlights["重点关注"]:
+        report_lines.append(f"重点关注：{'，'.join(highlights['重点关注'])}")
+    if highlights["继续观察"]:
+        report_lines.append(f"继续观察：{'，'.join(highlights['继续观察'])}")
+    if highlights["持仓留意"]:
+        report_lines.append(f"持仓留意：{'，'.join(highlights['持仓留意'])}")
+
+    return {
+        "headline": headline,
+        "overview": overview,
+        "health_summary": health_summary,
+        "portfolio_summary": portfolio_summary,
+        "watchlist_summary": watchlist_summary,
+        "highlights": highlights,
+        "report_lines": report_lines,
+        "report_text": "\n".join(report_lines),
+        "generated_at": generated_at,
+        "watchlist_path": str(watchlist_path),
+        "portfolio_path": str(portfolio_path),
+    }
+
+
+def _load_json_payload(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    with path.open("r", encoding="utf-8") as f:
+        payload = json.load(f)
+    return payload if isinstance(payload, dict) else {}
+
+
+def _build_daily_comparison(current_report: dict[str, Any], baseline_report: dict[str, Any]) -> dict[str, Any]:
+    if not baseline_report:
+        return {
+            "baseline_path": "",
+            "changed_sections": [],
+            "summary_text": "",
+            "delta_items": {},
+        }
+
+    changed_sections: list[str] = []
+    delta_items: dict[str, Any] = {}
+
+    for key in ("headline", "health_summary", "portfolio_summary", "watchlist_summary"):
+        current_value = str(current_report.get(key, ""))
+        baseline_value = str(baseline_report.get(key, ""))
+        if current_value != baseline_value:
+            changed_sections.append(key)
+            delta_items[key] = {
+                "current": current_value,
+                "baseline": baseline_value,
+            }
+
+    current_highlights = current_report.get("highlights", {}) if isinstance(current_report, dict) else {}
+    baseline_highlights = baseline_report.get("highlights", {}) if isinstance(baseline_report, dict) else {}
+    for key in ("重点关注", "继续观察", "持仓留意"):
+        current_items = current_highlights.get(key, []) if isinstance(current_highlights, dict) else []
+        baseline_items = baseline_highlights.get(key, []) if isinstance(baseline_highlights, dict) else []
+        if current_items != baseline_items:
+            changed_sections.append(f"highlights.{key}")
+            delta_items[f"highlights.{key}"] = {
+                "current": current_items,
+                "baseline": baseline_items,
+            }
+
+    summary_text = "；".join(changed_sections) if changed_sections else "与基线报告相比暂无变化"
+    return {
+        "baseline_path": str(baseline_report.get("_source_path", "")),
+        "changed_sections": changed_sections,
+        "summary_text": summary_text,
+        "delta_items": delta_items,
+    }
+
+
+def _load_report_list(raw_paths: list[str]) -> list[dict[str, Any]]:
+    reports: list[dict[str, Any]] = []
+    flattened: list[str] = []
+    for raw in raw_paths:
+        flattened.extend(part.strip() for part in raw.split(",") if part.strip())
+    for path_text in flattened:
+        report_path = Path(path_text)
+        payload = _load_json_payload(report_path)
+        if payload:
+            daily_report = payload.get("daily_report", {}) if isinstance(payload, dict) else {}
+            if isinstance(daily_report, dict):
+                daily_report = dict(daily_report)
+                daily_report["_source_path"] = str(report_path)
+                daily_report["_payload"] = payload
+                reports.append(daily_report)
+    return reports
+
+
+def _build_weekly_report(reports: list[dict[str, Any]]) -> dict[str, Any]:
+    if not reports:
+        return {
+            "period": "",
+            "headline": "",
+            "summary": "",
+            "health_trend": {},
+            "decision_trend": {},
+            "portfolio_trend": {},
+            "highlights": {},
+            "report_lines": [],
+            "report_text": "",
+        }
+
+    start = reports[0].get("generated_at", "")
+    end = reports[-1].get("generated_at", "")
+    period = f"{start} ~ {end}" if start and end else ""
+
+    health_trend = {
+        "完全可用": [r.get("health_summary", "") for r in reports],
+        "变化次数": len({r.get("health_summary", "") for r in reports}),
+    }
+    decision_trend = {
+        "日报数量": len(reports),
+        "变化次数": len({r.get("watchlist_summary", "") for r in reports}),
+    }
+    portfolio_trend = {
+        "持仓变化次数": len({r.get("portfolio_summary", "") for r in reports}),
+    }
+
+    first = reports[0]
+    last = reports[-1]
+    headline = "周报总览：日报保持稳定"
+    if first.get("headline") != last.get("headline"):
+        headline = "周报总览：出现变化"
+
+    highlights = {
+        "最近日报": last.get("headline", ""),
+        "重点关注": last.get("highlights", {}).get("重点关注", []) if isinstance(last.get("highlights", {}), dict) else [],
+        "继续观察": last.get("highlights", {}).get("继续观察", []) if isinstance(last.get("highlights", {}), dict) else [],
+    }
+    summary = f"本周汇总 {len(reports)} 份日报，最后一份日期 {end or 'unknown'}。"
+    report_lines = [
+        headline,
+        summary,
+        f"周期：{period}",
+        f"健康趋势：变化次数 {health_trend['变化次数']}",
+        f"决策趋势：日报数量 {decision_trend['日报数量']}，变化次数 {decision_trend['变化次数']}",
+        f"持仓趋势：变化次数 {portfolio_trend['持仓变化次数']}",
+    ]
+    if highlights["重点关注"]:
+        report_lines.append(f"重点关注：{'，'.join(highlights['重点关注'])}")
+    if highlights["继续观察"]:
+        report_lines.append(f"继续观察：{'，'.join(highlights['继续观察'])}")
+
+    return {
+        "period": period,
+        "headline": headline,
+        "summary": summary,
+        "health_trend": health_trend,
+        "decision_trend": decision_trend,
+        "portfolio_trend": portfolio_trend,
+        "highlights": highlights,
+        "report_lines": report_lines,
+        "report_text": "\n".join(report_lines),
+        "report_count": len(reports),
+    }
+
+
+def _load_stage_reports(raw_paths: list[str]) -> list[dict[str, Any]]:
+    reports: list[dict[str, Any]] = []
+    flattened: list[str] = []
+    for raw in raw_paths:
+        flattened.extend(part.strip() for part in raw.split(",") if part.strip())
+    for path_text in flattened:
+        report_path = Path(path_text)
+        payload = _load_json_payload(report_path)
+        if not payload:
+            continue
+        if isinstance(payload.get("stage_report"), dict):
+            stage_report = dict(payload["stage_report"])
+            stage_report["_source_path"] = str(report_path)
+            reports.append(stage_report)
+            continue
+        if isinstance(payload.get("weekly_report"), dict):
+            weekly_report = dict(payload["weekly_report"])
+            weekly_report["_source_path"] = str(report_path)
+            reports.append(weekly_report)
+            continue
+        if isinstance(payload.get("daily_report"), dict):
+            daily_report = dict(payload["daily_report"])
+            daily_report["_source_path"] = str(report_path)
+            reports.append(daily_report)
+    return reports
+
+
+def _build_stage_report(reports: list[dict[str, Any]]) -> dict[str, Any]:
+    if not reports:
+        return {
+            "period": "",
+            "headline": "",
+            "summary": "",
+            "health_summary": "",
+            "decision_summary": "",
+            "portfolio_summary": "",
+            "trend_summary": "",
+            "highlights": {},
+            "report_lines": [],
+            "report_text": "",
+            "report_count": 0,
+        }
+
+    start = reports[0].get("generated_at", reports[0].get("period", ""))
+    end = reports[-1].get("generated_at", reports[-1].get("period", ""))
+    period = f"{start} ~ {end}" if start and end else ""
+    report_count = len(reports)
+
+    headline = "阶段总览：整体保持稳定"
+    if str(reports[0].get("headline", "")) != str(reports[-1].get("headline", "")):
+        headline = "阶段总览：出现变化"
+
+    health_summary = f"健康趋势：共 {report_count} 份报告"
+    decision_summary = f"决策趋势：共 {report_count} 份报告"
+    portfolio_summary = f"持仓趋势：共 {report_count} 份报告"
+    trend_summary = f"本阶段累计 {report_count} 份报告，覆盖从 {start or 'unknown'} 到 {end or 'unknown'}。"
+
+    highlights = {
+        "最新报告": reports[-1].get("headline", ""),
+        "阶段重点关注": reports[-1].get("highlights", {}).get("重点关注", []) if isinstance(reports[-1].get("highlights", {}), dict) else [],
+        "阶段继续观察": reports[-1].get("highlights", {}).get("继续观察", []) if isinstance(reports[-1].get("highlights", {}), dict) else [],
+    }
+    report_lines = [
+        headline,
+        trend_summary,
+        health_summary,
+        decision_summary,
+        portfolio_summary,
+    ]
+    if highlights["阶段重点关注"]:
+        report_lines.append(f"阶段重点关注：{'，'.join(highlights['阶段重点关注'])}")
+    if highlights["阶段继续观察"]:
+        report_lines.append(f"阶段继续观察：{'，'.join(highlights['阶段继续观察'])}")
+
+    return {
+        "period": period,
+        "headline": headline,
+        "summary": trend_summary,
+        "health_summary": health_summary,
+        "decision_summary": decision_summary,
+        "portfolio_summary": portfolio_summary,
+        "trend_summary": trend_summary,
+        "highlights": highlights,
+        "report_lines": report_lines,
+        "report_text": "\n".join(report_lines),
+        "report_count": report_count,
+    }
+
+
+def _build_archive_package(
+    *,
+    archive_name: str,
+    daily_report: dict[str, Any],
+    daily_comparison: dict[str, Any],
+    weekly_report: dict[str, Any],
+    stage_report: dict[str, Any],
+    portfolio_summary: dict[str, Any],
+) -> dict[str, Any]:
+    name = archive_name or "自选股复盘留档包"
+    title = name
+    sections = [
+        {
+            "title": "复盘总览",
+            "summary": "留档包已汇总当前日报、对比、周报与阶段报告。",
+            "text": daily_report.get("report_text", ""),
+        },
+        {
+            "title": "当日日报",
+            "summary": daily_report.get("headline", ""),
+            "text": daily_report.get("report_text", ""),
+        },
+        {
+            "title": "日报对比",
+            "summary": daily_comparison.get("summary_text", "") or "暂无变化",
+            "text": daily_comparison.get("summary_text", "") or "暂无变化",
+        },
+        {
+            "title": "周报模板",
+            "summary": weekly_report.get("headline", "") or "未提供",
+            "text": weekly_report.get("report_text", "") or "未提供",
+        },
+        {
+            "title": "阶段报告",
+            "summary": stage_report.get("headline", "") or "未提供",
+            "text": stage_report.get("report_text", "") or "未提供",
+        },
+        {
+            "title": "持仓语境",
+            "summary": f"{portfolio_summary.get('count', 0)} 只，市值 {portfolio_summary.get('market_value', 0.0):.2f}",
+            "text": f"持仓数量 {portfolio_summary.get('count', 0)}，持仓市值 {portfolio_summary.get('market_value', 0.0):.2f}，总资产 {portfolio_summary.get('total_assets', 0.0):.2f}",
+        },
+    ]
+    summary = "；".join(section["summary"] for section in sections if section.get("summary"))
+    report_lines = [
+        f"留档包：{name}",
+        f"总览：{summary or '暂无摘要'}",
+        *[f"{section['title']}：{section['summary']}" for section in sections],
+    ]
+    return {
+        "title": title,
+        "name": name,
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "summary": summary,
+        "sections": sections,
+        "daily_report": daily_report,
+        "daily_comparison": daily_comparison,
+        "weekly_report": weekly_report,
+        "stage_report": stage_report,
+        "portfolio_summary": portfolio_summary,
+        "report_lines": report_lines,
+        "report_text": "\n".join(report_lines),
+    }
+
+
 def main() -> int:
     args = build_parser().parse_args()
     watchlist_path = Path(args.watchlist)
     portfolio_path = Path(args.portfolio)
+    compare_path = Path(args.compare_with) if args.compare_with else None
+    weekly_reports = _load_report_list(args.weekly_reports) if args.weekly_reports else []
+    stage_reports = _load_stage_reports(args.stage_reports) if args.stage_reports else []
     orchestrator = create_stock_orchestrator()
 
     try:
@@ -323,6 +738,71 @@ def main() -> int:
         "暂不行动": [item for item in decision_items if item.get("group") == "暂不行动"],
         "数据不足": [item for item in decision_items if item.get("group") == "数据不足"],
     }
+    daily_summary = _build_daily_summary(health_groups=health_groups, decision_groups=decision_groups)
+    daily_report = _build_daily_report(
+        generated_at=datetime.now().isoformat(timespec="seconds"),
+        watchlist_path=watchlist_path,
+        portfolio_path=portfolio_path,
+        health_groups=health_groups,
+        decision_groups=decision_groups,
+        daily_summary=daily_summary,
+        portfolio_count=portfolio_count,
+        portfolio_value=portfolio_value,
+        total_assets=total_assets,
+    )
+    baseline_payload = _load_json_payload(compare_path) if compare_path is not None else {}
+    if baseline_payload:
+        baseline_report = baseline_payload.get("daily_report", {}) if isinstance(baseline_payload, dict) else {}
+        if isinstance(baseline_report, dict):
+            baseline_report = dict(baseline_report)
+            baseline_report["_source_path"] = str(compare_path)
+        daily_comparison = _build_daily_comparison(daily_report, baseline_report)
+    else:
+        daily_comparison = {
+            "baseline_path": "",
+            "changed_sections": [],
+            "summary_text": "",
+            "delta_items": {},
+        }
+
+    print("\n== 日更报告 ==")
+    for line in daily_report["report_lines"]:
+        print(f"- {line}")
+
+    if daily_comparison["changed_sections"]:
+        print("\n== 日报对比 ==")
+        print(f"- 对比基线: {daily_comparison['baseline_path']}")
+        print(f"- 变化摘要: {daily_comparison['summary_text']}")
+
+    weekly_report = _build_weekly_report(weekly_reports)
+    if weekly_reports:
+        print("\n== 周报模板 ==")
+        for line in weekly_report["report_lines"]:
+            print(f"- {line}")
+
+    stage_report = _build_stage_report(stage_reports)
+    if stage_reports:
+        print("\n== 阶段报告模板 ==")
+        for line in stage_report["report_lines"]:
+            print(f"- {line}")
+
+    archive_package = {}
+    if args.archive_package:
+        archive_package = _build_archive_package(
+            archive_name=args.archive_name,
+            daily_report=daily_report,
+            daily_comparison=daily_comparison,
+            weekly_report=weekly_report,
+            stage_report=stage_report,
+            portfolio_summary={
+                "count": portfolio_count,
+                "market_value": round(portfolio_value, 2),
+                "total_assets": round(total_assets, 2),
+            },
+        )
+        print("\n== 复盘留档包 ==")
+        for line in archive_package["report_lines"]:
+            print(f"- {line}")
 
     print("\n== 数据健康预检 ==")
     print(f"总计: {len(health_items)} 只，完全可用 {len(health_groups['完全可用'])}，部分降级 {len(health_groups['部分降级'])}，明显降级 {len(health_groups['明显降级'])}")
@@ -354,6 +834,12 @@ def main() -> int:
             },
             "health": {"items": health_items, "groups": health_groups},
             "decision": {"items": decision_items, "groups": decision_groups},
+            "daily_summary": daily_summary,
+            "daily_report": daily_report,
+            "daily_comparison": daily_comparison,
+            "weekly_report": weekly_report,
+            "stage_report": stage_report,
+            "archive_package": archive_package,
             "portfolio_summary": {
                 "count": portfolio_count,
                 "market_value": round(portfolio_value, 2),

@@ -134,11 +134,52 @@ python examples/daily_watchlist_decision.py --watchlist config/watchlist.json --
 python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --portfolio config/portfolio.json --output-json logs/daily_watchlist_pipeline.json
 ```
 
+如果你想把今天的结果和上一份日报做对比，可以加上 `--compare-with`：
+
+```bash
+python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --portfolio config/portfolio.json --compare-with logs/daily_watchlist_phase33.json --output-json logs/daily_watchlist_pipeline.json
+```
+
+如果你想把多份日报收成周报模板，可以加上 `--weekly-reports`：
+
+```bash
+python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --portfolio config/portfolio.json --weekly-reports logs/daily_watchlist_phase33.json,logs/daily_watchlist_phase34.json --output-json logs/daily_watchlist_pipeline.json
+```
+
+如果你想把多份周报或日报收成阶段报告模板，可以加上 `--stage-reports`：
+
+```bash
+python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --portfolio config/portfolio.json --stage-reports logs/daily_watchlist_phase35.json,logs/daily_watchlist_phase34.json --output-json logs/daily_watchlist_pipeline.json
+```
+
+如果你想把当前日报、对比、周报和阶段报告一起打成留档包，可以加上 `--archive-package`：
+
+```bash
+python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --portfolio config/portfolio.json --archive-package --archive-name "月度复盘包" --output-json logs/daily_watchlist_pipeline.json
+```
+
+留档包现在会按固定结构输出：
+
+1. 复盘总览
+2. 当日日报
+3. 日报对比
+4. 周报模板
+5. 阶段报告
+6. 持仓语境
+
+周报和阶段报告的标题也会保持更平整的表达，不再递归引用上一层标题。
+
 统一入口会依次输出：
 
-1. 数据健康预检
-2. 持仓上下文
-3. 最终日常决策清单
+1. 日更报告
+2. 数据健康预检
+3. 持仓上下文
+4. 最终日常决策清单
+
+如果提供了对比基线，还会额外输出日报对比摘要。
+如果提供了周报输入，还会额外输出周报模板。
+如果提供了阶段输入，还会额外输出阶段报告模板。
+如果启用留档包，还会额外输出复盘留档包。
 
 联调用例会依次检查：
 
