@@ -122,6 +122,7 @@ def fetch_stock_hist_governed(
     checker = DataQualityChecker()
     data_source = "real"
     reason = "ok"
+    failure_kind = ""
 
     try:
         df = get_stock_hist(
@@ -133,11 +134,20 @@ def fetch_stock_hist_governed(
         )
         quality = checker.check_ohlcv_dataframe(df)
         if not quality.get("ok"):
+            failure_kind = "quality"
             raise ValueError(quality.get("reason", "quality check failed"))
     except Exception as exc:
         df = _build_fallback_stock_hist(symbol, end_date=end_date)
         data_source = "mock"
         reason = str(exc)
+        if not failure_kind:
+            reason_text = str(exc).lower()
+            if "remote end closed connection" in reason_text or "connection aborted" in reason_text:
+                failure_kind = "request"
+            elif "返回数据格式异常" in str(exc) or "json" in reason_text:
+                failure_kind = "response"
+            else:
+                failure_kind = "request"
         quality = checker.check_ohlcv_dataframe(df)
 
     snapshot = build_snapshot(
@@ -156,6 +166,8 @@ def fetch_stock_hist_governed(
             "end_date": end_date,
             "period": period,
             "adjust": adjust,
+            "failure_kind": failure_kind,
+            "fallback_reason": reason if data_source != "real" else "",
         }
     )
     return snapshot.to_dict()

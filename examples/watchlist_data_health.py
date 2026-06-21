@@ -23,6 +23,7 @@ if str(ROOT_DIR) not in sys.path:
 
 from core.data.eastmoney_api import fetch_stock_hist_governed
 from core.data.real_provider import RealDataProvider
+from examples.watchlist_shared import build_data_health_summary
 
 
 DEFAULT_WATCHLIST_PATH = ROOT_DIR / "config" / "watchlist.json"
@@ -104,38 +105,7 @@ def _score(*, history: dict[str, Any], fundamental: dict[str, Any]) -> int:
 
 
 def _build_summary(*, stock_name: str, history: dict[str, Any], fundamental: dict[str, Any]) -> dict[str, Any]:
-    history_quality = history.get("quality", {}) if isinstance(history, dict) else {}
-    fundamental_quality = fundamental.get("quality", {}) if isinstance(fundamental, dict) else {}
-    history_source = str(history.get("data_source", "unknown"))
-    fundamental_source = str(fundamental.get("data_source", "unknown"))
-    history_reason = str(history.get("reason", "")) or str(history_quality.get("reason", ""))
-    fundamental_reason = str(fundamental.get("reason", "")) or str(fundamental_quality.get("reason", ""))
-    history_degraded = bool(history.get("is_degraded", False))
-    fundamental_degraded = bool(fundamental.get("is_degraded", False))
-    status = "完全可用"
-    if history_degraded or fundamental_degraded or history_source != "real" or fundamental_source != "real":
-        status = "部分降级"
-    if history_source == "mock" and fundamental_source == "mock":
-        status = "明显降级"
-
-    score = _score(history=history, fundamental=fundamental)
-    return {
-        "status": status,
-        "health_score": score,
-        "history_source": history_source,
-        "fundamental_source": fundamental_source,
-        "history_quality": history_quality,
-        "fundamental_quality": fundamental_quality,
-        "history_reason": history_reason,
-        "fundamental_reason": fundamental_reason,
-        "summary": f"{stock_name} 数据健康状态为{status}，健康分 {score} 分。",
-        "flags": {
-            "history_degraded": history_degraded,
-            "fundamental_degraded": fundamental_degraded,
-            "history_quality_ok": bool(history_quality.get("ok", False)),
-            "fundamental_quality_ok": bool(fundamental_quality.get("ok", False)),
-        },
-    }
+    return build_data_health_summary(stock_name=stock_name, history=history, fundamental=fundamental)
 
 
 def _print_item(item: dict[str, Any]) -> None:

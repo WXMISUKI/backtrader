@@ -145,3 +145,60 @@ def build_position_context(
         "position_summary": "；".join(summary_parts),
         "stock_name": stock_name,
     }
+
+
+def build_data_health_summary(*, stock_name: str, history: dict[str, Any], fundamental: dict[str, Any]) -> dict[str, Any]:
+    """把历史行情和基本面治理结果收成统一健康摘要。"""
+    history_quality = history.get("quality", {}) if isinstance(history, dict) else {}
+    fundamental_quality = fundamental.get("quality", {}) if isinstance(fundamental, dict) else {}
+    history_source = str(history.get("data_source", "unknown"))
+    fundamental_source = str(fundamental.get("data_source", "unknown"))
+    history_reason = str(history.get("reason", "")) or str(history_quality.get("reason", ""))
+    fundamental_reason = str(fundamental.get("reason", "")) or str(fundamental_quality.get("reason", ""))
+    history_degraded = bool(history.get("is_degraded", False))
+    fundamental_degraded = bool(fundamental.get("is_degraded", False))
+
+    status = "完全可用"
+    if history_degraded or fundamental_degraded or history_source != "real" or fundamental_source != "real":
+        status = "部分降级"
+    if history_source == "mock" and fundamental_source == "mock":
+        status = "明显降级"
+
+    score = 0
+    if history_source == "real" and not history_degraded:
+        score += 50
+    elif history_source == "cache":
+        score += 35
+    elif history_source == "mock":
+        score += 15
+
+    if fundamental_source == "real" and not fundamental_degraded:
+        score += 50
+    elif fundamental_source == "cache":
+        score += 35
+    elif fundamental_source == "mock":
+        score += 15
+
+    if history_quality.get("ok", False):
+        score += 5
+    if fundamental_quality.get("ok", False):
+        score += 5
+
+    score = min(score, 100)
+    return {
+        "status": status,
+        "health_score": score,
+        "history_source": history_source,
+        "fundamental_source": fundamental_source,
+        "history_quality": history_quality,
+        "fundamental_quality": fundamental_quality,
+        "history_reason": history_reason,
+        "fundamental_reason": fundamental_reason,
+        "summary": f"{stock_name} 数据健康状态为{status}，健康分 {score} 分。",
+        "flags": {
+            "history_degraded": history_degraded,
+            "fundamental_degraded": fundamental_degraded,
+            "history_quality_ok": bool(history_quality.get("ok", False)),
+            "fundamental_quality_ok": bool(fundamental_quality.get("ok", False)),
+        },
+    }

@@ -116,6 +116,15 @@ python examples/watchlist_data_health.py --watchlist config/watchlist.json --out
 
 推荐顺序是先看数据健康，再看日常决策清单。
 
+这两步现在共用同一套健康摘要口径，优先看：
+
+- `status`
+- `health_score`
+- `history_source`
+- `fundamental_source`
+- `history_reason`
+- `fundamental_reason`
+
 如果你还想把持仓上下文一起带进去，可以这样跑：
 
 ```bash
@@ -184,6 +193,24 @@ python examples/daily_watchlist_daily_run.py --watchlist config/watchlist.json -
 ```
 
 这个命令会先做数据健康预检，再执行统一日常流程，最后自动归档并打开最近一次留档查看结果。
+
+如果你想先确认东方财富 cookie 是从哪里读到的，可以跑：
+
+```bash
+python examples/eastmoney_live_check.py --cookie-file .\\eastmoney.cookie --skip-realtime
+```
+
+联调脚本会输出 `cookie_source`、`cookie_loaded`、`has_jsessionid` 等诊断信息，方便先确认配置，再看接口结果。
+
+如果历史行情仍然失败，联调脚本还会给出 `failure_kind` 和 `fallback_reason`，帮助区分请求异常、响应异常和质量异常。
+
+如果你只是想快速判断数据源是不是正常，先看统一健康摘要里的 `status`，再看 `history_source` 和 `fundamental_source`，最后再看原因字段。
+
+如果你想跑一个最小的回归测试，确认历史行情失败时会稳定标记为 `request`，可以跑：
+
+```bash
+python -m pytest tests/test_eastmoney_history_diagnosis.py -q
+```
 
 留档包现在会按固定结构输出：
 
@@ -301,6 +328,7 @@ python examples/agent_demo.py "请分析 000001，并给出建议"
 - 如果你想更快看懂决策、统计和洞察结果，优先看 `decision_summary` / `stats_summary` / `insights_summary` 的四段式输出
 - 如果你想每天拿一份自选股清单，优先跑 `examples/daily_watchlist_decision.py`
 - 如果你想先判断当天数据靠不靠谱，优先跑 `examples/watchlist_data_health.py`
+- 如果你想一次看懂东财数据状态，优先看统一健康摘要里的 `status`
 
 ## 功能模块
 

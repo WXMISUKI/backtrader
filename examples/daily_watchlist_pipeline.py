@@ -22,6 +22,7 @@ from core.data.eastmoney_api import fetch_stock_hist_governed
 from core.data.real_provider import RealDataProvider
 from core.orchestrator import create_stock_orchestrator
 from examples.watchlist_shared import (
+    build_data_health_summary,
     build_portfolio_index,
     build_position_context,
     format_pct,
@@ -105,56 +106,20 @@ def _build_history_summary(*, raw: dict[str, Any], stock_code: str, stock_name: 
             "reason": str(exc),
         }
 
-    history_quality = history.get("quality", {}) if isinstance(history, dict) else {}
-    fundamental_quality = fundamental.get("quality", {}) if isinstance(fundamental, dict) else {}
-    history_source = str(history.get("data_source", "unknown"))
-    fundamental_source = str(fundamental.get("data_source", "unknown"))
-    history_reason = str(history.get("reason", "")) or str(history_quality.get("reason", ""))
-    fundamental_reason = str(fundamental.get("reason", "")) or str(fundamental_quality.get("reason", ""))
-    history_degraded = bool(history.get("is_degraded", False))
-    fundamental_degraded = bool(fundamental.get("is_degraded", False))
-    status = "完全可用"
-    if history_degraded or fundamental_degraded or history_source != "real" or fundamental_source != "real":
-        status = "部分降级"
-    if history_source == "mock" and fundamental_source == "mock":
-        status = "明显降级"
-
-    score = 0
-    if history_source == "real" and not history_degraded:
-        score += 50
-    elif history_source == "cache":
-        score += 35
-    elif history_source == "mock":
-        score += 15
-    if fundamental_source == "real" and not fundamental_degraded:
-        score += 50
-    elif fundamental_source == "cache":
-        score += 35
-    elif fundamental_source == "mock":
-        score += 15
-    if history_quality.get("ok", False):
-        score += 5
-    if fundamental_quality.get("ok", False):
-        score += 5
-
+    health = build_data_health_summary(stock_name=stock_name, history=history, fundamental=fundamental)
     return {
         "stock_code": stock_code,
         "name": stock_name,
-        "status": status,
-        "health_score": min(score, 100),
-        "history_source": history_source,
-        "fundamental_source": fundamental_source,
-        "history_quality": history_quality,
-        "fundamental_quality": fundamental_quality,
-        "history_reason": history_reason,
-        "fundamental_reason": fundamental_reason,
-        "summary": f"{stock_name} 数据健康状态为{status}，健康分 {min(score, 100)} 分。",
-        "flags": {
-            "history_degraded": history_degraded,
-            "fundamental_degraded": fundamental_degraded,
-            "history_quality_ok": bool(history_quality.get("ok", False)),
-            "fundamental_quality_ok": bool(fundamental_quality.get("ok", False)),
-        },
+        "status": health["status"],
+        "health_score": health["health_score"],
+        "history_source": health["history_source"],
+        "fundamental_source": health["fundamental_source"],
+        "history_quality": health["history_quality"],
+        "fundamental_quality": health["fundamental_quality"],
+        "history_reason": health["history_reason"],
+        "fundamental_reason": health["fundamental_reason"],
+        "summary": health["summary"],
+        "flags": health["flags"],
         "history_rows": safe_int(history.get("quality", {}).get("rows", 0)),
         "fundamental_report_date": str(fundamental.get("payload", {}).get("report_date", "")) if isinstance(fundamental, dict) else "",
         "history_date_range": f"{raw['start_date']} ~ {raw['end_date']}",

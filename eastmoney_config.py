@@ -83,6 +83,32 @@ def _load_cookies() -> dict:
     return _DEFAULT_EASTMONEY_COOKIES.copy()
 
 
+def get_eastmoney_cookie_source() -> str:
+    """返回当前 cookie 的来源。"""
+    cookie_str = os.getenv("EASTMONEY_COOKIE", "").strip()
+    if cookie_str:
+        return "env"
+
+    env_file = _load_env_file()
+    cookie_str = env_file.get("EASTMONEY_COOKIE", "").strip()
+    if cookie_str:
+        return "env_file"
+
+    return "default"
+
+
+def get_eastmoney_cookie_meta() -> dict:
+    """返回 cookie 的轻量诊断信息。"""
+    cookies = EASTMONEY_COOKIES
+    return {
+        "cookie_loaded": bool(cookies),
+        "cookie_source": get_eastmoney_cookie_source(),
+        "cookie_keys": list(cookies.keys())[:20],
+        "has_jsessionid": "JSESSIONID" in cookies and bool(cookies.get("JSESSIONID")),
+        "has_ut": "ut" in cookies and bool(cookies.get("ut")),
+    }
+
+
 def get_eastmoney_session() -> requests.Session:
     """创建一个不依赖系统代理的 requests Session。"""
     session = requests.Session()

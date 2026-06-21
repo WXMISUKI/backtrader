@@ -124,23 +124,33 @@ def main() -> int:
         print(f"初始化失败: {exc}")
         return 1
 
+    cookie_meta = {}
+    try:
+        cookie_meta = ec.get_eastmoney_cookie_meta()
+    except Exception:
+        cookie_meta = {
+            "cookie_loaded": bool(os.getenv("EASTMONEY_COOKIE", "").strip()),
+            "cookie_source": "unknown",
+            "cookie_keys": [],
+            "has_jsessionid": False,
+            "has_ut": False,
+        }
+
     results: dict[str, Any] = {
         "symbol": args.symbol,
         "start_date": args.start_date,
         "end_date": args.end_date,
         "page": args.page,
         "page_size": args.page_size,
-        "cookie_loaded": bool(os.getenv("EASTMONEY_COOKIE", "").strip()),
+        "cookie_loaded": bool(cookie_meta.get("cookie_loaded", False)),
+        "cookie_source": str(cookie_meta.get("cookie_source", "unknown")),
+        "cookie_keys": cookie_meta.get("cookie_keys", []),
+        "has_jsessionid": bool(cookie_meta.get("has_jsessionid", False)),
+        "has_ut": bool(cookie_meta.get("has_ut", False)),
         "history": {},
         "realtime": {},
         "governed": {},
     }
-
-    cookie_env = os.getenv("EASTMONEY_COOKIE", "").strip()
-    if cookie_env:
-        parsed_cookie = _parse_cookie_blob(cookie_env)
-        results["cookie_loaded"] = bool(parsed_cookie)
-        results["cookie_keys"] = list(parsed_cookie.keys())[:20]
 
     exit_code = 0
 
@@ -165,6 +175,8 @@ def main() -> int:
                 "data_source": governed.get("data_source"),
                 "reason": governed.get("reason", ""),
                 "quality": governed.get("quality", {}),
+                "failure_kind": governed.get("meta", {}).get("failure_kind", ""),
+                "fallback_reason": governed.get("meta", {}).get("fallback_reason", ""),
             }
             governed_payload = {
                 "ok": True,

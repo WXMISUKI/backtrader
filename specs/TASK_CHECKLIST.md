@@ -568,6 +568,48 @@
 | 42.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE42_DAILY_PRODUCTION_RUNNER.md` |
 | 42.7 | 更新知识库与任务清单 | P1 | ✅ | - | 沉淀生产运行守门规范 |
 
+## Phase 43: 东方财富 Cookie 配置一致性收口 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE43_EASTMONEY_COOKIE_CONSISTENCY.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 43.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE43_EASTMONEY_COOKIE_CONSISTENCY.md` |
+| 43.1 | 统一东方财富 cookie 读取路径 | P0 | ✅ | - | `eastmoney_config.py` |
+| 43.2 | 增加 cookie 来源诊断 | P0 | ✅ | - | `examples/eastmoney_live_check.py` |
+| 43.3 | 更新日常运行的 cookie 提示 | P1 | ✅ | - | `examples/daily_watchlist_daily_run.py` |
+| 43.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 43.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE43_EASTMONEY_COOKIE_CONSISTENCY.md` |
+| 43.6 | 更新知识库与任务清单 | P1 | ✅ | - | 沉淀 cookie 默认路径 |
+
+## Phase 44: 东方财富历史行情失败诊断与回退可读化 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE44_EASTMONEY_HISTORY_DIAGNOSIS.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 44.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE44_EASTMONEY_HISTORY_DIAGNOSIS.md` |
+| 44.1 | 增强历史行情失败分类 | P0 | ✅ | - | `core/data/eastmoney_api.py` |
+| 44.2 | 增强治理快照诊断信息 | P0 | ✅ | - | `core/data/eastmoney_api.py` |
+| 44.3 | 增强联调脚本输出 | P1 | ✅ | - | `examples/eastmoney_live_check.py` |
+| 44.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 44.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE44_EASTMONEY_HISTORY_DIAGNOSIS.md` |
+| 44.6 | 更新知识库与任务清单 | P1 | ✅ | - | 沉淀失败诊断规则 |
+
+## Phase 45: 东方财富历史行情失败回归测试固定 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE45_EASTMONEY_HISTORY_REGRESSION_TEST.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 45.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE45_EASTMONEY_HISTORY_REGRESSION_TEST.md` |
+| 45.1 | 增加历史行情失败回归测试 | P0 | ✅ | - | `tests/test_eastmoney_history_diagnosis.py` |
+| 45.2 | 验证 request 失败语义 | P0 | ✅ | - | `tests/test_eastmoney_history_diagnosis.py` |
+| 45.3 | 验证 fallback 输出 | P1 | ✅ | - | `tests/test_eastmoney_history_diagnosis.py` |
+| 45.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 45.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE45_EASTMONEY_HISTORY_REGRESSION_TEST.md` |
+| 45.6 | 更新知识库与任务清单 | P1 | ✅ | - | 沉淀失败诊断回归 |
+
 ---
 
 ## 已完成任务归档
@@ -592,6 +634,21 @@
 | 0.16 | 基本面分析模块 | 2026-06-14 | FundamentalAnalyzer (29 tests passed) |
 | 0.17 | 市场分析模块 | 2026-06-14 | MarketAnalyzer |
 | 0.18 | 股票推荐模块 | 2026-06-14 | StockRecommender (长线/短线/风险匹配) |
+| 0.19 | 数据源健康摘要统一展示 | 2026-06-21 | 统一 watchlist 预检与日常流程健康口径 |
+
+## Phase 46: 数据源健康摘要统一展示 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE46_DATA_SOURCE_HEALTH_SUMMARY.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 46.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE46_DATA_SOURCE_HEALTH_SUMMARY.md` |
+| 46.1 | 提取统一数据源健康摘要函数 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 46.2 | 复用健康摘要到数据健康预检 | P0 | ✅ | - | `examples/watchlist_data_health.py` |
+| 46.3 | 复用健康摘要到日常统一流程 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 46.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 46.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE46_DATA_SOURCE_HEALTH_SUMMARY.md` |
+| 46.6 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
 ---
 

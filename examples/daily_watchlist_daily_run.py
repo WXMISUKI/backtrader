@@ -97,6 +97,17 @@ def main() -> int:
     preflight_script = ROOT_DIR / "examples" / "watchlist_data_health.py"
     pipeline_script = ROOT_DIR / "examples" / "daily_watchlist_pipeline.py"
     viewer_script = ROOT_DIR / "examples" / "daily_watchlist_archive_viewer.py"
+    cookie_source = "unknown"
+    cookie_loaded = False
+    try:
+        from eastmoney_config import get_eastmoney_cookie_meta
+
+        cookie_meta = get_eastmoney_cookie_meta()
+        cookie_source = str(cookie_meta.get("cookie_source", "unknown"))
+        cookie_loaded = bool(cookie_meta.get("cookie_loaded", False))
+    except Exception:
+        cookie_source = "unknown"
+        cookie_loaded = False
 
     preflight_args = [
         "--watchlist",
@@ -173,6 +184,10 @@ def main() -> int:
             "daily_summary": pipeline_payload.get("daily_summary", {}) if isinstance(pipeline_payload, dict) else {},
             "archive_package": bool(pipeline_payload.get("archive_package")) if isinstance(pipeline_payload, dict) else False,
         },
+        "cookie": {
+            "loaded": cookie_loaded,
+            "source": cookie_source,
+        },
         "summary": {
             "message": "预检通过并已完成归档。" if status == "ok" else ("存在降级，但已完成归档。" if status == "degraded" else "预检或执行失败。"),
         },
@@ -187,6 +202,7 @@ def main() -> int:
     print(f"状态: {status}")
     print(f"预检: {'通过' if preflight_ok else '失败'}")
     print(f"执行: {'成功' if archive_ok else '失败'}")
+    print(f"东财 Cookie: {'已加载' if cookie_loaded else '未加载'} ({cookie_source})")
     print(f"归档目录: {archive_dir}")
     print(f"运行状态: {run_status_path}")
     print(f"查看入口: {viewer_script}")
