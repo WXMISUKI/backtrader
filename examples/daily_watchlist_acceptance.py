@@ -22,7 +22,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from examples.watchlist_shared import build_diagnosis_evidence
+from examples.watchlist_shared import build_daily_review_brief, build_diagnosis_evidence
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
@@ -130,6 +130,15 @@ def main() -> int:
         and bool(prompt_context.get("summary_text", ""))
         and bool(prompt_context.get("read_order", []))
     )
+    review_brief = build_daily_review_brief(
+        daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
+        production_gate=latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {},
+        action_list=action_list if isinstance(action_list, dict) else {},
+        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
+        feedback_effects=_load_json_payload(ROOT_DIR / "logs" / "daily_watchlist_feedback_effects.json"),
+    )
+    review_brief_ok = isinstance(review_brief, dict) and bool(review_brief.get("summary_text", "")) and bool(review_brief.get("read_order", []))
 
     checks = {
         "latest_json": _exists(latest_json),
@@ -143,6 +152,7 @@ def main() -> int:
         "sample_attribution": sample_attribution_ok,
         "run_cadence": run_cadence_ok,
         "prompt_context": prompt_context_ok,
+        "review_brief": review_brief_ok,
     }
     checks_ok = sum(1 for value in checks.values() if value)
     checks_total = len(checks)
@@ -192,6 +202,7 @@ def main() -> int:
     print(f"sample_attribution: {'存在' if checks['sample_attribution'] else '缺失'}")
     print(f"run_cadence: {'存在' if checks['run_cadence'] else '缺失'}")
     print(f"prompt_context: {'存在' if checks['prompt_context'] else '缺失'}")
+    print(f"review_brief: {'存在' if checks['review_brief'] else '缺失'}")
     print(f"diagnosis_evidence: {'存在' if bool(diagnosis_evidence.get('top_causes')) else '缺失'}")
     print(f"review: {'可运行' if review_code == 0 else '不可运行'}")
     print(f"insights: {'可运行' if insights_code == 0 else '不可运行'}")

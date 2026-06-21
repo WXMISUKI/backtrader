@@ -23,7 +23,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from examples.daily_watchlist_display import print_bullets, print_kv_pairs, print_section
-from examples.watchlist_shared import build_daily_prompt_context, build_diagnosis_evidence, build_production_gate
+from examples.watchlist_shared import build_daily_prompt_context, build_daily_review_brief, build_diagnosis_evidence, build_production_gate
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
@@ -137,6 +137,14 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
         )
     feedback_records = _load_jsonl_payload(DEFAULT_FEEDBACK_PATH)
     effects_payload = _load_json_payload(DEFAULT_EFFECTS_JSON)
+    review_brief = build_daily_review_brief(
+        daily_summary=daily_summary,
+        production_gate=production_gate,
+        action_list=action_list,
+        run_cadence=run_cadence,
+        prompt_context=prompt_context,
+        feedback_effects=effects_payload,
+    )
 
     print_section("自选股日常留档查看")
     print_kv_pairs(
@@ -144,6 +152,7 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
             ("归档JSON", json_path or "未找到"),
             ("归档Markdown", md_path or "未找到"),
             ("生成时间", payload.get("generated_at", "")),
+            ("回看摘要", review_brief.get("summary_text", "")),
             ("日常总览", daily_summary.get("status", "")),
             ("投产门禁", production_gate.get("status", "")),
             ("门禁摘要", production_gate.get("summary", "")),
@@ -230,6 +239,10 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
     if isinstance(prompt_context, dict) and prompt_context.get("rules"):
         print_section("提示语境")
         print_bullets([str(rule) for rule in prompt_context.get("rules", [])[:6]])
+
+    if isinstance(review_brief, dict) and review_brief.get("key_points"):
+        print_section("回看重点")
+        print_bullets([str(item) for item in review_brief.get("key_points", [])[:6]])
 
 
 def main() -> int:

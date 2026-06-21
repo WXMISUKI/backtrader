@@ -952,13 +952,27 @@
 | 67.7 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE67_DAILY_PROMPT_CONTEXT_LINKAGE.md` |
 | 67.8 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 67 收口 |
 
+## Phase 68: 自选股日常回看摘要收紧
+
+**SDD规格文档**: `specs/SDD_PHASE68_DAILY_REVIEW_BRIEF.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 68.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE68_DAILY_REVIEW_BRIEF.md` |
+| 68.1 | 实现共享回看摘要构建 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 68.2 | 在日常回看入口展示回看摘要 | P0 | ✅ | - | `examples/daily_watchlist_review.py` |
+| 68.3 | 在留档查看入口展示回看摘要 | P0 | ✅ | - | `examples/daily_watchlist_archive_viewer.py` |
+| 68.4 | 在投产验收中检查回看摘要 | P1 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 68.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE68_DAILY_REVIEW_BRIEF.md` |
+| 68.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 68 收口 |
+
 ---
 
 ## 下一步行动
 
 1. **当前**: 以 `production_gate` + `action_list` 作为默认日常查看顺序
 2. **随后**: 以 `prompt_context` 作为日常提示词和 Skill 的共享语境
-3. **再后**: 观察 `review_now / hold_watch / wait / skip_due_to_data / diagnose` 的日常命中是否符合使用习惯
+3. **再后**: 以 `review_brief` 作为回看的第一眼摘要
 4. **持续**: 观察反馈效果评估是否稳定
 
 ---

@@ -758,6 +758,118 @@ def build_daily_prompt_context(
     }
 
 
+def build_daily_review_brief(
+    *,
+    daily_summary: dict[str, Any] | None = None,
+    production_gate: dict[str, Any] | None = None,
+    action_list: dict[str, Any] | None = None,
+    run_cadence: dict[str, Any] | None = None,
+    prompt_context: dict[str, Any] | None = None,
+    feedback_effects: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """把回看材料收成一段更短、更适合日常打开的摘要。"""
+    daily_summary = daily_summary if isinstance(daily_summary, dict) else {}
+    production_gate = production_gate if isinstance(production_gate, dict) else {}
+    action_list = action_list if isinstance(action_list, dict) else {}
+    run_cadence = run_cadence if isinstance(run_cadence, dict) else {}
+    prompt_context = prompt_context if isinstance(prompt_context, dict) else {}
+    feedback_effects = feedback_effects if isinstance(feedback_effects, dict) else {}
+
+    gate_status = str(production_gate.get("status", "")).strip() or "unknown"
+    gate_summary = str(production_gate.get("summary", "")).strip()
+    action_summary = str(action_list.get("summary_text", "")).strip()
+    cadence_summary = str(run_cadence.get("summary_text", "")).strip()
+    cadence_next_step = str(run_cadence.get("next_step", "")).strip()
+    prompt_summary = str(prompt_context.get("summary_text", "")).strip()
+    prompt_rules = prompt_context.get("rules", []) if isinstance(prompt_context.get("rules", []), list) else []
+    daily_summary_text = str(daily_summary.get("summary_text", "")).strip()
+    effect_overall = feedback_effects.get("overall", {}) if isinstance(feedback_effects.get("overall", {}), dict) else {}
+    hit_rate = safe_float(effect_overall.get("hit_rate"), 0.0)
+    avg_return = safe_float(effect_overall.get("avg_return"), 0.0)
+    evaluable_rows = safe_int(effect_overall.get("evaluated_rows"), 0)
+    usable_feedback = safe_int(effect_overall.get("usable_feedback"), 0)
+
+    action_items = action_list.get("items", []) if isinstance(action_list.get("items", []), list) else []
+    top_action = action_items[0] if action_items and isinstance(action_items[0], dict) else {}
+    top_action_text = ""
+    if top_action:
+        top_action_text = (
+            f"{top_action.get('stock_code', '')} {top_action.get('name', '')} "
+            f"[{top_action.get('action', '')}] {top_action.get('action_hint', '')}"
+        ).strip()
+
+    read_order = ["production_gate", "action_list", "run_cadence", "prompt_context", "feedback_effects"]
+
+    if gate_status == "block":
+        summary_text = "回看摘要：当前应先处理门禁阻断，再看行动和效果。"
+        next_step = "先看数据健康和门禁原因，再决定是否继续观察。"
+    elif gate_status == "warn":
+        summary_text = "回看摘要：当前需要谨慎复核，先看门禁，再看行动和效果。"
+        next_step = "先复核行动清单和提示语境，再看反馈效果。"
+    else:
+        summary_text = "回看摘要：当前可按门禁、行动、节奏和效果顺序复核。"
+        next_step = "先看优先行动，再回看效果是否稳定。"
+
+    if prompt_summary and gate_status != "block":
+        summary_text += " 提示语境已收拢。"
+
+    key_points = [
+        f"门禁 {gate_status}" + (f" / {gate_summary}" if gate_summary else ""),
+        f"行动清单 {action_summary}" if action_summary else "行动清单未提供",
+        f"运行节奏 {cadence_summary}" if cadence_summary else "运行节奏未提供",
+        f"提示语境 {prompt_summary}" if prompt_summary else "提示语境未提供",
+    ]
+    if top_action_text:
+        key_points.append(f"优先行动 {top_action_text}")
+    if evaluable_rows > 0 or usable_feedback > 0:
+        key_points.append(
+            f"反馈效果 可评估 {evaluable_rows} 行，命中率 {hit_rate:.1%}，平均回报 {avg_return:.1%}"
+        )
+    if daily_summary_text:
+        key_points.append(f"日常总览 {daily_summary_text}")
+
+    risk_note = "保持谨慎，优先看数据和门禁。"
+    if gate_status == "pass":
+        risk_note = "可正常复核，但仍保留风险提示。"
+    elif gate_status == "warn":
+        risk_note = "存在降级，先复核再动作。"
+    elif gate_status == "block":
+        risk_note = "存在阻断，先诊断再继续。"
+
+    return {
+        "status": gate_status,
+        "summary_text": summary_text,
+        "next_step": next_step,
+        "risk_note": risk_note,
+        "read_order": read_order,
+        "key_points": key_points,
+        "prompt_rules": prompt_rules,
+        "metrics": {
+            "usable_feedback": usable_feedback,
+            "evaluated_rows": evaluable_rows,
+            "hit_rate": hit_rate,
+            "avg_return": avg_return,
+        },
+        "evidence": {
+            "production_gate": {
+                "status": gate_status,
+                "summary": gate_summary,
+            },
+            "action_list": {
+                "summary_text": action_summary,
+                "count": len(action_items),
+            },
+            "run_cadence": {
+                "summary_text": cadence_summary,
+                "next_step": cadence_next_step,
+            },
+            "prompt_context": {
+                "summary_text": prompt_summary,
+            },
+        },
+    }
+
+
 def build_action_list(
     *,
     decision_items: list[dict[str, Any]],
