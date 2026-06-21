@@ -104,6 +104,46 @@ def _derive_preflight_status(*, code: int, counts: dict[str, Any]) -> str:
     return "ok"
 
 
+def _build_run_cadence(*, preflight_status: str, pipeline_status: str, archive_status: str, view_status: str) -> dict[str, Any]:
+    steps = [
+        {"name": "preflight", "status": preflight_status},
+        {"name": "pipeline", "status": pipeline_status},
+        {"name": "archive", "status": archive_status},
+        {"name": "view", "status": view_status},
+    ]
+    statuses = [str(step["status"]) for step in steps]
+    if "failed" in statuses:
+        overall = "failed"
+        summary_text = "运行节奏失败：至少有一步失败。"
+    elif "degraded" in statuses:
+        overall = "degraded"
+        summary_text = "运行节奏可用但存在降级。"
+    elif "skipped" in statuses:
+        overall = "ok"
+        summary_text = "今日运行节奏完整，但查看步骤已跳过。"
+    else:
+        overall = "ok"
+        summary_text = "今日运行节奏完整：预检、执行、归档、查看都已完成。"
+
+    if pipeline_status == "failed":
+        next_step = "先看预检和执行输出，再确认数据或 cookie。"
+    elif archive_status == "failed":
+        next_step = "先补归档，再看 latest 留档。"
+    elif view_status == "failed":
+        next_step = "先看留档目录，再检查查看入口。"
+    elif preflight_status != "ok":
+        next_step = "先看数据健康，再继续后续入口。"
+    else:
+        next_step = "先看 production_gate，再看 action_list。"
+
+    return {
+        "status": overall,
+        "steps": steps,
+        "summary_text": summary_text,
+        "next_step": next_step,
+    }
+
+
 def main() -> int:
     args = build_parser().parse_args()
     watchlist_path = Path(args.watchlist)
@@ -175,7 +215,25 @@ def main() -> int:
         pipeline_payload = _load_json_payload(output_json)
         archive_ok = pipeline_code == 0 and bool(pipeline_payload)
 
+    view_code = 1
+    view_output = ""
+    if archive_ok and not args.skip_view:
+        view_code, view_output = _call_script(
+            viewer_script,
+            ["--archive-dir", str(archive_dir), "--limit-lines", "12"],
+        )
+
     degraded = bool(preflight_counts.get("部分降级", 0)) or bool(preflight_counts.get("明显降级", 0))
+    preflight_status = preflight_status if "preflight_status" in locals() else "failed"
+    pipeline_status = "ok" if archive_ok else "failed"
+    archive_status = "ok" if archive_ok else "failed"
+    view_status = "ok" if view_code == 0 else ("skipped" if args.skip_view else "failed")
+    run_cadence = _build_run_cadence(
+        preflight_status=preflight_status,
+        pipeline_status=pipeline_status,
+        archive_status=archive_status,
+        view_status=view_status,
+    )
     status = _derive_status(
         preflight_ok=preflight_ok,
         pipeline_ok=archive_ok,
@@ -212,9 +270,11 @@ def main() -> int:
             "message": "预检通过并已完成归档。" if status == "ok" else ("存在降级，但已完成归档。" if status == "degraded" else "预检或执行失败。"),
             "feedback_count": len(feedback_records),
         },
+        "run_cadence": run_cadence,
         "outputs": {
             "preflight_output": preflight_output.strip(),
             "pipeline_output": pipeline_output.strip(),
+            "view_output": view_output.strip(),
         },
     }
     _write_run_status(run_status_path, run_status)
@@ -228,12 +288,10 @@ def main() -> int:
     print(f"归档目录: {archive_dir}")
     print(f"运行状态: {run_status_path}")
     print(f"查看入口: {viewer_script}")
+    print(f"运行节奏: {run_cadence['summary_text']}")
+    print(f"下一步: {run_cadence['next_step']}")
 
     if not args.skip_view and archive_ok:
-        view_code, view_output = _call_script(
-            viewer_script,
-            ["--archive-dir", str(archive_dir), "--limit-lines", "12"],
-        )
         print("\n== 留档查看 ==")
         print(view_output.strip())
         if view_code != 0:

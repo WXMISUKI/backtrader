@@ -922,13 +922,27 @@
 | 65.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE65_SAMPLE_ATTRIBUTION.md` |
 | 65.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 65 收口 |
 
+## Phase 66: 自选股日常运行节奏稳定化
+
+**SDD规格文档**: `specs/SDD_PHASE66_DAILY_RUN_CADENCE.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 66.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE66_DAILY_RUN_CADENCE.md` |
+| 66.1 | 构建运行节奏摘要 | P0 | ✅ | - | `examples/daily_watchlist_daily_run.py` |
+| 66.2 | 在运行状态中写入节奏摘要 | P0 | ✅ | - | `examples/daily_watchlist_daily_run.py` |
+| 66.3 | 在默认工作流和留档查看中展示节奏摘要 | P0 | ✅ | - | `examples/daily_watchlist_flow.py` / `examples/daily_watchlist_archive_viewer.py` |
+| 66.4 | 在投产验收中检查节奏摘要 | P1 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 66.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE66_DAILY_RUN_CADENCE.md` |
+| 66.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 66 收口 |
+
 ---
 
 ## 下一步行动
 
 1. **当前**: 以 `production_gate` + `action_list` 作为默认日常查看顺序
 2. **随后**: 观察 `review_now / hold_watch / wait / skip_due_to_data / diagnose` 的日常命中是否符合使用习惯
-3. **再后**: 继续推进更稳定的日常节奏和更细的提示语境联动
+3. **再后**: 继续推进更细的提示语境联动和更细的回看呈现
 4. **持续**: 观察反馈效果评估是否稳定
 
 ---

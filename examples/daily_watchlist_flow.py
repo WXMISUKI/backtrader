@@ -112,6 +112,7 @@ def main() -> int:
     diagnosis_counts = daily_summary.get("diagnosis_counts", {}) if isinstance(daily_summary, dict) else {}
     health_items = pipeline_payload.get("health", {}).get("items", []) if isinstance(pipeline_payload, dict) else []
     action_list = pipeline_payload.get("action_list", {}) if isinstance(pipeline_payload, dict) else {}
+    run_cadence = daily_run_status_payload.get("run_cadence", {}) if isinstance(daily_run_status_payload, dict) else {}
     diagnosis_evidence = build_diagnosis_evidence(
         daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
         health_items=health_items if isinstance(health_items, list) else [],
@@ -148,6 +149,7 @@ def main() -> int:
         "diagnosis_counts": diagnosis_counts,
         "diagnosis_evidence": diagnosis_evidence,
         "action_list": action_list,
+        "run_cadence": run_cadence,
         "production_gate": production_gate,
         "daily_run_code": daily_code,
         "review_code": review_code,
@@ -167,6 +169,9 @@ def main() -> int:
     print(f"daily_run: {'成功' if daily_code == 0 else '失败'}")
     print(f"review: {'成功' if review_code == 0 else '失败'}")
     print(f"acceptance: {'成功' if acceptance_code == 0 else '失败'}")
+    if isinstance(run_cadence, dict) and run_cadence.get("summary_text"):
+        print(f"run_cadence: {run_cadence.get('summary_text', '')}")
+        print(f"next_step: {run_cadence.get('next_step', '')}")
     print(f"production_gate: {production_gate.get('status', 'unknown')}")
     print(f"门禁摘要: {production_gate.get('summary', '')}")
     if isinstance(action_list, dict) and action_list.get("summary_text"):
