@@ -22,7 +22,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from examples.watchlist_shared import build_daily_review_brief, build_diagnosis_evidence, build_schedule_hint
+from examples.watchlist_shared import build_daily_collaboration_pack, build_daily_review_brief, build_diagnosis_evidence, build_schedule_hint
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
@@ -152,6 +152,19 @@ def main() -> int:
             review_brief=review_brief if isinstance(review_brief, dict) else {},
         )
     schedule_hint_ok = isinstance(schedule_hint, dict) and bool(schedule_hint.get("summary_text", "")) and bool(schedule_hint.get("read_order", []))
+    daily_collaboration_pack = latest_payload.get("daily_collaboration_pack", {}) if isinstance(latest_payload, dict) else {}
+    if (not isinstance(daily_collaboration_pack, dict) or not daily_collaboration_pack) and isinstance(run_status_payload, dict):
+        daily_collaboration_pack = run_status_payload.get("daily_collaboration_pack", {})
+    if not isinstance(daily_collaboration_pack, dict) or not daily_collaboration_pack:
+        daily_collaboration_pack = build_daily_collaboration_pack(
+            production_gate=latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {},
+            action_list=action_list if isinstance(action_list, dict) else {},
+            run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+            prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
+            review_brief=review_brief if isinstance(review_brief, dict) else {},
+            schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
+        )
+    daily_collaboration_pack_ok = isinstance(daily_collaboration_pack, dict) and bool(daily_collaboration_pack.get("summary_text", "")) and bool(daily_collaboration_pack.get("read_order", []))
 
     checks = {
         "latest_json": _exists(latest_json),
@@ -166,6 +179,7 @@ def main() -> int:
         "run_cadence": run_cadence_ok,
         "prompt_context": prompt_context_ok,
         "schedule_hint": schedule_hint_ok,
+        "daily_collaboration_pack": daily_collaboration_pack_ok,
         "review_brief": review_brief_ok,
     }
     checks_ok = sum(1 for value in checks.values() if value)
@@ -217,6 +231,7 @@ def main() -> int:
     print(f"run_cadence: {'存在' if checks['run_cadence'] else '缺失'}")
     print(f"prompt_context: {'存在' if checks['prompt_context'] else '缺失'}")
     print(f"schedule_hint: {'存在' if checks['schedule_hint'] else '缺失'}")
+    print(f"daily_collaboration_pack: {'存在' if checks['daily_collaboration_pack'] else '缺失'}")
     print(f"review_brief: {'存在' if checks['review_brief'] else '缺失'}")
     print(f"diagnosis_evidence: {'存在' if bool(diagnosis_evidence.get('top_causes')) else '缺失'}")
     print(f"review: {'可运行' if review_code == 0 else '不可运行'}")

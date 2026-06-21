@@ -981,6 +981,20 @@
 | 69.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE69_DAILY_SCHEDULE_PREP.md` |
 | 69.7 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 69 收口 |
 
+## Phase 70: 自选股日常协作总包收束
+
+**SDD规格文档**: `specs/SDD_PHASE70_DAILY_COLLABORATION_PACK.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 70.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE70_DAILY_COLLABORATION_PACK.md` |
+| 70.1 | 实现共享协作总包构建 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 70.2 | 在日常运行状态中写入协作总包 | P0 | ✅ | - | `examples/daily_watchlist_daily_run.py` |
+| 70.3 | 在默认工作流和留档查看中展示协作总包 | P0 | ✅ | - | `examples/daily_watchlist_flow.py` / `examples/daily_watchlist_archive_viewer.py` |
+| 70.4 | 在投产验收和智能体提示词中识别协作总包 | P1 | ✅ | - | `examples/daily_watchlist_acceptance.py` / `core/agent/client.py` |
+| 70.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE70_DAILY_COLLABORATION_PACK.md` |
+| 70.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 70 收口 |
+
 ---
 
 ## 下一步行动
@@ -988,7 +1002,7 @@
 1. **当前**: 以 `production_gate` + `action_list` 作为默认日常查看顺序
 2. **随后**: 以 `prompt_context` 作为日常提示词和 Skill 的共享语境
 3. **再后**: 以 `review_brief` 作为回看的第一眼摘要
-4. **持续**: 观察反馈效果评估与 `schedule_hint` 是否稳定
+4. **持续**: 观察反馈效果评估、`schedule_hint` 和 `daily_collaboration_pack` 是否稳定
 
 ---
 

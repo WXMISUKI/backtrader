@@ -24,6 +24,7 @@ if str(ROOT_DIR) not in sys.path:
 
 from examples.daily_watchlist_display import print_bullets, print_kv_pairs, print_section
 from examples.watchlist_shared import (
+    build_daily_collaboration_pack,
     build_daily_prompt_context,
     build_daily_review_brief,
     build_diagnosis_evidence,
@@ -142,13 +143,6 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
             daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
             diagnosis_evidence=diagnosis_evidence,
         )
-    if not isinstance(schedule_hint, dict) or not schedule_hint:
-        schedule_hint = build_schedule_hint(
-            daily_run_status=str(payload.get("daily_run_status", "")) if isinstance(payload, dict) else "",
-            production_gate=production_gate if isinstance(production_gate, dict) else {},
-            run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
-            prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
-        )
     feedback_records = _load_jsonl_payload(DEFAULT_FEEDBACK_PATH)
     effects_payload = _load_json_payload(DEFAULT_EFFECTS_JSON)
     review_brief = build_daily_review_brief(
@@ -158,6 +152,22 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
         run_cadence=run_cadence,
         prompt_context=prompt_context,
         feedback_effects=effects_payload,
+    )
+    if not isinstance(schedule_hint, dict) or not schedule_hint:
+        schedule_hint = build_schedule_hint(
+            daily_run_status=str(payload.get("daily_run_status", "")) if isinstance(payload, dict) else "",
+            production_gate=production_gate if isinstance(production_gate, dict) else {},
+            run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+            prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
+            review_brief=review_brief if isinstance(review_brief, dict) else {},
+        )
+    daily_collaboration_pack = build_daily_collaboration_pack(
+        production_gate=production_gate if isinstance(production_gate, dict) else {},
+        action_list=action_list if isinstance(action_list, dict) else {},
+        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
+        review_brief=review_brief if isinstance(review_brief, dict) else {},
+        schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
     )
 
     print_section("自选股日常留档查看")
@@ -188,6 +198,7 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
             ("调度准备", schedule_hint.get("summary_text", "")),
             ("下次运行模式", schedule_hint.get("next_run_mode", "")),
             ("下次运行窗口", schedule_hint.get("next_run_window", "")),
+            ("协作总包", daily_collaboration_pack.get("summary_text", "")),
         ]
     )
     if feedback_records:
@@ -260,6 +271,10 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
     if isinstance(schedule_hint, dict) and schedule_hint.get("rules"):
         print_section("调度准备")
         print_bullets([str(rule) for rule in schedule_hint.get("rules", [])[:6]])
+
+    if isinstance(daily_collaboration_pack, dict) and daily_collaboration_pack.get("rules"):
+        print_section("协作总包")
+        print_bullets([str(rule) for rule in daily_collaboration_pack.get("rules", [])[:6]])
 
     if isinstance(review_brief, dict) and review_brief.get("key_points"):
         print_section("回看重点")

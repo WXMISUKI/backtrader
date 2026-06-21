@@ -952,6 +952,116 @@ def build_schedule_hint(
     }
 
 
+def build_daily_collaboration_pack(
+    *,
+    production_gate: dict[str, Any] | None = None,
+    action_list: dict[str, Any] | None = None,
+    run_cadence: dict[str, Any] | None = None,
+    prompt_context: dict[str, Any] | None = None,
+    review_brief: dict[str, Any] | None = None,
+    schedule_hint: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """把日常门禁、行动、节奏、提示语境、回看摘要和运行就绪提示收成协作总包。"""
+    production_gate = production_gate if isinstance(production_gate, dict) else {}
+    action_list = action_list if isinstance(action_list, dict) else {}
+    run_cadence = run_cadence if isinstance(run_cadence, dict) else {}
+    prompt_context = prompt_context if isinstance(prompt_context, dict) else {}
+    review_brief = review_brief if isinstance(review_brief, dict) else {}
+    schedule_hint = schedule_hint if isinstance(schedule_hint, dict) else {}
+
+    gate_status = str(production_gate.get("status", "")).strip() or "unknown"
+    action_status = str(action_list.get("status", "")).strip() or gate_status
+    cadence_status = str(run_cadence.get("status", "")).strip() or "unknown"
+    prompt_status = str(prompt_context.get("status", "")).strip() or gate_status
+    review_status = str(review_brief.get("status", "")).strip() or "unknown"
+    schedule_status = str(schedule_hint.get("status", "")).strip() or "unknown"
+
+    status_rank = {"blocked": 3, "block": 3, "failed": 3, "caution": 2, "warn": 2, "degraded": 2, "ready": 1, "ok": 1, "pass": 1, "unknown": 0}
+    worst_rank = max(
+        status_rank.get(gate_status, 0),
+        status_rank.get(action_status, 0),
+        status_rank.get(cadence_status, 0),
+        status_rank.get(prompt_status, 0),
+        status_rank.get(review_status, 0),
+        status_rank.get(schedule_status, 0),
+    )
+    if worst_rank >= 3:
+        status = "blocked"
+    elif worst_rank >= 2:
+        status = "caution"
+    elif worst_rank >= 1:
+        status = "ready"
+    else:
+        status = "unknown"
+
+    summary_parts = [
+        f"门禁 {gate_status or 'unknown'}",
+        f"行动 {action_status or 'unknown'}",
+        f"节奏 {cadence_status or 'unknown'}",
+        f"提示语境 {prompt_status or 'unknown'}",
+        f"回看 {review_status or 'unknown'}",
+        f"调度准备 {schedule_status or 'unknown'}",
+    ]
+    summary_text = "协作总包已收拢：" + "；".join(summary_parts) + "。"
+    if status == "blocked":
+        summary_text += " 当前应先处理阻断和数据问题。"
+    elif status == "caution":
+        summary_text += " 当前可继续看，但建议先复核再动作。"
+    else:
+        summary_text += " 当前可按既定日常顺序继续。"
+
+    prompt_text = "\n".join(
+        [
+            "日常协作总包：",
+            f"- 门禁: {gate_status}",
+            f"- 行动: {action_status}",
+            f"- 节奏: {cadence_status}",
+            f"- 提示语境: {prompt_status}",
+            f"- 回看: {review_status}",
+            f"- 调度准备: {schedule_status}",
+            "- 读取顺序: production_gate -> action_list -> run_cadence -> prompt_context -> review_brief -> schedule_hint",
+            "- 规则: 先读门禁，再读行动和节奏，最后看回看和调度准备。",
+            "- 规则: block / blocked 时只能做诊断、修复数据或等待建议。",
+            "- 规则: caution / warn / degraded 时先复核，不要把降级当成完全放行。",
+        ]
+    )
+
+    read_order = [
+        "production_gate",
+        "action_list",
+        "run_cadence",
+        "prompt_context",
+        "review_brief",
+        "schedule_hint",
+    ]
+    rules = [
+        "协作总包不是新分析，只是把现有协作语境再收一层。",
+        "先看 production_gate，再看 action_list，再看 run_cadence。",
+        "再看 prompt_context、review_brief 和 schedule_hint，避免重复解释同一组结果。",
+        "block / blocked 时只给诊断、修复或等待建议。",
+    ]
+
+    return {
+        "status": status,
+        "summary_text": summary_text,
+        "prompt_text": prompt_text,
+        "read_order": read_order,
+        "rules": rules,
+        "evidence": {
+            "production_gate": production_gate,
+            "action_list": {
+                "status": action_status,
+                "summary_text": str(action_list.get("summary_text", "")).strip(),
+                "count": len(action_list.get("items", [])) if isinstance(action_list.get("items", []), list) else 0,
+            },
+            "run_cadence": run_cadence,
+            "prompt_context": prompt_context,
+            "review_brief": review_brief,
+            "schedule_hint": schedule_hint,
+        },
+    }
+
+
 def build_action_list(
     *,
     decision_items: list[dict[str, Any]],

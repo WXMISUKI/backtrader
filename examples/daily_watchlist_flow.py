@@ -23,7 +23,9 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from examples.watchlist_shared import (
+    build_daily_collaboration_pack,
     build_daily_prompt_context,
+    build_daily_review_brief,
     build_diagnosis_evidence,
     build_production_gate,
     build_schedule_hint,
@@ -144,11 +146,29 @@ def main() -> int:
         daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
         diagnosis_evidence=diagnosis_evidence,
     )
+    feedback_effects = _load_json_payload(ROOT_DIR / "logs" / "daily_watchlist_feedback_effects.json")
+    review_brief = build_daily_review_brief(
+        daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
+        production_gate=production_gate,
+        action_list=action_list if isinstance(action_list, dict) else {},
+        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
+        feedback_effects=feedback_effects if isinstance(feedback_effects, dict) else {},
+    )
     schedule_hint = build_schedule_hint(
         daily_run_status=daily_run_status,
         production_gate=production_gate,
         run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
         prompt_context=prompt_context,
+        review_brief=review_brief if isinstance(review_brief, dict) else {},
+    )
+    daily_collaboration_pack = build_daily_collaboration_pack(
+        production_gate=production_gate,
+        action_list=action_list if isinstance(action_list, dict) else {},
+        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
+        review_brief=review_brief if isinstance(review_brief, dict) else {},
+        schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
     )
 
     status = "ok"
@@ -169,7 +189,9 @@ def main() -> int:
         "action_list": action_list,
         "run_cadence": run_cadence,
         "prompt_context": prompt_context,
+        "review_brief": review_brief,
         "schedule_hint": schedule_hint,
+        "daily_collaboration_pack": daily_collaboration_pack,
         "production_gate": production_gate,
         "daily_run_code": daily_code,
         "review_code": review_code,
@@ -198,9 +220,13 @@ def main() -> int:
         print(f"action_list: {action_list.get('summary_text', '')}")
     if isinstance(prompt_context, dict) and prompt_context.get("summary_text"):
         print(f"prompt_context: {prompt_context.get('summary_text', '')}")
+    if isinstance(review_brief, dict) and review_brief.get("summary_text"):
+        print(f"review_brief: {review_brief.get('summary_text', '')}")
     if isinstance(schedule_hint, dict) and schedule_hint.get("summary_text"):
         print(f"schedule_hint: {schedule_hint.get('summary_text', '')}")
         print(f"schedule_mode: {schedule_hint.get('next_run_mode', '')}")
+    if isinstance(daily_collaboration_pack, dict) and daily_collaboration_pack.get("summary_text"):
+        print(f"daily_collaboration_pack: {daily_collaboration_pack.get('summary_text', '')}")
     print(f"输出: {output_path}")
 
     if args.show_json:
