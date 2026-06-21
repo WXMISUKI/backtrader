@@ -894,13 +894,41 @@
 | 63.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE63_DAILY_ACTION_LIST.md` |
 | 63.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 63 已收口 |
 
+## Phase 64: 自选股日常行动提示语句精炼
+
+**SDD规格文档**: `specs/SDD_PHASE64_DAILY_ACTION_HINTS.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 64.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE64_DAILY_ACTION_HINTS.md` |
+| 64.1 | 为 `action_list` 增加行动提示语句 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 64.2 | 让统一流程输出更明确的行动提示 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 64.3 | 让默认流程和留档查看展示新提示 | P0 | ✅ | - | `examples/daily_watchlist_flow.py` / `examples/daily_watchlist_archive_viewer.py` |
+| 64.4 | 让投产验收检查提示语句 | P1 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 64.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE64_DAILY_ACTION_HINTS.md` |
+| 64.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 64 已收口 |
+
+## Phase 65: 自选股日常样本归因收口
+
+**SDD规格文档**: `specs/SDD_PHASE65_SAMPLE_ATTRIBUTION.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 65.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE65_SAMPLE_ATTRIBUTION.md` |
+| 65.1 | 构建样本归因块 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 65.2 | 让留档查看展示样本归因 | P0 | ✅ | - | `examples/daily_watchlist_archive_viewer.py` |
+| 65.3 | 让诊断收口包展示样本归因 | P0 | ✅ | - | `examples/daily_watchlist_diagnosis_bundle.py` |
+| 65.4 | 让投产验收检查样本归因 | P1 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 65.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE65_SAMPLE_ATTRIBUTION.md` |
+| 65.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 65 收口 |
+
 ---
 
 ## 下一步行动
 
 1. **当前**: 以 `production_gate` + `action_list` 作为默认日常查看顺序
 2. **随后**: 观察 `review_now / hold_watch / wait / skip_due_to_data / diagnose` 的日常命中是否符合使用习惯
-3. **再后**: 优先增强提示语句和样本归因，而不是继续拆入口
+3. **再后**: 继续推进更稳定的日常节奏和更细的提示语境联动
 4. **持续**: 观察反馈效果评估是否稳定
 
 ---

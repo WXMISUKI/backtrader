@@ -175,6 +175,14 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
         if samples:
             print_bullets([f"{item.get('stock_code', '')} {item.get('name', '')} [{item.get('status', '')}] {item.get('primary_label', '')}" for item in samples])
 
+    if diagnosis_evidence.get("sample_attribution"):
+        print_section("样本归因")
+        for group in diagnosis_evidence.get("sample_attribution", [])[:5]:
+            print(f"- {group.get('cause', '')} {group.get('count', 0)}: {group.get('summary', '')}")
+            examples = group.get("examples", [])
+            if examples:
+                print_bullets([f"{item.get('stock_code', '')} {item.get('name', '')} [{item.get('primary_label', '')}]" for item in examples])
+
     if effects_payload:
         print_section("反馈效果")
         overall = effects_payload.get("overall", {}) if isinstance(effects_payload, dict) else {}
@@ -191,7 +199,7 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
         print_section("行动清单")
         print_bullets(
             [
-                f"{item.get('stock_code', '')} {item.get('name', '')} [{item.get('action', '')}] {item.get('reason', '')}"
+                f"{item.get('stock_code', '')} {item.get('name', '')} [{item.get('action', '')}] {item.get('action_hint', '')}；{item.get('reason', '')}"
                 for item in action_list.get("items", [])[:8]
             ]
         )

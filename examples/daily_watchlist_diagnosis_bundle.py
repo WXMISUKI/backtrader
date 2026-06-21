@@ -116,6 +116,9 @@ def main() -> int:
     print(f"门禁摘要: {production_gate.get('summary', '')}")
     if isinstance(action_list, dict) and action_list.get("summary_text"):
         print(f"行动清单: {action_list.get('summary_text', '')}")
+    if isinstance(diagnosis_evidence, dict) and diagnosis_evidence.get("sample_attribution"):
+        sample_attribution = diagnosis_evidence.get("sample_attribution", [])
+        print("样本归因: " + "；".join(f"{item.get('cause', '')} {item.get('count', 0)}" for item in sample_attribution[:5]))
     print(f"输出: {output_json}")
 
     if args.show_json:

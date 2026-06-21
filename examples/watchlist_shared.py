@@ -401,21 +401,59 @@ def build_diagnosis_evidence(*, daily_summary: dict[str, Any], health_items: lis
     if isinstance(diagnosis_counts, dict):
         top_causes = sorted(diagnosis_counts.items(), key=lambda item: (-item[1], item[0]))
     sample_items = []
-    for item in health_items[:5]:
+    sample_attribution_map: dict[str, dict[str, Any]] = {}
+    for item in health_items:
         diagnosis = item.get("diagnosis", {}) if isinstance(item, dict) else {}
+        primary_cause = str(diagnosis.get("primary_cause", "") or "").strip()
+        primary_label = str(diagnosis.get("primary_label", "") or "").strip()
+        sample_entry = {
+            "stock_code": item.get("stock_code", ""),
+            "name": item.get("name", ""),
+            "status": item.get("status", ""),
+            "primary_cause": primary_cause,
+            "primary_label": primary_label,
+            "data_confidence": item.get("data_confidence", 0.0),
+            "confidence_level": item.get("confidence_level", ""),
+            "summary": diagnosis.get("summary", ""),
+            "normalized_reasons": item.get("normalized_reasons", []),
+        }
         sample_items.append(
+            sample_entry
+        )
+        if primary_cause and primary_cause != "healthy":
+            bucket = sample_attribution_map.setdefault(
+                primary_cause,
+                {
+                    "cause": primary_cause,
+                    "label": primary_label or primary_cause,
+                    "count": 0,
+                    "examples": [],
+                },
+            )
+            bucket["count"] += 1
+            if len(bucket["examples"]) < 3:
+                bucket["examples"].append(
+                    {
+                        "stock_code": sample_entry["stock_code"],
+                        "name": sample_entry["name"],
+                        "status": sample_entry["status"],
+                        "primary_label": sample_entry["primary_label"],
+                    }
+                )
+
+    sample_attribution = []
+    for cause, bucket in sample_attribution_map.items():
+        examples = bucket.get("examples", [])
+        sample_attribution.append(
             {
-                "stock_code": item.get("stock_code", ""),
-                "name": item.get("name", ""),
-                "status": item.get("status", ""),
-                "primary_cause": diagnosis.get("primary_cause", ""),
-                "primary_label": diagnosis.get("primary_label", ""),
-                "data_confidence": item.get("data_confidence", 0.0),
-                "confidence_level": item.get("confidence_level", ""),
-                "summary": diagnosis.get("summary", ""),
-                "normalized_reasons": item.get("normalized_reasons", []),
+                "cause": cause,
+                "label": bucket.get("label", cause),
+                "count": bucket.get("count", 0),
+                "summary": f"{bucket.get('label', cause)} 相关样本 {bucket.get('count', 0)} 只。",
+                "examples": examples,
             }
         )
+    sample_attribution.sort(key=lambda item: (-int(item.get("count", 0)), str(item.get("cause", ""))))
 
     return {
         "summary_text": daily_summary.get("summary_text", "") if isinstance(daily_summary, dict) else "",
@@ -424,6 +462,7 @@ def build_diagnosis_evidence(*, daily_summary: dict[str, Any], health_items: lis
         "confidence_counts": confidence_counts if isinstance(confidence_counts, dict) else {},
         "top_causes": top_causes,
         "sample_items": sample_items,
+        "sample_attribution": sample_attribution,
         "average_confidence": daily_summary.get("average_confidence", 0.0) if isinstance(daily_summary, dict) else 0.0,
     }
 
@@ -653,6 +692,21 @@ def build_action_list(
         elif gate_status == "warn" and action == "review_now":
             priority = 15
 
+        if action == "review_now":
+            action_hint = "今天优先复核，先看关键证据和最近变化"
+            if position_label.startswith("已持有"):
+                action_hint = "优先复核持仓变化，先看关键证据和风险位置"
+        elif action == "hold_watch":
+            action_hint = "先检查仓位、成本和风险线，确认持有是否仍合理"
+        elif action == "wait":
+            action_hint = "先不动作，等待下一轮数据或更明确触发条件"
+        elif action == "skip_due_to_data":
+            action_hint = "先跳过本轮判断，优先排查数据或可信度问题"
+        elif action == "diagnose":
+            action_hint = "先排查门禁阻断原因，再决定是否恢复后续判断"
+        else:
+            action_hint = "先维持观察，等更明确的信号"
+
         reason_parts = [
             f"分组 {group}",
             f"置信度 {format_pct(confidence)}",
@@ -676,6 +730,7 @@ def build_action_list(
                 "data_confidence": round(data_confidence, 4),
                 "health_status": health_status,
                 "reason": "；".join(part for part in reason_parts if part),
+                "action_hint": action_hint,
                 "watch_reason": str(item.get("watch_reason", "") or ""),
                 "risk_profile": item.get("risk_profile", ""),
                 "latest_price": item.get("latest_price"),
@@ -706,7 +761,7 @@ def build_action_list(
     ]
     if sorted_actions:
         top_actions = [
-            f"{item['stock_code']} {item['name']} [{item['action']}] {item['reason']}"
+            f"{item['stock_code']} {item['name']} [{item['action']}] {item['action_hint']}；{item['reason']}"
             for item in sorted_actions[:limit]
         ]
         summary_lines.append("优先行动: " + "；".join(top_actions))

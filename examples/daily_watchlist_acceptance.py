@@ -111,6 +111,11 @@ def main() -> int:
     diagnosis_ok = isinstance(diagnosis_evidence, dict) and isinstance(diagnosis_evidence.get("sample_items", []), list)
     action_list = latest_payload.get("action_list", {}) if isinstance(latest_payload, dict) else {}
     action_ok = isinstance(action_list, dict) and bool(action_list.get("items", [])) and bool(action_list.get("summary_text", ""))
+    action_hint_ok = False
+    if isinstance(action_list, dict):
+        first_item = action_list.get("items", [{}])[0] if action_list.get("items") else {}
+        action_hint_ok = isinstance(first_item, dict) and bool(first_item.get("action_hint", ""))
+    sample_attribution_ok = isinstance(diagnosis_evidence, dict) and bool(diagnosis_evidence.get("sample_attribution", []))
 
     checks = {
         "latest_json": _exists(latest_json),
@@ -120,6 +125,8 @@ def main() -> int:
         "diagnosis_summary": diagnosis_ok,
         "confidence_summary": confidence_ok,
         "action_list": action_ok,
+        "action_hint": action_hint_ok,
+        "sample_attribution": sample_attribution_ok,
     }
     checks_ok = sum(1 for value in checks.values() if value)
     checks_total = len(checks)
@@ -165,6 +172,8 @@ def main() -> int:
     print(f"diagnosis_summary: {'存在' if checks['diagnosis_summary'] else '缺失'}")
     print(f"confidence_summary: {'存在' if checks['confidence_summary'] else '缺失'}")
     print(f"action_list: {'存在' if checks['action_list'] else '缺失'}")
+    print(f"action_hint: {'存在' if checks['action_hint'] else '缺失'}")
+    print(f"sample_attribution: {'存在' if checks['sample_attribution'] else '缺失'}")
     print(f"diagnosis_evidence: {'存在' if bool(diagnosis_evidence.get('top_causes')) else '缺失'}")
     print(f"review: {'可运行' if review_code == 0 else '不可运行'}")
     print(f"insights: {'可运行' if insights_code == 0 else '不可运行'}")

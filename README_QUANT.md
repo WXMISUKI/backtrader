@@ -187,6 +187,10 @@ python examples/daily_watchlist_flow.py --watchlist config/watchlist.json --port
 
 默认工作流现在会同时输出 `production_gate` 和 `action_list`，也就是先看今天能不能参考，再看今天先做什么。
 
+当前的 `action_list` 还会带更明确的 `action_hint`，方便你直接看“今天先怎么处理”。
+
+当前的诊断证据还会带 `sample_attribution`，方便你快速看懂样本主要归到哪几类问题上。
+
 如果你只想先跳过回看或验收，也可以分别加：
 
 ```bash
@@ -490,6 +494,8 @@ python examples/agent_demo.py "请分析 000001，并给出建议"
 - `specs/NEXT_STAGE_DEVELOPMENT_ROADMAP.md`
 - `specs/SDD_PHASE60_DAILY_PRODUCTION_GATE.md`
 - `specs/SDD_PHASE63_DAILY_ACTION_LIST.md`
+- `specs/SDD_PHASE64_DAILY_ACTION_HINTS.md`
+- `specs/SDD_PHASE65_SAMPLE_ATTRIBUTION.md`
 
 核心目标是让默认日常流程先输出统一的 `production_gate`，明确今天结果属于 `pass / warn / block`，再输出 `action_list`，把今天先看什么、先做什么说清楚。
 

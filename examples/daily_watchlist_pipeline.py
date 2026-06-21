@@ -919,7 +919,12 @@ def main() -> int:
     print("\n== 日常行动清单 ==")
     print(f"总计: {len(action_list.get('items', []))} 条，复核 {len(action_list.get('groups', {}).get('review_now', []))}，持有观察 {len(action_list.get('groups', {}).get('hold_watch', []))}，等待 {len(action_list.get('groups', {}).get('wait', []))}，跳过 {len(action_list.get('groups', {}).get('skip_due_to_data', []))}，诊断 {len(action_list.get('groups', {}).get('diagnose', []))}")
     for item in action_list.get("items", []):
-        print(f"- {item.get('stock_code', '')} {item.get('name', '')} [{item.get('action', '')}] {item.get('reason', '')}")
+        hint = str(item.get("action_hint", "") or "")
+        reason = str(item.get("reason", "") or "")
+        if hint:
+            print(f"- {item.get('stock_code', '')} {item.get('name', '')} [{item.get('action', '')}] {hint}；{reason}")
+        else:
+            print(f"- {item.get('stock_code', '')} {item.get('name', '')} [{item.get('action', '')}] {reason}")
 
     output_path = Path(args.output_json) if args.output_json else None
     generated_at = datetime.now().isoformat(timespec="seconds")
