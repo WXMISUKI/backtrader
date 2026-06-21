@@ -169,6 +169,14 @@ python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --
 - `logs/daily_watchlist_archive/latest.json`
 - `logs/daily_watchlist_archive/latest.md`
 
+如果你想直接查看最近一次留档结果，可以跑：
+
+```bash
+python examples/daily_watchlist_archive_viewer.py --archive-dir logs/daily_watchlist_archive
+```
+
+如果你想看完整 Markdown 或 JSON，可以分别加上 `--show-markdown` 或 `--show-json`。
+
 留档包现在会按固定结构输出：
 
 1. 复盘总览

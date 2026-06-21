@@ -539,6 +539,20 @@
 | 40.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE40_DAILY_RUN_ARTIFACTS.md` |
 | 40.7 | 更新知识库与任务清单 | P1 | ✅ | - | 沉淀日常留档规范 |
 
+## Phase 41: 自选股日常留档查看入口 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE41_DAILY_ARCHIVE_VIEWER.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 41.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE41_DAILY_ARCHIVE_VIEWER.md` |
+| 41.1 | 增加日常留档查看脚本 | P0 | ✅ | - | `examples/daily_watchlist_archive_viewer.py` |
+| 41.2 | 增加 latest 回退读取逻辑 | P0 | ✅ | - | `examples/daily_watchlist_archive_viewer.py` |
+| 41.3 | 增加 Markdown/JSON 可选展示 | P1 | ✅ | - | `examples/daily_watchlist_archive_viewer.py` |
+| 41.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 41.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE41_DAILY_ARCHIVE_VIEWER.md` |
+| 41.6 | 更新知识库与任务清单 | P1 | ✅ | - | 沉淀查看入口规范 |
+
 ---
 
 ## 已完成任务归档
