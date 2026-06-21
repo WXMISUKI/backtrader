@@ -128,6 +128,18 @@ python examples/daily_watchlist_decision.py --watchlist config/watchlist.json --
 2. 再看带持仓上下文的日常决策清单
 3. 最后再回看原始分析或导出结果
 
+如果你想一步到位跑完整个日常流程，可以直接用统一入口：
+
+```bash
+python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --portfolio config/portfolio.json --output-json logs/daily_watchlist_pipeline.json
+```
+
+统一入口会依次输出：
+
+1. 数据健康预检
+2. 持仓上下文
+3. 最终日常决策清单
+
 联调用例会依次检查：
 
 - `GET /health`

@@ -398,6 +398,20 @@
 | 30.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE30_WATCHLIST_PORTFOLIO_CONTEXT.md` |
 | 30.6 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
 
+## Phase 31: 自选股日常流程统一入口 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE31_DAILY_FLOW_UNIFICATION.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 31.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE31_DAILY_FLOW_UNIFICATION.md` |
+| 31.1 | 提炼自选股共享工具 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 31.2 | 实现统一日常入口脚本 | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 31.3 | 复用健康预检和持仓上下文 | P0 | ✅ | - | `examples/watchlist_data_health.py` / `examples/daily_watchlist_decision.py` |
+| 31.4 | 增加统一运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 31.5 | 编写归档文档 | P1 | ⬜ | - | 记录统一入口结果 |
+| 31.6 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀统一入口模板 |
+
 ---
 
 ## 已完成任务归档
