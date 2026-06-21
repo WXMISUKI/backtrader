@@ -696,6 +696,51 @@
 | 49.6 | 编写归档文档 | P1 | ⬜ | - | 记录回看流程结果 |
 | 49.7 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀回看流程模板 |
 
+## Phase 50: 自选股日常显示层统一 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE50_DAILY_DISPLAY_UNIFICATION.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 50.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE50_DAILY_DISPLAY_UNIFICATION.md` |
+| 50.1 | 抽出共享显示辅助工具 | P0 | ✅ | - | `examples/daily_watchlist_display.py` |
+| 50.2 | 统一留档查看器摘要 | P0 | ✅ | - | `examples/daily_watchlist_archive_viewer.py` |
+| 50.3 | 统一反馈洞察摘要 | P0 | ✅ | - | `examples/daily_watchlist_feedback_insights.py` |
+| 50.4 | 统一回看流程摘要 | P0 | ✅ | - | `examples/daily_watchlist_review.py` |
+| 50.5 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 50.6 | 编写归档文档 | P1 | ⬜ | - | 记录显示层统一结果 |
+| 50.7 | 更新知识库与任务清单 | P1 | ⬜ | - | 沉淀显示层统一模板 |
+
+## Phase 51: 自选股日常投产验收 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE51_DAILY_ACCEPTANCE.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 51.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE51_DAILY_ACCEPTANCE.md` |
+| 51.1 | 新增投产验收脚本 | P0 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 51.2 | 检查关键文件存在 | P0 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 51.3 | 检查关键入口可运行 | P0 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 51.4 | 支持 JSON 导出 | P1 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 51.5 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 51.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE51_DAILY_ACCEPTANCE.md` |
+| 51.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
+## Phase 52: 自选股默认日常工作流收口 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE52_DAILY_WORKFLOW_FLOW.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 52.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE52_DAILY_WORKFLOW_FLOW.md` |
+| 52.1 | 新增默认日常工作流脚本 | P0 | ✅ | - | `examples/daily_watchlist_flow.py` |
+| 52.2 | 串起 daily_run | P0 | ✅ | - | `examples/daily_watchlist_flow.py` |
+| 52.3 | 串起 review | P0 | ✅ | - | `examples/daily_watchlist_flow.py` |
+| 52.4 | 串起 acceptance | P0 | ✅ | - | `examples/daily_watchlist_flow.py` |
+| 52.5 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 52.6 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE52_DAILY_WORKFLOW_FLOW.md` |
+| 52.7 | 更新知识库与任务清单 | P1 | ✅ | - | 已更新 |
+
 ---
 
 ## 下一步行动

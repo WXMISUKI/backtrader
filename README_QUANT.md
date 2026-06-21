@@ -161,6 +161,33 @@ python examples/daily_watchlist_review.py
 python examples/daily_watchlist_review.py --show-json
 ```
 
+如果你想做一次日常投产验收，可以跑：
+
+```bash
+python examples/daily_watchlist_acceptance.py
+```
+
+如果你想把验收结果导出成 JSON，可以加上 `--output-json`：
+
+```bash
+python examples/daily_watchlist_acceptance.py --output-json logs/daily_watchlist_acceptance.json
+```
+
+如果你想直接一条命令把日常运行、回看和验收串起来，可以跑：
+
+```bash
+python examples/daily_watchlist_flow.py --watchlist config/watchlist.json --portfolio config/portfolio.json --archive-dir logs/daily_watchlist_archive --output-json logs/daily_watchlist_flow.json
+```
+
+如果你只想先跳过回看或验收，也可以分别加：
+
+```bash
+python examples/daily_watchlist_flow.py --skip-review
+python examples/daily_watchlist_flow.py --skip-acceptance
+```
+
+默认工作流会先执行 `daily_run`，再执行 `review`，最后执行 `acceptance`。如果你只想看 JSON 结果，可以加 `--show-json`。
+
 如果你还想把持仓上下文一起带进去，可以这样跑：
 
 ```bash

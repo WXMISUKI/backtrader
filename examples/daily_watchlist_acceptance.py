@@ -1,0 +1,149 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+自选股日常投产验收。
+
+用法：
+    python examples/daily_watchlist_acceptance.py
+    python examples/daily_watchlist_acceptance.py --output-json logs/daily_watchlist_acceptance.json
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import subprocess
+import sys
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+
+DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
+DEFAULT_FEEDBACK_FILE = ROOT_DIR / "logs" / "daily_watchlist_feedback.jsonl"
+DEFAULT_RUN_STATUS = ROOT_DIR / "logs" / "daily_watchlist_run_status.json"
+DEFAULT_ACCEPTANCE_JSON = ROOT_DIR / "logs" / "daily_watchlist_acceptance.json"
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Daily watchlist acceptance check.")
+    parser.add_argument("--archive-dir", default=str(DEFAULT_ARCHIVE_DIR), help="Archive directory for daily artifacts.")
+    parser.add_argument("--feedback-file", default=str(DEFAULT_FEEDBACK_FILE), help="Feedback JSONL file path.")
+    parser.add_argument("--run-status", default=str(DEFAULT_RUN_STATUS), help="Run status JSON path.")
+    parser.add_argument("--output-json", default=str(DEFAULT_ACCEPTANCE_JSON), help="Acceptance JSON output path.")
+    return parser
+
+
+def _exists(path: Path) -> bool:
+    return path.exists()
+
+
+def _load_json_payload(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    with path.open("r", encoding="utf-8") as f:
+        payload = json.load(f)
+    return payload if isinstance(payload, dict) else {}
+
+
+def _load_jsonl_payload(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    records: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                item = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(item, dict):
+                records.append(item)
+    return records
+
+
+def _run_script(script: Path, args: list[str]) -> tuple[int, str]:
+    cmd = [sys.executable, str(script), *args]
+    completed = subprocess.run(cmd, cwd=ROOT_DIR, capture_output=True, text=True)
+    output = (completed.stdout or "") + (completed.stderr or "")
+    return completed.returncode, output
+
+
+def _score(*, checks_ok: int, checks_total: int, entry_ok: bool) -> str:
+    if checks_ok == checks_total and entry_ok:
+        return "ok"
+    if checks_ok > 0 and entry_ok:
+        return "degraded"
+    return "failed"
+
+
+def main() -> int:
+    args = build_parser().parse_args()
+    archive_dir = Path(args.archive_dir)
+    feedback_file = Path(args.feedback_file)
+    run_status_path = Path(args.run_status)
+    acceptance_path = Path(args.output_json)
+
+    latest_json = archive_dir / "latest.json"
+    latest_md = archive_dir / "latest.md"
+    viewer_script = ROOT_DIR / "examples" / "daily_watchlist_review.py"
+    insights_script = ROOT_DIR / "examples" / "daily_watchlist_feedback_insights.py"
+
+    checks = {
+        "latest_json": _exists(latest_json),
+        "latest_md": _exists(latest_md),
+        "run_status": _exists(run_status_path),
+        "feedback_file": _exists(feedback_file),
+    }
+    checks_ok = sum(1 for value in checks.values() if value)
+    checks_total = len(checks)
+
+    review_code, review_output = _run_script(viewer_script, ["--archive-dir", str(archive_dir), "--limit-lines", "3", "--feedback-limit", "3"])
+    insights_code, insights_output = _run_script(insights_script, ["--feedback-file", str(feedback_file), "--limit", "3", "--min-samples", "2"])
+
+    status = _score(checks_ok=checks_ok, checks_total=checks_total, entry_ok=review_code == 0 and insights_code == 0)
+    generated_at = datetime.now().isoformat(timespec="seconds")
+    payload = {
+        "status": status,
+        "generated_at": generated_at,
+        "archive_dir": str(archive_dir),
+        "latest_json": str(latest_json),
+        "latest_md": str(latest_md),
+        "run_status": str(run_status_path),
+        "feedback_file": str(feedback_file),
+        "checks": checks,
+        "review_ok": review_code == 0,
+        "insights_ok": insights_code == 0,
+        "summary": "投产验收通过。" if status == "ok" else ("部分产物缺失，但主链路可用。" if status == "degraded" else "关键产物或入口不可用。"),
+        "data": {
+            "run_status_payload": _load_json_payload(run_status_path),
+            "feedback_records": len(_load_jsonl_payload(feedback_file)),
+            "review_output": review_output.strip(),
+            "insights_output": insights_output.strip(),
+        },
+    }
+
+    acceptance_path.parent.mkdir(parents=True, exist_ok=True)
+    with acceptance_path.open("w", encoding="utf-8") as f:
+        json.dump(payload, f, ensure_ascii=False, indent=2, default=str)
+
+    print("== 自选股日常投产验收 ==")
+    print(f"状态: {status}")
+    print(f"latest.json: {'存在' if checks['latest_json'] else '缺失'}")
+    print(f"latest.md: {'存在' if checks['latest_md'] else '缺失'}")
+    print(f"run_status: {'存在' if checks['run_status'] else '缺失'}")
+    print(f"feedback_file: {'存在' if checks['feedback_file'] else '缺失'}")
+    print(f"review: {'可运行' if review_code == 0 else '不可运行'}")
+    print(f"insights: {'可运行' if insights_code == 0 else '不可运行'}")
+    print(f"验收结果: {acceptance_path}")
+    return 0 if status == "ok" else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
