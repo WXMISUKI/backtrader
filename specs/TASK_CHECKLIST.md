@@ -995,6 +995,20 @@
 | 70.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE70_DAILY_COLLABORATION_PACK.md` |
 | 70.6 | 更新知识库与任务清单 | P1 | ✅ | - | Phase 70 收口 |
 
+## Phase 71: 东方财富历史行情会话路由修正
+
+**SDD规格文档**: `specs/SDD_PHASE71_EASTMONEY_SESSION_ROUTING.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 71.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE71_EASTMONEY_SESSION_ROUTING.md` |
+| 71.1 | 修正东财会话默认路由策略 | P0 | ✅ | - | `eastmoney_config.py` |
+| 71.2 | 补充联调脚本会话诊断输出 | P1 | ✅ | - | `examples/eastmoney_live_check.py` |
+| 71.3 | 增加最小回归测试 | P0 | ✅ | - | `tests/test_eastmoney_session_routing.py` |
+| 71.4 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 71.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE71_EASTMONEY_SESSION_ROUTING.md` |
+| 71.6 | 更新知识库与任务清单 | P1 | ✅ | - | 沉淀接口路由判断 |
+
 ---
 
 ## 下一步行动

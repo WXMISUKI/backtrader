@@ -83,6 +83,16 @@ def _load_cookies() -> dict:
     return _DEFAULT_EASTMONEY_COOKIES.copy()
 
 
+def _parse_bool_env(value: str) -> bool | None:
+    """把环境变量字符串解析成布尔值。"""
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "off"}:
+        return False
+    return None
+
+
 def get_eastmoney_cookie_source() -> str:
     """返回当前 cookie 的来源。"""
     cookie_str = os.getenv("EASTMONEY_COOKIE", "").strip()
@@ -109,11 +119,36 @@ def get_eastmoney_cookie_meta() -> dict:
     }
 
 
-def get_eastmoney_session() -> requests.Session:
-    """创建一个不依赖系统代理的 requests Session。"""
+def _resolve_eastmoney_trust_env(trust_env: bool | None = None) -> bool:
+    """解析当前东方财富请求是否继承环境代理。"""
+    if trust_env is not None:
+        return trust_env
+
+    env_value = os.getenv("EASTMONEY_TRUST_ENV", "").strip()
+    if env_value:
+        parsed = _parse_bool_env(env_value)
+        if parsed is not None:
+            return parsed
+
+    return True
+
+
+def get_eastmoney_session(trust_env: bool | None = None) -> requests.Session:
+    """创建东方财富请求会话。默认继承环境代理。"""
     session = requests.Session()
-    session.trust_env = False
+    session.trust_env = _resolve_eastmoney_trust_env(trust_env)
     return session
+
+
+def get_eastmoney_session_meta(trust_env: bool | None = None) -> dict:
+    """返回当前会话策略的轻量诊断信息。"""
+    effective_trust_env = _resolve_eastmoney_trust_env(trust_env)
+    env_value = os.getenv("EASTMONEY_TRUST_ENV", "").strip()
+    return {
+        "session_trust_env": effective_trust_env,
+        "session_source": "env" if env_value else "default",
+        "session_mode": "inherit_env" if effective_trust_env else "ignore_env",
+    }
 
 
 # 东方财富 Cookie（需要定期更新）

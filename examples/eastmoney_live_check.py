@@ -125,8 +125,10 @@ def main() -> int:
         return 1
 
     cookie_meta = {}
+    session_meta = {}
     try:
         cookie_meta = ec.get_eastmoney_cookie_meta()
+        session_meta = ec.get_eastmoney_session_meta()
     except Exception:
         cookie_meta = {
             "cookie_loaded": bool(os.getenv("EASTMONEY_COOKIE", "").strip()),
@@ -134,6 +136,11 @@ def main() -> int:
             "cookie_keys": [],
             "has_jsessionid": False,
             "has_ut": False,
+        }
+        session_meta = {
+            "session_trust_env": True,
+            "session_source": "unknown",
+            "session_mode": "inherit_env",
         }
 
     results: dict[str, Any] = {
@@ -147,6 +154,9 @@ def main() -> int:
         "cookie_keys": cookie_meta.get("cookie_keys", []),
         "has_jsessionid": bool(cookie_meta.get("has_jsessionid", False)),
         "has_ut": bool(cookie_meta.get("has_ut", False)),
+        "session_trust_env": bool(session_meta.get("session_trust_env", True)),
+        "session_source": str(session_meta.get("session_source", "unknown")),
+        "session_mode": str(session_meta.get("session_mode", "inherit_env")),
         "history": {},
         "realtime": {},
         "governed": {},
@@ -191,9 +201,34 @@ def main() -> int:
             _print_block("governed", governed_payload, pretty=args.pretty)
         except Exception as exc:
             exit_code = 1
-            history_payload = {"ok": False, "error": str(exc)}
+            governed = {}
+            try:
+                governed = fetch_stock_hist_governed(
+                    symbol=args.symbol,
+                    start_date=args.start_date,
+                    end_date=args.end_date,
+                )
+            except Exception:
+                governed = {}
+
+            history_payload = {
+                "ok": False,
+                "error": str(exc),
+                "failure_kind": governed.get("meta", {}).get("failure_kind", ""),
+                "fallback_reason": governed.get("meta", {}).get("fallback_reason", ""),
+                "data_source": governed.get("data_source", ""),
+            }
             results["history"] = history_payload
+            results["governed"] = {
+                "ok": bool(governed),
+                "data_source": governed.get("data_source", ""),
+                "reason": governed.get("reason", ""),
+                "quality": governed.get("quality", {}),
+                "meta": governed.get("meta", {}),
+            }
             _print_block("history", history_payload, pretty=args.pretty)
+            if governed:
+                _print_block("governed", results["governed"], pretty=args.pretty)
 
     if not args.skip_realtime:
         try:

@@ -323,6 +323,8 @@ python examples/eastmoney_live_check.py --cookie-file .\\eastmoney.cookie --skip
 
 联调脚本会输出 `cookie_source`、`cookie_loaded`、`has_jsessionid` 等诊断信息，方便先确认配置，再看接口结果。
 
+当前东财会话默认会继承运行环境里的代理设置；如果你需要显式关闭这层继承，可以设置 `EASTMONEY_TRUST_ENV=0`。这次历史行情修复的重点，就是避免把这层环境路由写死成不可用的默认值。
+
 如果历史行情仍然失败，联调脚本还会给出 `failure_kind` 和 `fallback_reason`，帮助区分请求异常、响应异常和质量异常。
 
 如果你只是想快速判断数据源是不是正常，先看统一健康摘要里的 `status`，再看 `history_source` 和 `fundamental_source`，最后再看原因字段。
