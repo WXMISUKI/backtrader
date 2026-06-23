@@ -7,9 +7,7 @@
 同时提供治理后的统一入口，便于上层读取 data_source / quality / reason。
 """
 
-import requests
 import pandas as pd
-import numpy as np
 from typing import Optional, Tuple, Any, Dict
 
 # 导入配置
@@ -24,6 +22,8 @@ from eastmoney_config import (
     get_eastmoney_session,
 )
 from .governance import build_snapshot, DataQualityChecker
+from .history_diagnostics import build_offline_history_snapshot, classify_stock_hist_failure
+from .history_router import fetch_eastmoney_history_dataframe, route_stock_history
 
 
 def get_stock_hist(
@@ -46,65 +46,13 @@ def get_stock_hist(
     返回:
         pd.DataFrame: OHLCV 数据
     """
-    # 周期映射
-    period_map = {
-        "daily": "101",
-        "weekly": "102",
-        "monthly": "103"
-    }
-
-    # 复权映射
-    adjust_map = {
-        "qfq": "1",
-        "hfq": "2",
-        "": "0"
-    }
-
-    # 市场代码
-    market = "0" if symbol.startswith("0") or symbol.startswith("3") else "1"
-
-    url = f"{EASTMONEY_API_BASE}/api/qt/stock/kline/get"
-    params = {
-        "fields1": "f1,f2,f3,f4,f5,f6",
-        "fields2": "f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f116",
-        "ut": "7eea3edcaed734bea9cbfc24409ed989",
-        "klt": period_map.get(period, "101"),
-        "fqt": adjust_map.get(adjust, "1"),
-        "secid": f"{market}.{symbol}",
-        "beg": start_date,
-        "end": end_date
-    }
-
-    session = get_eastmoney_session()
-    r = session.get(url, params=params, cookies=EASTMONEY_COOKIES,
-                    headers=EASTMONEY_HEADERS, timeout=30)
-
-    if r.status_code != 200:
-        raise Exception(f"请求失败: {r.status_code}")
-
-    data = r.json()
-    if "data" not in data or not data["data"] or "klines" not in data["data"]:
-        raise Exception("返回数据格式异常")
-
-    klines = data["data"]["klines"]
-    records = []
-    for line in klines:
-        parts = line.split(",")
-        records.append({
-            "date": parts[0],
-            "open": float(parts[1]),
-            "close": float(parts[2]),
-            "high": float(parts[3]),
-            "low": float(parts[4]),
-            "volume": float(parts[5]),
-            "amount": float(parts[6])
-        })
-
-    df = pd.DataFrame(records)
-    df["date"] = pd.to_datetime(df["date"])
-    df.set_index("date", inplace=True)
-
-    return df
+    return fetch_eastmoney_history_dataframe(
+        symbol=symbol,
+        start_date=start_date,
+        end_date=end_date,
+        period=period,
+        adjust=adjust,
+    )
 
 
 def fetch_stock_hist_governed(
@@ -119,58 +67,13 @@ def fetch_stock_hist_governed(
 
     返回值保留原始行情数据，同时补充质量、降级和来源信息。
     """
-    checker = DataQualityChecker()
-    data_source = "real"
-    reason = "ok"
-    failure_kind = ""
-
-    try:
-        df = get_stock_hist(
-            symbol=symbol,
-            start_date=start_date,
-            end_date=end_date,
-            period=period,
-            adjust=adjust,
-        )
-        quality = checker.check_ohlcv_dataframe(df)
-        if not quality.get("ok"):
-            failure_kind = "quality"
-            raise ValueError(quality.get("reason", "quality check failed"))
-    except Exception as exc:
-        df = _build_fallback_stock_hist(symbol, end_date=end_date)
-        data_source = "mock"
-        reason = str(exc)
-        if not failure_kind:
-            reason_text = str(exc).lower()
-            if "remote end closed connection" in reason_text or "connection aborted" in reason_text:
-                failure_kind = "request"
-            elif "返回数据格式异常" in str(exc) or "json" in reason_text:
-                failure_kind = "response"
-            else:
-                failure_kind = "request"
-        quality = checker.check_ohlcv_dataframe(df)
-
-    snapshot = build_snapshot(
-        name=f"stock_hist:{symbol}",
-        payload=df,
-        source=data_source,
-        degraded=data_source != "real",
-        reason=reason,
+    return route_stock_history(
+        symbol=symbol,
+        start_date=start_date,
+        end_date=end_date,
+        period=period,
+        adjust=adjust,
     )
-    snapshot.quality = quality
-    snapshot.data_source = data_source
-    snapshot.meta.update(
-        {
-            "symbol": symbol,
-            "start_date": start_date,
-            "end_date": end_date,
-            "period": period,
-            "adjust": adjust,
-            "failure_kind": failure_kind,
-            "fallback_reason": reason if data_source != "real" else "",
-        }
-    )
-    return snapshot.to_dict()
 
 
 def _build_fallback_stock_hist(stock_code: str, end_date: str = "20260614") -> pd.DataFrame:

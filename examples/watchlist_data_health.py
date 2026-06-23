@@ -112,6 +112,12 @@ def _print_item(item: dict[str, Any]) -> None:
     print(f"- {item['stock_code']} {item['name']} [{item['status']}]")
     print(f"  摘要: {item['summary']}")
     print(f"  历史: source={item['history_source']} | reason={item['history_reason']} | quality_ok={item['history_quality'].get('ok', False)}")
+    if item.get("history_selected_provider"):
+        print(
+            f"  历史 provider: {item['history_selected_provider']} | "
+            f"attempts={len(item.get('history_provider_attempts', []))} | "
+            f"summary={item.get('history_provider_summary', '')}"
+        )
     print(f"  基本面: source={item['fundamental_source']} | reason={item['fundamental_reason']} | quality_ok={item['fundamental_quality'].get('ok', False)}")
     print(f"  分值: {item['health_score']} | flags={item['flags']}")
 

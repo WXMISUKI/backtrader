@@ -231,10 +231,20 @@ def build_data_health_summary(*, stock_name: str, history: dict[str, Any], funda
     """把历史行情和基本面治理结果收成统一健康摘要。"""
     history_quality = history.get("quality", {}) if isinstance(history, dict) else {}
     fundamental_quality = fundamental.get("quality", {}) if isinstance(fundamental, dict) else {}
+    history_meta = history.get("meta", {}) if isinstance(history.get("meta", {}), dict) else {}
+    fundamental_meta = fundamental.get("meta", {}) if isinstance(fundamental.get("meta", {}), dict) else {}
     history_source = str(history.get("data_source", "unknown"))
     fundamental_source = str(fundamental.get("data_source", "unknown"))
     history_reason = str(history.get("reason", "")) or str(history_quality.get("reason", ""))
     fundamental_reason = str(fundamental.get("reason", "")) or str(fundamental_quality.get("reason", ""))
+    history_failure_stage = str(history.get("failure_stage", "") or history_meta.get("failure_stage", ""))
+    history_failure_code = str(history.get("failure_code", "") or history_meta.get("failure_code", ""))
+    history_fallback_strategy = str(history.get("fallback_strategy", "") or history_meta.get("fallback_strategy", ""))
+    history_selected_provider = str(history.get("selected_provider", "") or history_meta.get("selected_provider", ""))
+    history_provider_attempts = history.get("provider_attempts", history_meta.get("provider_attempts", []))
+    fundamental_failure_stage = str(fundamental.get("failure_stage", "") or fundamental_meta.get("failure_stage", ""))
+    fundamental_failure_code = str(fundamental.get("failure_code", "") or fundamental_meta.get("failure_code", ""))
+    fundamental_fallback_strategy = str(fundamental.get("fallback_strategy", "") or fundamental_meta.get("fallback_strategy", ""))
     history_degraded = bool(history.get("is_degraded", False))
     fundamental_degraded = bool(fundamental.get("is_degraded", False))
 
@@ -284,12 +294,31 @@ def build_data_health_summary(*, stock_name: str, history: dict[str, Any], funda
             history_confidence["reason_codes"] + fundamental_confidence["reason_codes"]
         )
     )
+    for prefix, value in (
+        ("history_failure_stage", history_failure_stage),
+        ("history_failure_code", history_failure_code),
+        ("history_fallback_strategy", history_fallback_strategy),
+        ("fundamental_failure_stage", fundamental_failure_stage),
+        ("fundamental_failure_code", fundamental_failure_code),
+        ("fundamental_fallback_strategy", fundamental_fallback_strategy),
+    ):
+        if value:
+            normalized_reasons.append(f"{prefix}:{_normalize_reason_code(value)}")
+    normalized_reasons = list(dict.fromkeys(normalized_reasons))
     diagnosis = _build_health_diagnosis(
         stock_name=stock_name,
         history_source=history_source,
         fundamental_source=fundamental_source,
         history_reason=history_reason,
         fundamental_reason=fundamental_reason,
+        history_failure_stage=history_failure_stage,
+        history_failure_code=history_failure_code,
+        history_fallback_strategy=history_fallback_strategy,
+        history_selected_provider=history_selected_provider,
+        history_provider_attempts=history_provider_attempts,
+        fundamental_failure_stage=fundamental_failure_stage,
+        fundamental_failure_code=fundamental_failure_code,
+        fundamental_fallback_strategy=fundamental_fallback_strategy,
         history_degraded=history_degraded,
         fundamental_degraded=fundamental_degraded,
         history_quality=history_quality,
@@ -304,6 +333,19 @@ def build_data_health_summary(*, stock_name: str, history: dict[str, Any], funda
         "fundamental_quality": fundamental_quality,
         "history_reason": history_reason,
         "fundamental_reason": fundamental_reason,
+        "history_failure_stage": history_failure_stage,
+        "history_failure_code": history_failure_code,
+        "history_fallback_strategy": history_fallback_strategy,
+        "history_selected_provider": history_selected_provider,
+        "history_provider_attempts": history_provider_attempts,
+        "history_provider_summary": _build_history_provider_summary(
+            selected_provider=history_selected_provider,
+            attempts=history_provider_attempts,
+            fallback_strategy=history_fallback_strategy,
+        ),
+        "fundamental_failure_stage": fundamental_failure_stage,
+        "fundamental_failure_code": fundamental_failure_code,
+        "fundamental_fallback_strategy": fundamental_fallback_strategy,
         "data_confidence": data_confidence,
         "confidence_level": confidence_level,
         "confidence_breakdown": {
@@ -320,6 +362,21 @@ def build_data_health_summary(*, stock_name: str, history: dict[str, Any], funda
             "fundamental_quality_ok": bool(fundamental_quality.get("ok", False)),
         },
     }
+
+
+def _build_history_provider_summary(
+    *,
+    selected_provider: str,
+    attempts: list[dict[str, Any]] | list[Any],
+    fallback_strategy: str,
+) -> str:
+    provider = str(selected_provider or "").strip() or "unknown"
+    attempt_count = len(attempts) if isinstance(attempts, list) else 0
+    summary_parts = [f"历史 provider {provider}"]
+    summary_parts.append(f"尝试 {attempt_count} 次")
+    if fallback_strategy:
+        summary_parts.append(f"回退策略 {fallback_strategy}")
+    return "；".join(summary_parts)
 
 
 def build_daily_diagnosis_summary(*, health_groups: dict[str, list[dict[str, Any]]], decision_groups: dict[str, list[dict[str, Any]]]) -> dict[str, Any]:
@@ -1215,6 +1272,14 @@ def _build_health_diagnosis(
     fundamental_source: str,
     history_reason: str,
     fundamental_reason: str,
+    history_failure_stage: str,
+    history_failure_code: str,
+    history_fallback_strategy: str,
+    history_selected_provider: str,
+    history_provider_attempts: list[dict[str, Any]] | list[Any],
+    fundamental_failure_stage: str,
+    fundamental_failure_code: str,
+    fundamental_fallback_strategy: str,
     history_degraded: bool,
     fundamental_degraded: bool,
     history_quality: dict[str, Any],
@@ -1294,6 +1359,28 @@ def _build_health_diagnosis(
         f"历史={history_source}({history_reason or 'ok'})",
         f"基本面={fundamental_source}({fundamental_reason or 'ok'})",
     ]
+    if history_failure_stage or history_failure_code or history_fallback_strategy:
+        detail_parts.append(
+            "历史失败="
+            + "/".join(
+                part
+                for part in [history_failure_stage, history_failure_code, history_fallback_strategy]
+                if part
+            )
+        )
+    if history_selected_provider:
+        detail_parts.append(f"历史选择={history_selected_provider}")
+    if history_provider_attempts:
+        detail_parts.append(f"历史尝试={len(history_provider_attempts)} 次")
+    if fundamental_failure_stage or fundamental_failure_code or fundamental_fallback_strategy:
+        detail_parts.append(
+            "基本面失败="
+            + "/".join(
+                part
+                for part in [fundamental_failure_stage, fundamental_failure_code, fundamental_fallback_strategy]
+                if part
+            )
+        )
     summary = f"{stock_name} 主要诊断: {label}。"
     if cause != "healthy":
         summary = f"{stock_name} 主要诊断: {label}；" + "；".join(detail_parts)
@@ -1309,6 +1396,14 @@ def _build_health_diagnosis(
             "fundamental_source": fundamental_source,
             "history_reason": history_reason,
             "fundamental_reason": fundamental_reason,
+            "history_failure_stage": history_failure_stage,
+            "history_failure_code": history_failure_code,
+            "history_fallback_strategy": history_fallback_strategy,
+            "history_selected_provider": history_selected_provider,
+            "history_provider_attempts": history_provider_attempts,
+            "fundamental_failure_stage": fundamental_failure_stage,
+            "fundamental_failure_code": fundamental_failure_code,
+            "fundamental_fallback_strategy": fundamental_fallback_strategy,
             "history_quality_ok": history_ok,
             "fundamental_quality_ok": fundamental_ok,
         },

@@ -7,5 +7,12 @@ Core 目录包含系统的核心功能模块
 - risk: 风险控制
 - agent: 智能体编排和工具接入
 """
-from .orchestrator import StockOrchestrator, create_stock_orchestrator
-from .api_server import create_agent_api_server, run_agent_api_server
+
+try:
+    from .orchestrator import StockOrchestrator, create_stock_orchestrator
+    from .api_server import create_agent_api_server, run_agent_api_server
+except Exception:
+    StockOrchestrator = None
+    create_stock_orchestrator = None
+    create_agent_api_server = None
+    run_agent_api_server = None

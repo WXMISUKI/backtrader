@@ -323,16 +323,42 @@ python examples/eastmoney_live_check.py --cookie-file .\\eastmoney.cookie --skip
 
 联调脚本会输出 `cookie_source`、`cookie_loaded`、`has_jsessionid` 等诊断信息，方便先确认配置，再看接口结果。
 
+如果你想把浏览器里导出的 cookie 先标准化、再写回项目本地配置，并顺手做一次历史行情验证，可以跑：
+
+```bash
+python examples/eastmoney_cookie_refresh.py --cookie-file .\\eastmoney.cookie --persist --smoke-test
+```
+
+如果你要联调 AKShare 相关的历史行情备选源，请切到专门的 `akshare-bt` 环境再跑：
+
+```bash
+conda run -n akshare-bt python -c "import akshare as ak; print(ak.__version__)"
+```
+
+当前多源路由会优先尝试东方财富，再尝试 AKShare，最后才落到离线兜底；你可以通过 `selected_provider` 和 `provider_attempts` 判断今天最终走的是哪条路。
+
 当前东财会话默认会继承运行环境里的代理设置；如果你需要显式关闭这层继承，可以设置 `EASTMONEY_TRUST_ENV=0`。这次历史行情修复的重点，就是避免把这层环境路由写死成不可用的默认值。
 
-如果历史行情仍然失败，联调脚本还会给出 `failure_kind` 和 `fallback_reason`，帮助区分请求异常、响应异常和质量异常。
+如果历史行情仍然失败，联调脚本还会给出 `failure_kind`、`failure_stage`、`failure_code`、`fallback_strategy` 和 `fallback_reason`，帮助区分请求异常、响应异常、质量异常，以及当前到底用了哪种回退策略。
 
-如果你只是想快速判断数据源是不是正常，先看统一健康摘要里的 `status`，再看 `history_source` 和 `fundamental_source`，最后再看原因字段。
+如果你只是想快速判断数据源是不是正常，先看统一健康摘要里的 `status`，再看 `history_source` 和 `fundamental_source`，最后再看原因字段；如果历史链路降级，再顺手看 `history_failure_stage` 和 `history_failure_code`，就能更快定位是请求层、响应层还是质量层的问题。
 
 如果你想跑一个最小的回归测试，确认历史行情失败时会稳定标记为 `request`，可以跑：
 
 ```bash
-python -m pytest tests/test_eastmoney_history_diagnosis.py -q
+python -m pytest tests/test_eastmoney_history_resilience.py -q
+```
+
+如果你想验证历史行情多源路由、cookie 解析和最终 provider 记录，可以跑：
+
+```bash
+python -m pytest tests/test_history_multisource_routing.py tests/test_eastmoney_history_resilience.py -q
+```
+
+如果你想确认健康预检、统一流水线和投产验收都能看见 `history_selected_provider`，可以跑：
+
+```bash
+python -m pytest tests/test_history_provider_visibility.py -q
 ```
 
 留档包现在会按固定结构输出：

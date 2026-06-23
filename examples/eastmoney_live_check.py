@@ -46,51 +46,6 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _parse_cookie_blob(cookie_blob: str) -> dict[str, str]:
-    cookies: dict[str, str] = {}
-    text = (cookie_blob or "").strip()
-    if not text:
-        return cookies
-
-    for chunk in text.split(";"):
-        part = chunk.strip()
-        if not part or "=" not in part:
-            continue
-        key, value = part.split("=", 1)
-        key = key.strip()
-        value = value.strip()
-        if key and value:
-            cookies[key] = value
-
-    if cookies:
-        return cookies
-
-    for raw_line in text.splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        if "\t" in line:
-            columns = [col.strip() for col in line.split("\t")]
-            if len(columns) >= 2 and columns[0] and columns[1]:
-                cookies[columns[0]] = columns[1]
-                continue
-        if "=" in line:
-            key, value = line.split("=", 1)
-            key = key.strip()
-            value = value.strip()
-            if key and value:
-                cookies[key] = value
-
-    return cookies
-
-
-def _load_cookie_from_file(path: str) -> str:
-    p = Path(path).expanduser()
-    if not p.exists():
-        raise FileNotFoundError(f"cookie file not found: {p}")
-    return p.read_text(encoding="utf-8").strip()
-
-
 def _print_block(title: str, payload: Any, pretty: bool = True) -> None:
     print(f"\n== {title} ==")
     if pretty:
@@ -105,11 +60,15 @@ def main() -> int:
 
     cookie_value = args.cookie_text.strip() or args.cookie.strip()
     if not cookie_value and args.cookie_file:
-        cookie_value = _load_cookie_from_file(args.cookie_file)
+        from core.data.eastmoney_cookie_tools import load_cookie_file
+
+        cookie_value = load_cookie_file(args.cookie_file)
     if cookie_value:
-        parsed = _parse_cookie_blob(cookie_value)
+        from core.data.eastmoney_cookie_tools import format_cookie_string, parse_cookie_blob
+
+        parsed = parse_cookie_blob(cookie_value)
         if parsed:
-            os.environ["EASTMONEY_COOKIE"] = "; ".join(f"{k}={v}" for k, v in parsed.items())
+            os.environ["EASTMONEY_COOKIE"] = format_cookie_string(parsed)
         else:
             os.environ["EASTMONEY_COOKIE"] = cookie_value
 
@@ -186,7 +145,12 @@ def main() -> int:
                 "reason": governed.get("reason", ""),
                 "quality": governed.get("quality", {}),
                 "failure_kind": governed.get("meta", {}).get("failure_kind", ""),
+                "failure_stage": governed.get("meta", {}).get("failure_stage", ""),
+                "failure_code": governed.get("meta", {}).get("failure_code", ""),
+                "fallback_strategy": governed.get("meta", {}).get("fallback_strategy", ""),
                 "fallback_reason": governed.get("meta", {}).get("fallback_reason", ""),
+                "selected_provider": governed.get("meta", {}).get("selected_provider", ""),
+                "provider_attempts": governed.get("meta", {}).get("provider_attempts", []),
             }
             governed_payload = {
                 "ok": True,
@@ -215,8 +179,13 @@ def main() -> int:
                 "ok": False,
                 "error": str(exc),
                 "failure_kind": governed.get("meta", {}).get("failure_kind", ""),
+                "failure_stage": governed.get("meta", {}).get("failure_stage", ""),
+                "failure_code": governed.get("meta", {}).get("failure_code", ""),
+                "fallback_strategy": governed.get("meta", {}).get("fallback_strategy", ""),
                 "fallback_reason": governed.get("meta", {}).get("fallback_reason", ""),
                 "data_source": governed.get("data_source", ""),
+                "selected_provider": governed.get("meta", {}).get("selected_provider", ""),
+                "provider_attempts": governed.get("meta", {}).get("provider_attempts", []),
             }
             results["history"] = history_payload
             results["governed"] = {

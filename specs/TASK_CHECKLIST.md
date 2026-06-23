@@ -1,6 +1,6 @@
 # 开发任务清单
 
-## 当前迭代: Phase 1 - 核心基础
+## 当前迭代: Phase 74 - 历史行情 provider 可见性下沉
 
 ### 任务状态说明
 - ⬜ 待开始
@@ -1009,6 +1009,59 @@
 | 71.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE71_EASTMONEY_SESSION_ROUTING.md` |
 | 71.6 | 更新知识库与任务清单 | P1 | ✅ | - | 沉淀接口路由判断 |
 
+## Phase 72: 东方财富历史行情数据源韧性与回退策略
+
+**SDD规格文档**: `specs/SDD_PHASE72_EASTMONEY_HISTORY_RESILIENCE.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 72.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE72_EASTMONEY_HISTORY_RESILIENCE.md` |
+| 72.1 | 实现历史失败结构化分类 | P0 | ✅ | - | `core/data/eastmoney_api.py` |
+| 72.2 | 治理快照补充失败元数据 | P0 | ✅ | - | `core/data/eastmoney_api.py` |
+| 72.3 | 联调脚本展示失败分层和回退策略 | P1 | ✅ | - | `examples/eastmoney_live_check.py` |
+| 72.4 | 日常健康摘要消费结构化失败字段 | P1 | ✅ | - | `examples/watchlist_shared.py` |
+| 72.5 | 增加最小回归测试 | P0 | ✅ | - | `tests/test_eastmoney_history_resilience.py` |
+| 72.6 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 72.7 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE72_EASTMONEY_HISTORY_RESILIENCE.md` |
+| 72.8 | 更新路线图与任务清单 | P1 | ✅ | - | 数据源韧性语义收口 |
+
+## Phase 73: 历史行情多源路由与 cookie 刷新自动化
+
+**SDD规格文档**: `specs/SDD_PHASE73_HISTORY_MULTISOURCE_ROUTING.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 73.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE73_HISTORY_MULTISOURCE_ROUTING.md` |
+| 73.1 | 定义统一历史行情 provider 契约 | P0 | ✅ | - | 多源路由抽象 |
+| 73.2 | 适配 `eastmoney_direct` provider | P0 | ✅ | - | 复用现有东财历史接口 |
+| 73.3 | 适配 `akshare_hist` provider | P0 | ✅ | - | 作为稳定备选源 |
+| 73.4 | 预留 `ths_hist` provider | P1 | ✅ | - | 最小探测与可用性标记 |
+| 73.5 | 实现 provider 路由器 | P0 | ✅ | - | 按可用性和失败语义选择来源 |
+| 73.6 | 将 provider 尝试链写入治理快照 | P0 | ✅ | - | `selected_provider` / `provider_attempts` |
+| 73.7 | 编写 cookie 刷新 helper 方案 | P0 | ✅ | - | 本地自动化导出 cookie |
+| 73.8 | 让联调脚本展示多源尝试链 | P1 | ✅ | - | `examples/eastmoney_live_check.py` |
+| 73.9 | 让日常健康摘要展示最终 provider | P1 | ✅ | - | `examples/watchlist_shared.py` |
+| 73.10 | 增加最小回归测试 | P0 | ✅ | - | 覆盖主源失败、备源接管、最终兜底 |
+| 73.11 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 73.12 | 编写归档文档 | P1 | ✅ | - | 记录多源路由结果 |
+| 73.13 | 更新路线图与任务清单 | P1 | ✅ | - | 固化数据源路由语义 |
+
+## Phase 74: 历史行情 provider 可见性下沉
+
+**SDD规格文档**: `specs/SDD_PHASE74_HISTORY_PROVIDER_VISIBILITY.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 74.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE74_HISTORY_PROVIDER_VISIBILITY.md` |
+| 74.1 | 透传历史 provider 到健康摘要 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 74.2 | 在健康预检中展示 provider | P0 | ✅ | - | `examples/watchlist_data_health.py` |
+| 74.3 | 在日常流水线中展示 provider | P0 | ✅ | - | `examples/daily_watchlist_pipeline.py` |
+| 74.4 | 在投产验收中检查 provider | P1 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 74.5 | 增加最小回归测试 | P0 | ✅ | - | `tests/test_history_provider_visibility.py` |
+| 74.6 | 更新运行说明 | P1 | ✅ | - | `README_QUANT.md` |
+| 74.7 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE74_HISTORY_PROVIDER_VISIBILITY.md` |
+| 74.8 | 更新路线图与任务清单 | P1 | ✅ | - | 任务状态已收口 |
+
 ---
 
 ## 下一步行动
@@ -1016,7 +1069,8 @@
 1. **当前**: 以 `production_gate` + `action_list` 作为默认日常查看顺序
 2. **随后**: 以 `prompt_context` 作为日常提示词和 Skill 的共享语境
 3. **再后**: 以 `review_brief` 作为回看的第一眼摘要
-4. **持续**: 观察反馈效果评估、`schedule_hint` 和 `daily_collaboration_pack` 是否稳定
+4. **历史行情链路**: 推进 Phase 74，把 provider 可见性下沉到日常入口和验收入口
+5. **持续**: 观察反馈效果评估、`schedule_hint` 和 `daily_collaboration_pack` 是否稳定
 
 ---
 

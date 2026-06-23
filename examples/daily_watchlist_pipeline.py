@@ -144,6 +144,9 @@ def _build_history_summary(*, raw: dict[str, Any], stock_code: str, stock_name: 
         "fundamental_quality": health["fundamental_quality"],
         "history_reason": health["history_reason"],
         "fundamental_reason": health["fundamental_reason"],
+        "history_selected_provider": health.get("history_selected_provider", ""),
+        "history_provider_attempts": health.get("history_provider_attempts", []),
+        "history_provider_summary": health.get("history_provider_summary", ""),
         "summary": health["summary"],
         "diagnosis": health.get("diagnosis", {}),
         "flags": health["flags"],
@@ -909,6 +912,12 @@ def main() -> int:
         print(f"\n-- {title} ({len(items)}) --")
         for item in items[:5]:
             print(f"- {item['stock_code']} {item['name']} [{item['status']}] {item['summary']}")
+            if item.get("history_selected_provider"):
+                print(
+                    f"  provider: {item['history_selected_provider']} | "
+                    f"attempts={len(item.get('history_provider_attempts', []))} | "
+                    f"summary={item.get('history_provider_summary', '')}"
+                )
 
     print("\n== 日常决策清单 ==")
     print(f"总计: {len(decision_items)} 只，重点关注 {len(decision_groups['重点关注'])}，继续观察 {len(decision_groups['继续观察'])}，暂不行动 {len(decision_groups['暂不行动'])}，数据不足 {len(decision_groups['数据不足'])}")

@@ -107,6 +107,10 @@ def main() -> int:
         and "average_confidence" in daily_summary
     )
     health_items = latest_payload.get("health", {}).get("items", []) if isinstance(latest_payload, dict) else []
+    history_provider_visible = any(
+        isinstance(item, dict) and bool(item.get("history_selected_provider"))
+        for item in health_items
+    )
     diagnosis_evidence = build_diagnosis_evidence(daily_summary=daily_summary, health_items=health_items if isinstance(health_items, list) else [])
     diagnosis_ok = isinstance(diagnosis_evidence, dict) and isinstance(diagnosis_evidence.get("sample_items", []), list)
     action_list = latest_payload.get("action_list", {}) if isinstance(latest_payload, dict) else {}
@@ -181,6 +185,7 @@ def main() -> int:
         "schedule_hint": schedule_hint_ok,
         "daily_collaboration_pack": daily_collaboration_pack_ok,
         "review_brief": review_brief_ok,
+        "history_provider_visible": history_provider_visible,
     }
     checks_ok = sum(1 for value in checks.values() if value)
     checks_total = len(checks)
@@ -233,6 +238,7 @@ def main() -> int:
     print(f"schedule_hint: {'存在' if checks['schedule_hint'] else '缺失'}")
     print(f"daily_collaboration_pack: {'存在' if checks['daily_collaboration_pack'] else '缺失'}")
     print(f"review_brief: {'存在' if checks['review_brief'] else '缺失'}")
+    print(f"history_provider_visible: {'存在' if checks['history_provider_visible'] else '缺失'}")
     print(f"diagnosis_evidence: {'存在' if bool(diagnosis_evidence.get('top_causes')) else '缺失'}")
     print(f"review: {'可运行' if review_code == 0 else '不可运行'}")
     print(f"insights: {'可运行' if insights_code == 0 else '不可运行'}")
