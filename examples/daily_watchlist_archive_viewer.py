@@ -28,6 +28,7 @@ from examples.watchlist_shared import (
     build_daily_execution_brief,
     build_daily_prompt_context,
     build_daily_review_brief,
+    build_feedback_effect_brief,
     build_diagnosis_evidence,
     build_production_gate,
     build_schedule_hint,
@@ -146,6 +147,7 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
         )
     feedback_records = _load_jsonl_payload(DEFAULT_FEEDBACK_PATH)
     effects_payload = _load_json_payload(DEFAULT_EFFECTS_JSON)
+    feedback_effect_brief = build_feedback_effect_brief(feedback_effects=effects_payload)
     review_brief = build_daily_review_brief(
         daily_summary=daily_summary,
         production_gate=production_gate,
@@ -153,6 +155,7 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
         run_cadence=run_cadence,
         prompt_context=prompt_context,
         feedback_effects=effects_payload,
+        feedback_effect_brief=feedback_effect_brief,
     )
     if not isinstance(schedule_hint, dict) or not schedule_hint:
         schedule_hint = build_schedule_hint(
@@ -177,6 +180,7 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
         review_brief=review_brief if isinstance(review_brief, dict) else {},
         schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
         daily_collaboration_pack=daily_collaboration_pack if isinstance(daily_collaboration_pack, dict) else {},
+        feedback_effect_brief=feedback_effect_brief if isinstance(feedback_effect_brief, dict) else {},
     )
 
     print_section("自选股日常留档查看")
@@ -200,6 +204,9 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
                 f"命中率 {effects_payload.get('overall', {}).get('hit_rate', 0.0):.1%}，"
                 f"平均回报 {effects_payload.get('overall', {}).get('avg_return', 0.0):.1%}",
             ),
+            ("反馈覆盖", feedback_effect_brief.get("coverage_summary", "")),
+            ("反馈稳定性", feedback_effect_brief.get("stability_note", "")),
+            ("反馈效果简报", feedback_effect_brief.get("summary_text", "")),
             ("行动清单", action_list.get("summary_text", "")),
             ("运行节奏", run_cadence.get("summary_text", "")),
             ("下一步", run_cadence.get("next_step", "")),
@@ -264,6 +271,9 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
                 ("命中率", f"{overall.get('hit_rate', 0.0):.1%}"),
             ]
         )
+    if isinstance(feedback_effect_brief, dict) and feedback_effect_brief.get("rules"):
+        print_section("反馈效果简报")
+        print_bullets([str(rule) for rule in feedback_effect_brief.get("rules", [])[:6]])
 
     if isinstance(action_list, dict) and action_list.get("items"):
         print_section("行动清单")

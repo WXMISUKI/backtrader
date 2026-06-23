@@ -1069,15 +1069,15 @@
 | # | 任务 | 优先级 | 状态 | 负责 | 备注 |
 |---|------|--------|------|------|------|
 | 75.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE75_DAILY_EXECUTION_BRIEF.md` |
-| 75.1 | 构建共享执行简报 | P0 | ⬜ | - | `examples/watchlist_shared.py` |
-| 75.2 | 在日常运行状态中写入执行简报 | P0 | ⬜ | - | `examples/daily_watchlist_daily_run.py` |
-| 75.3 | 在默认工作流中展示执行简报 | P0 | ⬜ | - | `examples/daily_watchlist_flow.py` |
-| 75.4 | 在留档查看入口展示执行简报 | P0 | ⬜ | - | `examples/daily_watchlist_archive_viewer.py` |
-| 75.5 | 在回看入口展示执行简报 | P1 | ⬜ | - | `examples/daily_watchlist_review.py` |
-| 75.6 | 在投产验收中检查执行简报 | P1 | ⬜ | - | `examples/daily_watchlist_acceptance.py` |
-| 75.7 | 在智能体提示词中优先识别执行简报 | P1 | ⬜ | - | `core/agent/client.py` |
-| 75.8 | 编写归档文档 | P1 | ⬜ | - | `specs/ARCHIVE_PHASE75_DAILY_EXECUTION_BRIEF.md` |
-| 75.9 | 更新路线图与任务清单 | P1 | ⬜ | - | 固化第一屏阅读顺序 |
+| 75.1 | 构建共享执行简报 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 75.2 | 在日常运行状态中写入执行简报 | P0 | ✅ | - | `examples/daily_watchlist_daily_run.py` |
+| 75.3 | 在默认工作流中展示执行简报 | P0 | ✅ | - | `examples/daily_watchlist_flow.py` |
+| 75.4 | 在留档查看入口展示执行简报 | P0 | ✅ | - | `examples/daily_watchlist_archive_viewer.py` |
+| 75.5 | 在回看入口展示执行简报 | P1 | ✅ | - | `examples/daily_watchlist_review.py` |
+| 75.6 | 在投产验收中检查执行简报 | P1 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 75.7 | 在智能体提示词中优先识别执行简报 | P1 | ✅ | - | `core/agent/client.py` |
+| 75.8 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE75_DAILY_EXECUTION_BRIEF.md` |
+| 75.9 | 更新路线图与任务清单 | P1 | ✅ | - | 固化第一屏阅读顺序 |
 
 ## Phase 76: 反馈效果驱动闭环
 
@@ -1086,14 +1086,28 @@
 | # | 任务 | 优先级 | 状态 | 负责 | 备注 |
 |---|------|--------|------|------|------|
 | 76.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE76_FEEDBACK_EFFECT_CLOSURE.md` |
-| 76.1 | 构建统一反馈效果简报 | P0 | ⬜ | - | `examples/watchlist_shared.py` |
-| 76.2 | 让反馈效果脚本输出稳定窗口统计 | P0 | ⬜ | - | `examples/daily_watchlist_feedback_effects.py` |
-| 76.3 | 在回看入口展示反馈效果简报 | P0 | ⬜ | - | `examples/daily_watchlist_review.py` |
-| 76.4 | 在留档查看和执行简报中展示反馈效果简报 | P0 | ⬜ | - | `examples/daily_watchlist_archive_viewer.py` / `examples/daily_watchlist_daily_run.py` |
-| 76.5 | 在投产验收中检查反馈效果简报 | P1 | ⬜ | - | `examples/daily_watchlist_acceptance.py` |
-| 76.6 | 在智能体提示词中识别反馈效果简报 | P1 | ⬜ | - | `core/agent/client.py` |
-| 76.7 | 编写归档文档 | P1 | ⬜ | - | `specs/ARCHIVE_PHASE76_FEEDBACK_EFFECT_CLOSURE.md` |
-| 76.8 | 更新路线图与任务清单 | P1 | ⬜ | - | 固化反馈效果口径 |
+| 76.1 | 构建统一反馈效果简报 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 76.2 | 让反馈效果脚本输出稳定窗口统计 | P0 | ✅ | - | `examples/daily_watchlist_feedback_effects.py` |
+| 76.3 | 在回看入口展示反馈效果简报 | P0 | ✅ | - | `examples/daily_watchlist_review.py` |
+| 76.4 | 在留档查看和执行简报中展示反馈效果简报 | P0 | ✅ | - | `examples/daily_watchlist_archive_viewer.py` / `examples/daily_watchlist_daily_run.py` |
+| 76.5 | 在投产验收中检查反馈效果简报 | P1 | ✅ | - | `examples/daily_watchlist_acceptance.py` |
+| 76.6 | 在智能体提示词中识别反馈效果简报 | P1 | ✅ | - | `core/agent/client.py` |
+| 76.7 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE76_FEEDBACK_EFFECT_CLOSURE.md` |
+| 76.8 | 更新路线图与任务清单 | P1 | ✅ | - | 固化反馈效果口径 |
+
+## Phase 77: 反馈样本口径稳定化
+
+**SDD规格文档**: `specs/SDD_PHASE77_FEEDBACK_SAMPLE_STABILITY.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 77.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE77_FEEDBACK_SAMPLE_STABILITY.md` |
+| 77.1 | 增强反馈效果覆盖摘要 | P0 | ✅ | - | `examples/watchlist_shared.py` |
+| 77.2 | 在回看和留档查看中展示覆盖摘要 | P0 | ✅ | - | `examples/daily_watchlist_review.py` / `examples/daily_watchlist_archive_viewer.py` |
+| 77.3 | 在日常运行和验收中透传覆盖摘要 | P1 | ✅ | - | `examples/daily_watchlist_daily_run.py` / `examples/daily_watchlist_acceptance.py` |
+| 77.4 | 在智能体提示词中识别覆盖偏斜 | P1 | ✅ | - | `core/agent/client.py` |
+| 77.5 | 编写归档文档 | P1 | ✅ | - | 记录样本口径稳定化 |
+| 77.6 | 更新路线图与任务清单 | P1 | ✅ | - | 固化样本稳定性口径 |
 
 ---
 
@@ -1104,7 +1118,7 @@
 3. **再后**: 以 `review_brief` 作为回看的第一眼摘要
 4. **历史行情链路**: 观察 Phase 74 的 provider 可见性在日常使用中是否稳定
 5. **当前重点**: 推进 Phase 76，把反馈效果压成稳定闭环信号
-6. **持续**: 观察 `schedule_hint`、`daily_collaboration_pack` 和 `daily_execution_brief` 是否稳定
+6. **持续**: 观察 `schedule_hint`、`daily_collaboration_pack`、`daily_execution_brief`、`feedback_effect_brief` 和覆盖摘要是否稳定
 
 ---
 

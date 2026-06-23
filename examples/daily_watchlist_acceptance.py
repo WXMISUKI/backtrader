@@ -22,7 +22,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from examples.watchlist_shared import build_daily_collaboration_pack, build_daily_execution_brief, build_daily_review_brief, build_diagnosis_evidence, build_schedule_hint
+from examples.watchlist_shared import build_daily_collaboration_pack, build_daily_execution_brief, build_daily_review_brief, build_diagnosis_evidence, build_feedback_effect_brief, build_schedule_hint
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
@@ -134,13 +134,20 @@ def main() -> int:
         and bool(prompt_context.get("summary_text", ""))
         and bool(prompt_context.get("read_order", []))
     )
+    feedback_effects = _load_json_payload(ROOT_DIR / "logs" / "daily_watchlist_feedback_effects.json")
+    feedback_effect_brief = feedback_effects.get("feedback_effect_brief", {}) if isinstance(feedback_effects, dict) else {}
+    if not isinstance(feedback_effect_brief, dict) or not feedback_effect_brief:
+        feedback_effect_brief = build_feedback_effect_brief(feedback_effects=feedback_effects if isinstance(feedback_effects, dict) else {})
+    feedback_effect_brief_ok = isinstance(feedback_effect_brief, dict) and bool(feedback_effect_brief.get("summary_text", "")) and bool(feedback_effect_brief.get("read_order", []))
+    feedback_coverage_ok = isinstance(feedback_effect_brief, dict) and bool(feedback_effect_brief.get("coverage_summary", ""))
     review_brief = build_daily_review_brief(
         daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
         production_gate=latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {},
         action_list=action_list if isinstance(action_list, dict) else {},
         run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
         prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
-        feedback_effects=_load_json_payload(ROOT_DIR / "logs" / "daily_watchlist_feedback_effects.json"),
+        feedback_effects=feedback_effects,
+        feedback_effect_brief=feedback_effect_brief if isinstance(feedback_effect_brief, dict) else {},
     )
     review_brief_ok = isinstance(review_brief, dict) and bool(review_brief.get("summary_text", "")) and bool(review_brief.get("read_order", []))
     run_status_payload = _load_json_payload(run_status_path) if run_status_path.exists() else {}
@@ -180,6 +187,7 @@ def main() -> int:
             review_brief=review_brief if isinstance(review_brief, dict) else {},
             schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
             daily_collaboration_pack=daily_collaboration_pack if isinstance(daily_collaboration_pack, dict) else {},
+            feedback_effect_brief=feedback_effect_brief if isinstance(feedback_effect_brief, dict) else {},
         )
     daily_execution_brief_ok = isinstance(daily_execution_brief, dict) and bool(daily_execution_brief.get("summary_text", "")) and bool(daily_execution_brief.get("read_order", []))
 
@@ -199,6 +207,8 @@ def main() -> int:
         "daily_collaboration_pack": daily_collaboration_pack_ok,
         "daily_execution_brief": daily_execution_brief_ok,
         "review_brief": review_brief_ok,
+        "feedback_effect_brief": feedback_effect_brief_ok,
+        "feedback_coverage": feedback_coverage_ok,
         "history_provider_visible": history_provider_visible,
     }
     checks_ok = sum(1 for value in checks.values() if value)
@@ -253,6 +263,8 @@ def main() -> int:
     print(f"daily_collaboration_pack: {'存在' if checks['daily_collaboration_pack'] else '缺失'}")
     print(f"daily_execution_brief: {'存在' if checks['daily_execution_brief'] else '缺失'}")
     print(f"review_brief: {'存在' if checks['review_brief'] else '缺失'}")
+    print(f"feedback_effect_brief: {'存在' if checks['feedback_effect_brief'] else '缺失'}")
+    print(f"feedback_coverage: {'存在' if checks['feedback_coverage'] else '缺失'}")
     print(f"history_provider_visible: {'存在' if checks['history_provider_visible'] else '缺失'}")
     print(f"diagnosis_evidence: {'存在' if bool(diagnosis_evidence.get('top_causes')) else '缺失'}")
     print(f"review: {'可运行' if review_code == 0 else '不可运行'}")

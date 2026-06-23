@@ -524,6 +524,122 @@ def build_diagnosis_evidence(*, daily_summary: dict[str, Any], health_items: lis
     }
 
 
+def build_feedback_effect_brief(*, feedback_effects: dict[str, Any] | None = None) -> dict[str, Any]:
+    """把反馈效果统计收成可复用的轻量闭环简报。"""
+    feedback_effects = feedback_effects if isinstance(feedback_effects, dict) else {}
+    overall = feedback_effects.get("overall", {}) if isinstance(feedback_effects.get("overall", {}), dict) else {}
+    windows = feedback_effects.get("windows", {}) if isinstance(feedback_effects.get("windows", {}), dict) else {}
+    samples = feedback_effects.get("samples", []) if isinstance(feedback_effects.get("samples", []), list) else []
+
+    usable_feedback = safe_int(overall.get("usable_feedback"), 0)
+    evaluated_rows = safe_int(overall.get("evaluated_rows"), 0)
+    hit_rate = safe_float(overall.get("hit_rate"), 0.0)
+    avg_return = safe_float(overall.get("avg_return"), 0.0)
+
+    window_summary: dict[str, dict[str, Any]] = {}
+    for window_key in ("1", "3", "5"):
+        window_item = windows.get(window_key, {}) if isinstance(windows.get(window_key, {}), dict) else {}
+        window_summary[window_key] = {
+            "evaluable": safe_int(window_item.get("evaluable"), 0),
+            "positive": safe_int(window_item.get("positive"), 0),
+            "negative": safe_int(window_item.get("negative"), 0),
+            "flat": safe_int(window_item.get("flat"), 0),
+            "avg_return": safe_float(window_item.get("avg_return"), 0.0),
+            "hit_count": safe_int(window_item.get("hit_count"), 0),
+            "hit_rate": safe_float(window_item.get("hit_rate"), 0.0),
+            "sample_count": safe_int(window_item.get("sample_count"), 0),
+        }
+
+    excluded_reasons: list[str] = []
+    if usable_feedback == 0:
+        excluded_reasons.append("usable_feedback_zero")
+    if evaluated_rows == 0:
+        excluded_reasons.append("evaluated_rows_zero")
+    if not samples and usable_feedback > 0:
+        excluded_reasons.append("sample_records_missing")
+    if sum(item.get("evaluable", 0) for item in window_summary.values()) == 0:
+        excluded_reasons.append("window_evaluable_zero")
+
+    window_evaluable_values = [item.get("evaluable", 0) for item in window_summary.values()]
+    max_window_evaluable = max(window_evaluable_values) if window_evaluable_values else 0
+    min_window_evaluable = min(window_evaluable_values) if window_evaluable_values else 0
+    coverage_ratio = round((min_window_evaluable / max_window_evaluable), 4) if max_window_evaluable > 0 else 0.0
+    coverage_summary = "窗口覆盖均衡。"
+    stability_flags: list[str] = []
+    if max_window_evaluable == 0:
+        coverage_summary = "窗口覆盖缺失。"
+        stability_flags.append("coverage_missing")
+    elif coverage_ratio < 0.5:
+        coverage_summary = "窗口覆盖偏斜，短长窗口样本差异较大。"
+        stability_flags.append("coverage_skewed")
+    elif coverage_ratio < 0.8:
+        coverage_summary = "窗口覆盖可用，但仍有一定偏斜。"
+        stability_flags.append("coverage_partial")
+
+    if usable_feedback == 0 or evaluated_rows == 0:
+        status = "blocked"
+        summary_text = "反馈效果暂不可评估，先补齐样本或修复反馈脚本。"
+    elif usable_feedback < 3 or evaluated_rows < 3:
+        status = "caution"
+        summary_text = "反馈效果可看但样本偏少，先谨慎参考。"
+    elif hit_rate >= 0.6 and avg_return >= 0:
+        status = "ready"
+        summary_text = "反馈效果当前可参考，近期样本与回报表现相对稳定。"
+    elif hit_rate >= 0.5:
+        status = "caution"
+        summary_text = "反馈效果可参考，但命中率和回报仍需继续观察。"
+    else:
+        status = "caution"
+        summary_text = "反馈效果存在波动，先保留谨慎态度。"
+
+    if stability_flags and status == "ready":
+        status = "caution"
+        summary_text = "反馈效果可参考，但窗口覆盖仍有偏斜，先保留谨慎态度。"
+
+    read_order = ["production_gate", "action_list", "review_brief", "daily_execution_brief"]
+    rules = [
+        "feedback_effect_brief 只提供反馈效果证据，不替代 production_gate。",
+        "blocked 时说明反馈样本不可评估，只能用于诊断和修复数据。",
+        "caution 时可以参考反馈趋势，但不能把它当成强信号。",
+        "ready 时也只是更稳定的证据，不应覆盖门禁和行动清单。",
+    ]
+
+    stability_note = coverage_summary
+    if status == "blocked":
+        stability_note = "反馈样本不可评估。"
+    elif status == "caution" and coverage_summary:
+        stability_note = f"{coverage_summary} 当前建议谨慎参考。"
+
+    evidence = {
+        "overall": {
+            "usable_feedback": usable_feedback,
+            "evaluated_rows": evaluated_rows,
+            "hit_rate": hit_rate,
+            "avg_return": avg_return,
+        },
+        "windows": window_summary,
+        "samples": samples[-5:],
+    }
+
+    return {
+        "status": status,
+        "summary_text": summary_text,
+        "coverage_summary": coverage_summary,
+        "coverage_ratio": coverage_ratio,
+        "stability_note": stability_note,
+        "stability_flags": stability_flags,
+        "window_summary": window_summary,
+        "usable_feedback": usable_feedback,
+        "evaluated_rows": evaluated_rows,
+        "hit_rate": hit_rate,
+        "avg_return": avg_return,
+        "excluded_reasons": excluded_reasons,
+        "read_order": read_order,
+        "rules": rules,
+        "evidence": evidence,
+    }
+
+
 def build_production_gate(
     *,
     daily_summary: dict[str, Any],
@@ -823,6 +939,7 @@ def build_daily_review_brief(
     run_cadence: dict[str, Any] | None = None,
     prompt_context: dict[str, Any] | None = None,
     feedback_effects: dict[str, Any] | None = None,
+    feedback_effect_brief: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """把回看材料收成一段更短、更适合日常打开的摘要。"""
     daily_summary = daily_summary if isinstance(daily_summary, dict) else {}
@@ -831,6 +948,7 @@ def build_daily_review_brief(
     run_cadence = run_cadence if isinstance(run_cadence, dict) else {}
     prompt_context = prompt_context if isinstance(prompt_context, dict) else {}
     feedback_effects = feedback_effects if isinstance(feedback_effects, dict) else {}
+    feedback_effect_brief = feedback_effect_brief if isinstance(feedback_effect_brief, dict) else {}
 
     gate_status = str(production_gate.get("status", "")).strip() or "unknown"
     gate_summary = str(production_gate.get("summary", "")).strip()
@@ -840,11 +958,21 @@ def build_daily_review_brief(
     prompt_summary = str(prompt_context.get("summary_text", "")).strip()
     prompt_rules = prompt_context.get("rules", []) if isinstance(prompt_context.get("rules", []), list) else []
     daily_summary_text = str(daily_summary.get("summary_text", "")).strip()
-    effect_overall = feedback_effects.get("overall", {}) if isinstance(feedback_effects.get("overall", {}), dict) else {}
+    effect_source = feedback_effect_brief if feedback_effect_brief else feedback_effects
+    effect_overall = effect_source.get("overall", {}) if isinstance(effect_source.get("overall", {}), dict) else {}
+    if not effect_overall and feedback_effect_brief:
+        effect_overall = {
+            "hit_rate": feedback_effect_brief.get("hit_rate", 0.0),
+            "avg_return": feedback_effect_brief.get("avg_return", 0.0),
+            "evaluated_rows": feedback_effect_brief.get("evaluated_rows", 0),
+            "usable_feedback": feedback_effect_brief.get("usable_feedback", 0),
+        }
     hit_rate = safe_float(effect_overall.get("hit_rate"), 0.0)
     avg_return = safe_float(effect_overall.get("avg_return"), 0.0)
     evaluable_rows = safe_int(effect_overall.get("evaluated_rows"), 0)
     usable_feedback = safe_int(effect_overall.get("usable_feedback"), 0)
+    feedback_status = str(feedback_effect_brief.get("status", "")).strip() or "unknown"
+    feedback_summary = str(feedback_effect_brief.get("summary_text", "")).strip()
 
     action_items = action_list.get("items", []) if isinstance(action_list.get("items", []), list) else []
     top_action = action_items[0] if action_items and isinstance(action_items[0], dict) else {}
@@ -855,7 +983,7 @@ def build_daily_review_brief(
             f"[{top_action.get('action', '')}] {top_action.get('action_hint', '')}"
         ).strip()
 
-    read_order = ["production_gate", "action_list", "run_cadence", "prompt_context", "feedback_effects"]
+    read_order = ["production_gate", "action_list", "run_cadence", "prompt_context", "feedback_effect_brief"]
 
     if gate_status == "block":
         summary_text = "回看摘要：当前应先处理门禁阻断，再看行动和效果。"
@@ -869,6 +997,8 @@ def build_daily_review_brief(
 
     if prompt_summary and gate_status != "block":
         summary_text += " 提示语境已收拢。"
+    if feedback_summary and feedback_status in {"blocked", "caution"} and gate_status != "block":
+        summary_text += " 反馈效果仍需谨慎参考。"
 
     key_points = [
         f"门禁 {gate_status}" + (f" / {gate_summary}" if gate_summary else ""),
@@ -920,10 +1050,18 @@ def build_daily_review_brief(
                 "summary_text": cadence_summary,
                 "next_step": cadence_next_step,
             },
-            "prompt_context": {
-                "summary_text": prompt_summary,
-            },
+        "prompt_context": {
+            "summary_text": prompt_summary,
         },
+        "feedback_effect_brief": {
+            "status": feedback_status,
+            "summary_text": feedback_summary,
+            "usable_feedback": usable_feedback,
+            "evaluated_rows": evaluable_rows,
+            "hit_rate": hit_rate,
+            "avg_return": avg_return,
+        },
+    },
     }
 
 
@@ -1127,6 +1265,7 @@ def build_daily_execution_brief(
     review_brief: dict[str, Any] | None = None,
     schedule_hint: dict[str, Any] | None = None,
     daily_collaboration_pack: dict[str, Any] | None = None,
+    feedback_effect_brief: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """把日常门禁、行动、节奏、回看和协作总包再压成第一屏执行简报。"""
     production_gate = production_gate if isinstance(production_gate, dict) else {}
@@ -1135,6 +1274,7 @@ def build_daily_execution_brief(
     review_brief = review_brief if isinstance(review_brief, dict) else {}
     schedule_hint = schedule_hint if isinstance(schedule_hint, dict) else {}
     daily_collaboration_pack = daily_collaboration_pack if isinstance(daily_collaboration_pack, dict) else {}
+    feedback_effect_brief = feedback_effect_brief if isinstance(feedback_effect_brief, dict) else {}
 
     gate_status = str(production_gate.get("status", "")).strip() or "unknown"
     gate_summary = str(production_gate.get("summary", "")).strip()
@@ -1148,6 +1288,8 @@ def build_daily_execution_brief(
     schedule_summary = str(schedule_hint.get("summary_text", "")).strip()
     collab_status = str(daily_collaboration_pack.get("status", "")).strip() or "unknown"
     collab_summary = str(daily_collaboration_pack.get("summary_text", "")).strip()
+    feedback_status = str(feedback_effect_brief.get("status", "")).strip() or "unknown"
+    feedback_summary = str(feedback_effect_brief.get("summary_text", "")).strip()
 
     status_rank = {"blocked": 3, "block": 3, "failed": 3, "caution": 2, "warn": 2, "degraded": 2, "ready": 1, "ok": 1, "pass": 1, "unknown": 0}
     worst_rank = max(
@@ -1157,6 +1299,7 @@ def build_daily_execution_brief(
         status_rank.get(review_status, 0),
         status_rank.get(schedule_status, 0),
         status_rank.get(collab_status, 0),
+        status_rank.get(feedback_status, 0),
     )
     if worst_rank >= 3:
         status = "blocked"
@@ -1197,6 +1340,8 @@ def build_daily_execution_brief(
         summary_text += f" 优先行动：{first_action}。"
     elif action_summary and status == "blocked":
         summary_text += f" 当前行动摘要：{action_summary}。"
+    if feedback_summary and status != "blocked":
+        summary_text += f" 反馈效果：{feedback_summary}。"
 
     read_order = [
         "production_gate",
@@ -1205,12 +1350,14 @@ def build_daily_execution_brief(
         "review_brief",
         "schedule_hint",
         "daily_collaboration_pack",
+        "feedback_effect_brief",
     ]
     rules = [
         "执行简报不替代 production_gate，只负责把第一屏压短。",
         "blocked 时只能给诊断、修复数据或等待建议。",
         "caution 时优先复核，再决定是否继续动作。",
         "ready 时仍然先看门禁，再看行动和回看。",
+        "feedback_effect_brief 只提供反馈效果证据，不替代门禁。",
     ]
     evidence = {
         "production_gate": {
@@ -1237,6 +1384,10 @@ def build_daily_execution_brief(
         "daily_collaboration_pack": {
             "status": collab_status,
             "summary_text": collab_summary,
+        },
+        "feedback_effect_brief": {
+            "status": feedback_status,
+            "summary_text": feedback_summary,
         },
     }
 

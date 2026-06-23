@@ -17,12 +17,20 @@ Phase 76 的目标不是做更复杂的收益归因，而是把 `feedback_effect
 ## 2. 已完成内容
 
 - 编写 Phase 76 规格文档
+- 实现 `feedback_effect_brief` 共享构建器
+- 让反馈效果脚本输出稳定窗口统计与简报
+- 在回看、留档查看、日常运行和验收中接入同一份反馈效果简报
+- 在智能体提示词中加入反馈效果简报识别
 - 将 Phase 76 纳入路线图
 - 将 Phase 76 纳入任务清单
 
+## 3. 追加收口
+
+在反馈效果简报稳定后，继续补了一层覆盖摘要，让样本偏斜时能更明确地降级到 `caution`，避免把稀疏窗口误读为稳定信号。
+
 ---
 
-## 3. 关键观察
+## 4. 关键观察
 
 - 项目当前已经拥有完整的日常执行链路
 - `feedback_effects` 是下一层真正值得做闭环的材料
@@ -30,29 +38,23 @@ Phase 76 的目标不是做更复杂的收益归因，而是把 `feedback_effect
 
 ---
 
-## 4. 本阶段收口边界
+## 5. 本阶段收口边界
 
-本阶段完成了规格和阶段规划，没有开始改实现。
+本阶段已经完成规格、实现和归档三步中的前两步，当前进入归档收口。
 
 我们做的是：
 
 1. 明确反馈闭环方向
 2. 把它写成规格
-3. 把它接到路线图和任务清单
+3. 把它接到共享构建器和日常入口
+4. 把它接到路线图、任务清单和智能体提示词
 
 ---
 
-## 5. 后续建议
+## 6. 后续建议
 
-下一步建议按 Phase 76 的实现顺序推进：
+下一步建议先观察这层简报在真实日常中的稳定性，再决定是否细化样本排除规则：
 
-1. `examples/watchlist_shared.py`
-2. `examples/daily_watchlist_feedback_effects.py`
-3. `examples/daily_watchlist_review.py`
-4. `examples/daily_watchlist_archive_viewer.py`
-5. `examples/daily_watchlist_daily_run.py`
-6. `examples/daily_watchlist_acceptance.py`
-7. `core/agent/client.py`
-
-如果后续还要继续增强，优先关注样本口径稳定性，不建议把反馈效果做成更重的归因系统。
-
+1. 先观察 `feedback_effect_brief` 在真实日常中的稳定性
+2. 如果样本继续偏少，再考虑更细的样本排除规则
+3. 不建议把反馈效果做成更重的归因系统

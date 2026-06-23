@@ -24,6 +24,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from examples.daily_watchlist_display import print_bullets, print_kv_pairs, print_section
+from examples.watchlist_shared import build_feedback_effect_brief
 
 
 DEFAULT_FEEDBACK_PATH = ROOT_DIR / "logs" / "daily_watchlist_feedback.jsonl"
@@ -321,6 +322,7 @@ def main() -> int:
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         **_evaluate_feedback(feedback_records=feedback_records, snapshots=snapshots),
     }
+    payload["feedback_effect_brief"] = build_feedback_effect_brief(feedback_effects=payload)
 
     _print_summary(payload, feedback_file, archive_dir)
 

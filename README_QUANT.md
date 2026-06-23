@@ -201,6 +201,8 @@ python examples/daily_watchlist_flow.py --watchlist config/watchlist.json --port
 
 现在它也会输出 `daily_collaboration_pack`，把门禁、行动、节奏、提示语境、回看摘要和运行就绪提示一起收成一份更适合智能体和 Skill 直接消费的总包。
 
+现在它也会输出 `feedback_effect_brief`，把最近反馈效果收成一份更稳定的简报，方便和 `daily_execution_brief` 一起看。
+
 留档查看入口同样会先展示 `review_brief`，让你先看摘要，再看正文和证据。
 
 如果你只想先跳过回看或验收，也可以分别加：
@@ -547,6 +549,8 @@ python examples/agent_demo.py "请分析 000001，并给出建议"
 这里的统一质量门禁不是单一评分规则，而是数据治理、日常工作流、Skill / 工具、智能体提示词和输出契约一起协作出来的生产决策协议。
 
 接下来建议继续沿着 `daily_collaboration_pack` 往上收，把门禁、行动清单、运行节奏、回看摘要和运行就绪提示变成智能体和 Skill 都能直接消费的日常语境；当前更推荐的下一阶段，是把反馈效果再压成稳定闭环信号，让它真正影响回看、执行简报和投产验收，而不是只停留在独立脚本里。
+
+现在这层反馈效果已经收成了 `feedback_effect_brief`，下一步更适合先观察它在真实日常中的稳定性，再决定是否细化样本排除规则。
 
 ### Phase 1: 核心基础 (当前)
 - Skill 框架搭建
