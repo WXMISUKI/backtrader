@@ -25,6 +25,7 @@ if str(ROOT_DIR) not in sys.path:
 from examples.daily_watchlist_display import print_bullets, print_kv_pairs, print_section
 from examples.watchlist_shared import (
     build_daily_collaboration_pack,
+    build_daily_execution_brief,
     build_daily_prompt_context,
     build_daily_review_brief,
     build_diagnosis_evidence,
@@ -169,6 +170,14 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
         review_brief=review_brief if isinstance(review_brief, dict) else {},
         schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
     )
+    daily_execution_brief = build_daily_execution_brief(
+        production_gate=production_gate if isinstance(production_gate, dict) else {},
+        action_list=action_list if isinstance(action_list, dict) else {},
+        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        review_brief=review_brief if isinstance(review_brief, dict) else {},
+        schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
+        daily_collaboration_pack=daily_collaboration_pack if isinstance(daily_collaboration_pack, dict) else {},
+    )
 
     print_section("自选股日常留档查看")
     print_kv_pairs(
@@ -199,6 +208,7 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
             ("下次运行模式", schedule_hint.get("next_run_mode", "")),
             ("下次运行窗口", schedule_hint.get("next_run_window", "")),
             ("协作总包", daily_collaboration_pack.get("summary_text", "")),
+            ("执行简报", f"{daily_execution_brief.get('headline', '')} | {daily_execution_brief.get('summary_text', '')}"),
         ]
     )
     if feedback_records:
@@ -275,6 +285,10 @@ def _print_concise_summary(payload: dict[str, Any], json_path: Path | None, md_p
     if isinstance(daily_collaboration_pack, dict) and daily_collaboration_pack.get("rules"):
         print_section("协作总包")
         print_bullets([str(rule) for rule in daily_collaboration_pack.get("rules", [])[:6]])
+
+    if isinstance(daily_execution_brief, dict) and daily_execution_brief.get("rules"):
+        print_section("执行简报")
+        print_bullets([str(rule) for rule in daily_execution_brief.get("rules", [])[:6]])
 
     if isinstance(review_brief, dict) and review_brief.get("key_points"):
         print_section("回看重点")

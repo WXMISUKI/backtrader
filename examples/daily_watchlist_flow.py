@@ -24,6 +24,7 @@ if str(ROOT_DIR) not in sys.path:
 
 from examples.watchlist_shared import (
     build_daily_collaboration_pack,
+    build_daily_execution_brief,
     build_daily_prompt_context,
     build_daily_review_brief,
     build_diagnosis_evidence,
@@ -170,6 +171,14 @@ def main() -> int:
         review_brief=review_brief if isinstance(review_brief, dict) else {},
         schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
     )
+    daily_execution_brief = build_daily_execution_brief(
+        production_gate=production_gate,
+        action_list=action_list if isinstance(action_list, dict) else {},
+        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        review_brief=review_brief if isinstance(review_brief, dict) else {},
+        schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
+        daily_collaboration_pack=daily_collaboration_pack if isinstance(daily_collaboration_pack, dict) else {},
+    )
 
     status = "ok"
     if daily_code != 0 or review_code != 0 or acceptance_code != 0:
@@ -192,6 +201,7 @@ def main() -> int:
         "review_brief": review_brief,
         "schedule_hint": schedule_hint,
         "daily_collaboration_pack": daily_collaboration_pack,
+        "daily_execution_brief": daily_execution_brief,
         "production_gate": production_gate,
         "daily_run_code": daily_code,
         "review_code": review_code,
@@ -227,6 +237,8 @@ def main() -> int:
         print(f"schedule_mode: {schedule_hint.get('next_run_mode', '')}")
     if isinstance(daily_collaboration_pack, dict) and daily_collaboration_pack.get("summary_text"):
         print(f"daily_collaboration_pack: {daily_collaboration_pack.get('summary_text', '')}")
+    if isinstance(daily_execution_brief, dict) and daily_execution_brief.get("summary_text"):
+        print(f"daily_execution_brief: {daily_execution_brief.get('headline', '')} | {daily_execution_brief.get('summary_text', '')}")
     print(f"输出: {output_path}")
 
     if args.show_json:

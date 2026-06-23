@@ -22,7 +22,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from examples.watchlist_shared import build_daily_collaboration_pack, build_daily_review_brief, build_diagnosis_evidence, build_schedule_hint
+from examples.watchlist_shared import build_daily_collaboration_pack, build_daily_execution_brief, build_daily_review_brief, build_diagnosis_evidence, build_schedule_hint
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
@@ -169,6 +169,19 @@ def main() -> int:
             schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
         )
     daily_collaboration_pack_ok = isinstance(daily_collaboration_pack, dict) and bool(daily_collaboration_pack.get("summary_text", "")) and bool(daily_collaboration_pack.get("read_order", []))
+    daily_execution_brief = latest_payload.get("daily_execution_brief", {}) if isinstance(latest_payload, dict) else {}
+    if (not isinstance(daily_execution_brief, dict) or not daily_execution_brief) and isinstance(run_status_payload, dict):
+        daily_execution_brief = run_status_payload.get("daily_execution_brief", {})
+    if not isinstance(daily_execution_brief, dict) or not daily_execution_brief:
+        daily_execution_brief = build_daily_execution_brief(
+            production_gate=latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {},
+            action_list=action_list if isinstance(action_list, dict) else {},
+            run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+            review_brief=review_brief if isinstance(review_brief, dict) else {},
+            schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
+            daily_collaboration_pack=daily_collaboration_pack if isinstance(daily_collaboration_pack, dict) else {},
+        )
+    daily_execution_brief_ok = isinstance(daily_execution_brief, dict) and bool(daily_execution_brief.get("summary_text", "")) and bool(daily_execution_brief.get("read_order", []))
 
     checks = {
         "latest_json": _exists(latest_json),
@@ -184,6 +197,7 @@ def main() -> int:
         "prompt_context": prompt_context_ok,
         "schedule_hint": schedule_hint_ok,
         "daily_collaboration_pack": daily_collaboration_pack_ok,
+        "daily_execution_brief": daily_execution_brief_ok,
         "review_brief": review_brief_ok,
         "history_provider_visible": history_provider_visible,
     }
@@ -237,6 +251,7 @@ def main() -> int:
     print(f"prompt_context: {'存在' if checks['prompt_context'] else '缺失'}")
     print(f"schedule_hint: {'存在' if checks['schedule_hint'] else '缺失'}")
     print(f"daily_collaboration_pack: {'存在' if checks['daily_collaboration_pack'] else '缺失'}")
+    print(f"daily_execution_brief: {'存在' if checks['daily_execution_brief'] else '缺失'}")
     print(f"review_brief: {'存在' if checks['review_brief'] else '缺失'}")
     print(f"history_provider_visible: {'存在' if checks['history_provider_visible'] else '缺失'}")
     print(f"diagnosis_evidence: {'存在' if bool(diagnosis_evidence.get('top_causes')) else '缺失'}")

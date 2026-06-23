@@ -23,7 +23,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from examples.watchlist_shared import build_daily_prompt_context, build_daily_review_brief, build_daily_collaboration_pack, build_schedule_hint
+from examples.watchlist_shared import build_daily_execution_brief, build_daily_prompt_context, build_daily_review_brief, build_daily_collaboration_pack, build_schedule_hint
 
 
 DEFAULT_WATCHLIST_PATH = ROOT_DIR / "config" / "watchlist.json"
@@ -277,6 +277,14 @@ def main() -> int:
         review_brief=review_brief if isinstance(review_brief, dict) else {},
         schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
     )
+    daily_execution_brief = build_daily_execution_brief(
+        production_gate=production_gate if isinstance(production_gate, dict) else {},
+        action_list=action_list if isinstance(action_list, dict) else {},
+        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        review_brief=review_brief if isinstance(review_brief, dict) else {},
+        schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
+        daily_collaboration_pack=daily_collaboration_pack if isinstance(daily_collaboration_pack, dict) else {},
+    )
 
     run_status = {
         "status": status,
@@ -312,6 +320,7 @@ def main() -> int:
         "review_brief": review_brief,
         "schedule_hint": schedule_hint,
         "daily_collaboration_pack": daily_collaboration_pack,
+        "daily_execution_brief": daily_execution_brief,
         "outputs": {
             "preflight_output": preflight_output.strip(),
             "pipeline_output": pipeline_output.strip(),
@@ -334,6 +343,7 @@ def main() -> int:
     print(f"回看摘要: {review_brief['summary_text']}")
     print(f"调度准备: {schedule_hint['summary_text']}")
     print(f"协作总包: {daily_collaboration_pack['summary_text']}")
+    print(f"执行简报: {daily_execution_brief['headline']} / {daily_execution_brief['summary_text']}")
     print(f"下一步: {run_cadence['next_step']}")
     print(f"下次运行模式: {schedule_hint['next_run_mode']}")
     print(f"下次运行窗口: {schedule_hint['next_run_window']}")

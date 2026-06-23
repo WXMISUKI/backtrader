@@ -1119,6 +1119,138 @@ def build_daily_collaboration_pack(
     }
 
 
+def build_daily_execution_brief(
+    *,
+    production_gate: dict[str, Any] | None = None,
+    action_list: dict[str, Any] | None = None,
+    run_cadence: dict[str, Any] | None = None,
+    review_brief: dict[str, Any] | None = None,
+    schedule_hint: dict[str, Any] | None = None,
+    daily_collaboration_pack: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """把日常门禁、行动、节奏、回看和协作总包再压成第一屏执行简报。"""
+    production_gate = production_gate if isinstance(production_gate, dict) else {}
+    action_list = action_list if isinstance(action_list, dict) else {}
+    run_cadence = run_cadence if isinstance(run_cadence, dict) else {}
+    review_brief = review_brief if isinstance(review_brief, dict) else {}
+    schedule_hint = schedule_hint if isinstance(schedule_hint, dict) else {}
+    daily_collaboration_pack = daily_collaboration_pack if isinstance(daily_collaboration_pack, dict) else {}
+
+    gate_status = str(production_gate.get("status", "")).strip() or "unknown"
+    gate_summary = str(production_gate.get("summary", "")).strip()
+    action_status = str(action_list.get("status", "")).strip() or gate_status
+    action_summary = str(action_list.get("summary_text", "")).strip()
+    cadence_status = str(run_cadence.get("status", "")).strip() or "unknown"
+    cadence_summary = str(run_cadence.get("summary_text", "")).strip()
+    review_status = str(review_brief.get("status", "")).strip() or "unknown"
+    review_summary = str(review_brief.get("summary_text", "")).strip()
+    schedule_status = str(schedule_hint.get("status", "")).strip() or "unknown"
+    schedule_summary = str(schedule_hint.get("summary_text", "")).strip()
+    collab_status = str(daily_collaboration_pack.get("status", "")).strip() or "unknown"
+    collab_summary = str(daily_collaboration_pack.get("summary_text", "")).strip()
+
+    status_rank = {"blocked": 3, "block": 3, "failed": 3, "caution": 2, "warn": 2, "degraded": 2, "ready": 1, "ok": 1, "pass": 1, "unknown": 0}
+    worst_rank = max(
+        status_rank.get(gate_status, 0),
+        status_rank.get(action_status, 0),
+        status_rank.get(cadence_status, 0),
+        status_rank.get(review_status, 0),
+        status_rank.get(schedule_status, 0),
+        status_rank.get(collab_status, 0),
+    )
+    if worst_rank >= 3:
+        status = "blocked"
+    elif worst_rank >= 2:
+        status = "caution"
+    elif worst_rank >= 1:
+        status = "ready"
+    else:
+        status = "unknown"
+
+    first_action = ""
+    action_items = action_list.get("items", []) if isinstance(action_list.get("items", []), list) else []
+    if action_items:
+        first_item = action_items[0] if isinstance(action_items[0], dict) else {}
+        first_action = (
+            f"{first_item.get('stock_code', '')} {first_item.get('name', '')} "
+            f"[{first_item.get('action', '')}] {first_item.get('action_hint', '')}"
+        ).strip()
+
+    if status == "blocked":
+        headline = "今日执行简报：先处理阻断。"
+        summary_text = "门禁或协作总包显示阻断，先修复数据和运行问题，再考虑动作。"
+        primary_action = "先看 production_gate，再处理阻断原因。"
+    elif status == "caution":
+        headline = "今日执行简报：需要谨慎复核。"
+        summary_text = "门禁或协作链路存在降级，先复核再动作，优先看门禁和行动。"
+        primary_action = "先看 production_gate，再看 action_list。"
+    elif status == "ready":
+        headline = "今日执行简报：可以按顺序继续。"
+        summary_text = "门禁、行动、节奏和回看都已收拢，可按既定顺序继续查看。"
+        primary_action = "先看 production_gate，再看 action_list。"
+    else:
+        headline = "今日执行简报：状态未明。"
+        summary_text = "当前简报信息不完整，先补齐门禁和行动再继续。"
+        primary_action = "先补齐 production_gate 和 action_list。"
+
+    if first_action and status != "blocked":
+        summary_text += f" 优先行动：{first_action}。"
+    elif action_summary and status == "blocked":
+        summary_text += f" 当前行动摘要：{action_summary}。"
+
+    read_order = [
+        "production_gate",
+        "action_list",
+        "run_cadence",
+        "review_brief",
+        "schedule_hint",
+        "daily_collaboration_pack",
+    ]
+    rules = [
+        "执行简报不替代 production_gate，只负责把第一屏压短。",
+        "blocked 时只能给诊断、修复数据或等待建议。",
+        "caution 时优先复核，再决定是否继续动作。",
+        "ready 时仍然先看门禁，再看行动和回看。",
+    ]
+    evidence = {
+        "production_gate": {
+            "status": gate_status,
+            "summary": gate_summary,
+        },
+        "action_list": {
+            "status": action_status,
+            "summary_text": action_summary,
+            "count": len(action_items),
+        },
+        "run_cadence": {
+            "status": cadence_status,
+            "summary_text": cadence_summary,
+        },
+        "review_brief": {
+            "status": review_status,
+            "summary_text": review_summary,
+        },
+        "schedule_hint": {
+            "status": schedule_status,
+            "summary_text": schedule_summary,
+        },
+        "daily_collaboration_pack": {
+            "status": collab_status,
+            "summary_text": collab_summary,
+        },
+    }
+
+    return {
+        "status": status,
+        "headline": headline,
+        "summary_text": summary_text,
+        "primary_action": primary_action,
+        "read_order": read_order,
+        "rules": rules,
+        "evidence": evidence,
+    }
+
+
 def build_action_list(
     *,
     decision_items: list[dict[str, Any]],

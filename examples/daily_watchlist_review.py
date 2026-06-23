@@ -21,7 +21,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from examples.daily_watchlist_display import print_block, print_section
-from examples.watchlist_shared import build_daily_prompt_context, build_daily_review_brief
+from examples.watchlist_shared import build_daily_execution_brief, build_daily_prompt_context, build_daily_review_brief
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
@@ -135,8 +135,17 @@ def main() -> int:
         prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
         feedback_effects=feedback_effects if isinstance(feedback_effects, dict) else {},
     )
+    daily_execution_brief = build_daily_execution_brief(
+        production_gate=production_gate if isinstance(production_gate, dict) else {},
+        action_list=action_list if isinstance(action_list, dict) else {},
+        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        review_brief=review_brief if isinstance(review_brief, dict) else {},
+        schedule_hint=run_status_payload.get("schedule_hint", {}) if isinstance(run_status_payload, dict) else {},
+        daily_collaboration_pack=run_status_payload.get("daily_collaboration_pack", {}) if isinstance(run_status_payload, dict) else {},
+    )
 
     print_section("回看摘要")
+    print(f"{daily_execution_brief.get('headline', '')} | {daily_execution_brief.get('summary_text', '')}")
     print(review_brief.get("summary_text", ""))
     print(f"顺序: {' -> '.join(review_brief.get('read_order', []))}")
     print(f"下一步: {review_brief.get('next_step', '')}")

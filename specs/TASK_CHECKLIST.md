@@ -1,6 +1,6 @@
 # 开发任务清单
 
-## 当前迭代: Phase 74 - 历史行情 provider 可见性下沉
+## 当前迭代: Phase 75 - 日常执行简报与质量门禁闭环
 
 ### 任务状态说明
 - ⬜ 待开始
@@ -1062,6 +1062,23 @@
 | 74.7 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE74_HISTORY_PROVIDER_VISIBILITY.md` |
 | 74.8 | 更新路线图与任务清单 | P1 | ✅ | - | 任务状态已收口 |
 
+## Phase 75: 日常执行简报与质量门禁闭环
+
+**SDD规格文档**: `specs/SDD_PHASE75_DAILY_EXECUTION_BRIEF.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 75.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE75_DAILY_EXECUTION_BRIEF.md` |
+| 75.1 | 构建共享执行简报 | P0 | ⬜ | - | `examples/watchlist_shared.py` |
+| 75.2 | 在日常运行状态中写入执行简报 | P0 | ⬜ | - | `examples/daily_watchlist_daily_run.py` |
+| 75.3 | 在默认工作流中展示执行简报 | P0 | ⬜ | - | `examples/daily_watchlist_flow.py` |
+| 75.4 | 在留档查看入口展示执行简报 | P0 | ⬜ | - | `examples/daily_watchlist_archive_viewer.py` |
+| 75.5 | 在回看入口展示执行简报 | P1 | ⬜ | - | `examples/daily_watchlist_review.py` |
+| 75.6 | 在投产验收中检查执行简报 | P1 | ⬜ | - | `examples/daily_watchlist_acceptance.py` |
+| 75.7 | 在智能体提示词中优先识别执行简报 | P1 | ⬜ | - | `core/agent/client.py` |
+| 75.8 | 编写归档文档 | P1 | ⬜ | - | `specs/ARCHIVE_PHASE75_DAILY_EXECUTION_BRIEF.md` |
+| 75.9 | 更新路线图与任务清单 | P1 | ⬜ | - | 固化第一屏阅读顺序 |
+
 ---
 
 ## 下一步行动
@@ -1069,8 +1086,9 @@
 1. **当前**: 以 `production_gate` + `action_list` 作为默认日常查看顺序
 2. **随后**: 以 `prompt_context` 作为日常提示词和 Skill 的共享语境
 3. **再后**: 以 `review_brief` 作为回看的第一眼摘要
-4. **历史行情链路**: 推进 Phase 74，把 provider 可见性下沉到日常入口和验收入口
-5. **持续**: 观察反馈效果评估、`schedule_hint` 和 `daily_collaboration_pack` 是否稳定
+4. **历史行情链路**: 观察 Phase 74 的 provider 可见性在日常使用中是否稳定
+5. **当前重点**: 推进 Phase 75，把门禁、行动和回看再收成第一屏执行简报
+6. **持续**: 观察反馈效果评估、`schedule_hint` 和 `daily_collaboration_pack` 是否稳定
 
 ---
 
