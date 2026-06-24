@@ -23,6 +23,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from examples.env_guard import build_env_guard
 from examples.watchlist_shared import build_daily_execution_brief, build_daily_prompt_context, build_daily_review_brief, build_daily_collaboration_pack, build_feedback_effect_brief, build_schedule_hint
 
 
@@ -158,6 +159,7 @@ def main() -> int:
     output_json = Path(args.output_json)
     run_status_path = Path(args.run_status)
     feedback_records = _load_jsonl_payload(DEFAULT_FEEDBACK_PATH)
+    env_guard = build_env_guard()
 
     timestamp = datetime.now().isoformat(timespec="seconds")
     preflight_script = ROOT_DIR / "examples" / "watchlist_data_health.py"
@@ -307,6 +309,7 @@ def main() -> int:
     run_status = {
         "status": status,
         "generated_at": timestamp,
+        "env_guard": env_guard,
         "watchlist_path": str(watchlist_path),
         "portfolio_path": str(portfolio_path),
         "archive_dir": str(archive_dir),
@@ -350,6 +353,7 @@ def main() -> int:
 
     print("== 自选股日常生产运行守门 ==")
     print(f"状态: {status}")
+    print(f"环境门禁: {env_guard['summary_text']}")
     print(f"预检: {'通过' if preflight_ok else '失败'}")
     print(f"执行: {'成功' if archive_ok else '失败'}")
     print(f"东财 Cookie: {'已加载' if cookie_loaded else '未加载'} ({cookie_source})")

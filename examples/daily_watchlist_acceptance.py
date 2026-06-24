@@ -22,6 +22,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from examples.env_guard import build_env_guard
 from examples.watchlist_shared import build_daily_collaboration_pack, build_daily_execution_brief, build_daily_review_brief, build_diagnosis_evidence, build_feedback_effect_brief, build_schedule_hint
 
 
@@ -103,6 +104,12 @@ def main() -> int:
     latest_payload = _load_json_payload(latest_json)
     if not latest_payload:
         latest_payload = _load_json_payload(Path(args.run_status))
+    env_guard = _ensure_dict(latest_payload.get("env_guard", {}) if isinstance(latest_payload, dict) else {})
+    if not env_guard and run_status_path.exists():
+        run_status_payload = _load_json_payload(run_status_path)
+        env_guard = _ensure_dict(run_status_payload.get("env_guard", {}) if isinstance(run_status_payload, dict) else {})
+    if not env_guard:
+        env_guard = build_env_guard()
     daily_summary = _ensure_dict(latest_payload.get("daily_summary", {}) if isinstance(latest_payload, dict) else {})
     diagnosis_counts = daily_summary.get("diagnosis_counts", {}) if isinstance(daily_summary, dict) else {}
     confidence_ok = (
@@ -214,6 +221,7 @@ def main() -> int:
         "feedback_effect_brief": feedback_effect_brief_ok,
         "feedback_coverage": feedback_coverage_ok,
         "history_provider_visible": history_provider_visible,
+        "env_guard": isinstance(env_guard, dict) and bool(env_guard.get("summary_text", "")),
     }
     checks_ok = sum(1 for value in checks.values() if value)
     checks_total = len(checks)
@@ -241,6 +249,7 @@ def main() -> int:
             "latest_payload": latest_payload,
             "run_status_payload": _load_json_payload(run_status_path),
             "feedback_records": len(_load_jsonl_payload(feedback_file)),
+            "env_guard": env_guard,
             "review_output": review_output.strip(),
             "insights_output": insights_output.strip(),
         },
@@ -270,6 +279,7 @@ def main() -> int:
     print(f"feedback_effect_brief: {'存在' if checks['feedback_effect_brief'] else '缺失'}")
     print(f"feedback_coverage: {'存在' if checks['feedback_coverage'] else '缺失'}")
     print(f"history_provider_visible: {'存在' if checks['history_provider_visible'] else '缺失'}")
+    print(f"env_guard: {'存在' if checks['env_guard'] else '缺失'}")
     print(f"diagnosis_evidence: {'存在' if bool(diagnosis_evidence.get('top_causes')) else '缺失'}")
     print(f"review: {'可运行' if review_code == 0 else '不可运行'}")
     print(f"insights: {'可运行' if insights_code == 0 else '不可运行'}")

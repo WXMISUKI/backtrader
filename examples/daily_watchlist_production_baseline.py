@@ -23,6 +23,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from examples.env_guard import build_env_guard
 from examples.watchlist_shared import build_feedback_effect_brief
 
 
@@ -449,6 +450,7 @@ def main() -> int:
     pipeline_path = Path(args.pipeline_json)
     feedback_path = Path(args.feedback_json)
     output_path = Path(args.output_json)
+    env_guard = build_env_guard()
 
     run_status_payload = _load_json_payload(run_status_path)
     flow_payload = _load_json_payload(flow_path)
@@ -487,6 +489,7 @@ def main() -> int:
             isinstance(item, dict) and bool(item.get("history_selected_provider"))
             for item in (latest_payload.get("health", {}).get("items", []) if isinstance(latest_payload, dict) else [])
         ),
+        "env_guard": bool(env_guard.get("summary_text", "")),
     }
     status = _derive_status(checks)
     failed_stage = _derive_failure_stage(checks)
@@ -532,6 +535,7 @@ def main() -> int:
         "review_brief": review_brief,
         "schedule_hint": schedule_hint,
         "feedback_effect_brief": feedback_effect_brief,
+        "env_guard": env_guard,
         "baseline_observation_history": history_entries,
     }
 
@@ -571,6 +575,7 @@ def main() -> int:
     print(f"daily_execution_brief: {'存在' if checks['daily_execution_brief'] else '缺失'}")
     print(f"feedback_effect_brief: {'存在' if checks['feedback_effect_brief'] else '缺失'}")
     print(f"history_provider_visible: {'存在' if checks['history_provider_visible'] else '缺失'}")
+    print(f"env_guard: {'存在' if checks['env_guard'] else '缺失'}")
     print(f"baseline_observation: {baseline_observation['summary_text']}")
     print(f"repair_priority: {repair_priority['summary_text']}")
     print(f"验收JSON: {'存在' if checks['acceptance_json'] else '缺失'}")
