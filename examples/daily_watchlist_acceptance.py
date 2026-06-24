@@ -103,7 +103,7 @@ def main() -> int:
     latest_payload = _load_json_payload(latest_json)
     if not latest_payload:
         latest_payload = _load_json_payload(Path(args.run_status))
-    daily_summary = latest_payload.get("daily_summary", {}) if isinstance(latest_payload, dict) else {}
+    daily_summary = _ensure_dict(latest_payload.get("daily_summary", {}) if isinstance(latest_payload, dict) else {})
     diagnosis_counts = daily_summary.get("diagnosis_counts", {}) if isinstance(daily_summary, dict) else {}
     confidence_ok = (
         isinstance(daily_summary, dict)
@@ -117,22 +117,22 @@ def main() -> int:
     )
     diagnosis_evidence = build_diagnosis_evidence(daily_summary=daily_summary, health_items=health_items if isinstance(health_items, list) else [])
     diagnosis_ok = isinstance(diagnosis_evidence, dict) and isinstance(diagnosis_evidence.get("sample_items", []), list)
-    action_list = latest_payload.get("action_list", {}) if isinstance(latest_payload, dict) else {}
+    action_list = _ensure_dict(latest_payload.get("action_list", {}) if isinstance(latest_payload, dict) else {})
     action_ok = isinstance(action_list, dict) and bool(action_list.get("items", [])) and bool(action_list.get("summary_text", ""))
     action_hint_ok = False
     if isinstance(action_list, dict):
         first_item = action_list.get("items", [{}])[0] if action_list.get("items") else {}
         action_hint_ok = isinstance(first_item, dict) and bool(first_item.get("action_hint", ""))
     sample_attribution_ok = isinstance(diagnosis_evidence, dict) and bool(diagnosis_evidence.get("sample_attribution", []))
-    run_cadence = latest_payload.get("run_cadence", {}) if isinstance(latest_payload, dict) else {}
+    run_cadence = _ensure_dict(latest_payload.get("run_cadence", {}) if isinstance(latest_payload, dict) else {})
     if (not isinstance(run_cadence, dict) or not run_cadence) and run_status_path.exists():
         run_status_payload = _load_json_payload(run_status_path)
-        run_cadence = run_status_payload.get("run_cadence", {}) if isinstance(run_status_payload, dict) else {}
+        run_cadence = _ensure_dict(run_status_payload.get("run_cadence", {}) if isinstance(run_status_payload, dict) else {})
     run_cadence_ok = isinstance(run_cadence, dict) and bool(run_cadence.get("summary_text", "")) and bool(run_cadence.get("steps", []))
-    prompt_context = latest_payload.get("prompt_context", {}) if isinstance(latest_payload, dict) else {}
+    prompt_context = _ensure_dict(latest_payload.get("prompt_context", {}) if isinstance(latest_payload, dict) else {})
     if (not isinstance(prompt_context, dict) or not prompt_context) and run_status_path.exists():
         run_status_payload = _load_json_payload(run_status_path)
-        prompt_context = run_status_payload.get("prompt_context", {}) if isinstance(run_status_payload, dict) else {}
+        prompt_context = _ensure_dict(run_status_payload.get("prompt_context", {}) if isinstance(run_status_payload, dict) else {})
     prompt_context_ok = (
         isinstance(prompt_context, dict)
         and bool(prompt_context.get("summary_text", ""))
@@ -155,9 +155,9 @@ def main() -> int:
     )
     review_brief_ok = isinstance(review_brief, dict) and bool(review_brief.get("summary_text", "")) and bool(review_brief.get("read_order", []))
     run_status_payload = _load_json_payload(run_status_path) if run_status_path.exists() else {}
-    schedule_hint = latest_payload.get("schedule_hint", {}) if isinstance(latest_payload, dict) else {}
+    schedule_hint = _ensure_dict(latest_payload.get("schedule_hint", {}) if isinstance(latest_payload, dict) else {})
     if (not isinstance(schedule_hint, dict) or not schedule_hint) and isinstance(run_status_payload, dict):
-        schedule_hint = run_status_payload.get("schedule_hint", {})
+        schedule_hint = _ensure_dict(run_status_payload.get("schedule_hint", {}))
     if not isinstance(schedule_hint, dict) or not schedule_hint:
         schedule_hint = build_schedule_hint(
             daily_run_status=str(run_status_payload.get("status", "unknown")) if isinstance(run_status_payload, dict) else "unknown",
@@ -167,9 +167,9 @@ def main() -> int:
             review_brief=_ensure_dict(review_brief),
         )
     schedule_hint_ok = isinstance(schedule_hint, dict) and bool(schedule_hint.get("summary_text", "")) and bool(schedule_hint.get("read_order", []))
-    daily_collaboration_pack = latest_payload.get("daily_collaboration_pack", {}) if isinstance(latest_payload, dict) else {}
+    daily_collaboration_pack = _ensure_dict(latest_payload.get("daily_collaboration_pack", {}) if isinstance(latest_payload, dict) else {})
     if (not isinstance(daily_collaboration_pack, dict) or not daily_collaboration_pack) and isinstance(run_status_payload, dict):
-        daily_collaboration_pack = run_status_payload.get("daily_collaboration_pack", {})
+        daily_collaboration_pack = _ensure_dict(run_status_payload.get("daily_collaboration_pack", {}))
     if not isinstance(daily_collaboration_pack, dict) or not daily_collaboration_pack:
         daily_collaboration_pack = build_daily_collaboration_pack(
             production_gate=_ensure_dict(latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {}),
@@ -180,9 +180,9 @@ def main() -> int:
             schedule_hint=_ensure_dict(schedule_hint),
         )
     daily_collaboration_pack_ok = isinstance(daily_collaboration_pack, dict) and bool(daily_collaboration_pack.get("summary_text", "")) and bool(daily_collaboration_pack.get("read_order", []))
-    daily_execution_brief = latest_payload.get("daily_execution_brief", {}) if isinstance(latest_payload, dict) else {}
+    daily_execution_brief = _ensure_dict(latest_payload.get("daily_execution_brief", {}) if isinstance(latest_payload, dict) else {})
     if (not isinstance(daily_execution_brief, dict) or not daily_execution_brief) and isinstance(run_status_payload, dict):
-        daily_execution_brief = run_status_payload.get("daily_execution_brief", {})
+        daily_execution_brief = _ensure_dict(run_status_payload.get("daily_execution_brief", {}))
     if not isinstance(daily_execution_brief, dict) or not daily_execution_brief:
         daily_execution_brief = build_daily_execution_brief(
             production_gate=_ensure_dict(latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {}),

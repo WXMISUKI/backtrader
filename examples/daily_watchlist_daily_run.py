@@ -244,54 +244,65 @@ def main() -> int:
     action_list = _ensure_dict(pipeline_payload.get("action_list", {}) if isinstance(pipeline_payload, dict) else {})
     daily_summary = _ensure_dict(pipeline_payload.get("daily_summary", {}) if isinstance(pipeline_payload, dict) else {})
     diagnosis_evidence = _ensure_dict(pipeline_payload.get("diagnosis_evidence", {}) if isinstance(pipeline_payload, dict) else {})
+    run_cadence = _ensure_dict(pipeline_payload.get("run_cadence", {}) if isinstance(pipeline_payload, dict) else {})
+    prompt_context = _ensure_dict(pipeline_payload.get("prompt_context", {}) if isinstance(pipeline_payload, dict) else {})
+    review_brief = _ensure_dict(pipeline_payload.get("review_brief", {}) if isinstance(pipeline_payload, dict) else {})
+    schedule_hint = _ensure_dict(pipeline_payload.get("schedule_hint", {}) if isinstance(pipeline_payload, dict) else {})
+    daily_collaboration_pack = _ensure_dict(pipeline_payload.get("daily_collaboration_pack", {}) if isinstance(pipeline_payload, dict) else {})
+    daily_execution_brief = _ensure_dict(pipeline_payload.get("daily_execution_brief", {}) if isinstance(pipeline_payload, dict) else {})
     feedback_effects = _load_json_payload(ROOT_DIR / "logs" / "daily_watchlist_feedback_effects.json")
     feedback_effect_brief = build_feedback_effect_brief(feedback_effects=feedback_effects if isinstance(feedback_effects, dict) else {})
-    prompt_context = build_daily_prompt_context(
-        production_gate=production_gate,
-        action_list=action_list,
-        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
-        daily_summary=daily_summary,
-        diagnosis_evidence=diagnosis_evidence,
-    )
-    review_brief = build_daily_review_brief(
-        daily_summary=daily_summary,
-        production_gate=production_gate,
-        action_list=action_list,
-        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
-        prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
-        feedback_effects=feedback_effects if isinstance(feedback_effects, dict) else {},
-        feedback_effect_brief=feedback_effect_brief if isinstance(feedback_effect_brief, dict) else {},
-    )
+    if not prompt_context:
+        prompt_context = build_daily_prompt_context(
+            production_gate=production_gate,
+            action_list=action_list,
+            run_cadence=run_cadence,
+            daily_summary=daily_summary,
+            diagnosis_evidence=diagnosis_evidence,
+        )
+    if not review_brief:
+        review_brief = build_daily_review_brief(
+            daily_summary=daily_summary,
+            production_gate=production_gate,
+            action_list=action_list,
+            run_cadence=run_cadence,
+            prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
+            feedback_effects=feedback_effects if isinstance(feedback_effects, dict) else {},
+            feedback_effect_brief=feedback_effect_brief if isinstance(feedback_effect_brief, dict) else {},
+        )
     status = _derive_status(
         preflight_ok=preflight_ok,
         pipeline_ok=archive_ok,
         archive_ok=archive_ok,
         degraded=degraded,
     )
-    schedule_hint = build_schedule_hint(
-        daily_run_status=status,
-        production_gate=production_gate,
-        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
-        prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
-        review_brief=review_brief if isinstance(review_brief, dict) else {},
-    )
-    daily_collaboration_pack = build_daily_collaboration_pack(
-        production_gate=production_gate,
-        action_list=action_list,
-        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
-        prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
-        review_brief=review_brief if isinstance(review_brief, dict) else {},
-        schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
-    )
-    daily_execution_brief = build_daily_execution_brief(
-        production_gate=production_gate,
-        action_list=action_list,
-        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
-        review_brief=review_brief if isinstance(review_brief, dict) else {},
-        schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
-        daily_collaboration_pack=daily_collaboration_pack if isinstance(daily_collaboration_pack, dict) else {},
-        feedback_effect_brief=feedback_effect_brief if isinstance(feedback_effect_brief, dict) else {},
-    )
+    if not schedule_hint:
+        schedule_hint = build_schedule_hint(
+            daily_run_status=status,
+            production_gate=production_gate,
+            run_cadence=run_cadence,
+            prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
+            review_brief=review_brief if isinstance(review_brief, dict) else {},
+        )
+    if not daily_collaboration_pack:
+        daily_collaboration_pack = build_daily_collaboration_pack(
+            production_gate=production_gate,
+            action_list=action_list,
+            run_cadence=run_cadence,
+            prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
+            review_brief=review_brief if isinstance(review_brief, dict) else {},
+            schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
+        )
+    if not daily_execution_brief:
+        daily_execution_brief = build_daily_execution_brief(
+            production_gate=production_gate,
+            action_list=action_list,
+            run_cadence=run_cadence,
+            review_brief=review_brief if isinstance(review_brief, dict) else {},
+            schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
+            daily_collaboration_pack=daily_collaboration_pack if isinstance(daily_collaboration_pack, dict) else {},
+            feedback_effect_brief=feedback_effect_brief if isinstance(feedback_effect_brief, dict) else {},
+        )
 
     run_status = {
         "status": status,

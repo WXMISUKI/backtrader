@@ -25,8 +25,14 @@ from examples.watchlist_shared import (
     build_action_list,
     build_data_health_summary,
     build_daily_diagnosis_summary,
+    build_daily_collaboration_pack,
+    build_daily_execution_brief,
+    build_daily_prompt_context,
+    build_daily_review_brief,
+    build_feedback_effect_brief,
     build_diagnosis_evidence,
     build_production_gate,
+    build_schedule_hint,
     build_portfolio_index,
     build_position_context,
     format_pct,
@@ -839,6 +845,56 @@ def main() -> int:
         production_gate=production_gate,
         limit=5,
     )
+    feedback_effects = _load_json_payload(ROOT_DIR / "logs" / "daily_watchlist_feedback_effects.json")
+    feedback_effect_brief = build_feedback_effect_brief(
+        feedback_effects=feedback_effects if isinstance(feedback_effects, dict) else {}
+    )
+    run_cadence = {
+        "status": "unknown",
+        "steps": [],
+        "summary_text": "运行节奏暂由 pipeline 生成，等待 daily_run 统一回填。",
+        "next_step": "先看 production_gate，再看 action_list。",
+    }
+    prompt_context = build_daily_prompt_context(
+        production_gate=production_gate,
+        action_list=action_list,
+        run_cadence=run_cadence,
+        daily_summary=daily_summary,
+        diagnosis_evidence=build_diagnosis_evidence(daily_summary=daily_summary, health_items=health_items),
+    )
+    review_brief = build_daily_review_brief(
+        daily_summary=daily_summary,
+        production_gate=production_gate,
+        action_list=action_list,
+        run_cadence=run_cadence,
+        prompt_context=prompt_context,
+        feedback_effects=feedback_effects if isinstance(feedback_effects, dict) else {},
+        feedback_effect_brief=feedback_effect_brief if isinstance(feedback_effect_brief, dict) else {},
+    )
+    schedule_hint = build_schedule_hint(
+        daily_run_status="unknown",
+        production_gate=production_gate,
+        run_cadence=run_cadence,
+        prompt_context=prompt_context,
+        review_brief=review_brief,
+    )
+    daily_collaboration_pack = build_daily_collaboration_pack(
+        production_gate=production_gate,
+        action_list=action_list,
+        run_cadence=run_cadence,
+        prompt_context=prompt_context,
+        review_brief=review_brief,
+        schedule_hint=schedule_hint,
+    )
+    daily_execution_brief = build_daily_execution_brief(
+        production_gate=production_gate,
+        action_list=action_list,
+        run_cadence=run_cadence,
+        review_brief=review_brief,
+        schedule_hint=schedule_hint,
+        daily_collaboration_pack=daily_collaboration_pack,
+        feedback_effect_brief=feedback_effect_brief,
+    )
     daily_report = _build_daily_report(
         generated_at=datetime.now().isoformat(timespec="seconds"),
         watchlist_path=watchlist_path,
@@ -953,6 +1009,13 @@ def main() -> int:
         "decision": {"items": decision_items, "groups": decision_groups},
         "daily_summary": daily_summary,
         "action_list": action_list,
+        "run_cadence": run_cadence,
+        "prompt_context": prompt_context,
+        "review_brief": review_brief,
+        "schedule_hint": schedule_hint,
+        "daily_collaboration_pack": daily_collaboration_pack,
+        "daily_execution_brief": daily_execution_brief,
+        "feedback_effect_brief": feedback_effect_brief,
         "daily_report": daily_report,
         "daily_comparison": daily_comparison,
         "weekly_report": weekly_report,
