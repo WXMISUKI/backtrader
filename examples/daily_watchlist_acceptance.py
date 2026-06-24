@@ -70,6 +70,10 @@ def _load_jsonl_payload(path: Path) -> list[dict[str, Any]]:
     return records
 
 
+def _ensure_dict(payload: object) -> dict[str, Any]:
+    return payload if isinstance(payload, dict) else {}
+
+
 def _run_script(script: Path, args: list[str]) -> tuple[int, str]:
     cmd = [sys.executable, str(script), *args]
     completed = subprocess.run(cmd, cwd=ROOT_DIR, capture_output=True, text=True)
@@ -141,13 +145,13 @@ def main() -> int:
     feedback_effect_brief_ok = isinstance(feedback_effect_brief, dict) and bool(feedback_effect_brief.get("summary_text", "")) and bool(feedback_effect_brief.get("read_order", []))
     feedback_coverage_ok = isinstance(feedback_effect_brief, dict) and bool(feedback_effect_brief.get("coverage_summary", ""))
     review_brief = build_daily_review_brief(
-        daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
-        production_gate=latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {},
-        action_list=action_list if isinstance(action_list, dict) else {},
-        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
-        prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
+        daily_summary=_ensure_dict(daily_summary),
+        production_gate=_ensure_dict(latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {}),
+        action_list=_ensure_dict(action_list),
+        run_cadence=_ensure_dict(run_cadence),
+        prompt_context=_ensure_dict(prompt_context),
         feedback_effects=feedback_effects,
-        feedback_effect_brief=feedback_effect_brief if isinstance(feedback_effect_brief, dict) else {},
+        feedback_effect_brief=_ensure_dict(feedback_effect_brief),
     )
     review_brief_ok = isinstance(review_brief, dict) and bool(review_brief.get("summary_text", "")) and bool(review_brief.get("read_order", []))
     run_status_payload = _load_json_payload(run_status_path) if run_status_path.exists() else {}
@@ -157,10 +161,10 @@ def main() -> int:
     if not isinstance(schedule_hint, dict) or not schedule_hint:
         schedule_hint = build_schedule_hint(
             daily_run_status=str(run_status_payload.get("status", "unknown")) if isinstance(run_status_payload, dict) else "unknown",
-            production_gate=latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {},
-            run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
-            prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
-            review_brief=review_brief if isinstance(review_brief, dict) else {},
+            production_gate=_ensure_dict(latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {}),
+            run_cadence=_ensure_dict(run_cadence),
+            prompt_context=_ensure_dict(prompt_context),
+            review_brief=_ensure_dict(review_brief),
         )
     schedule_hint_ok = isinstance(schedule_hint, dict) and bool(schedule_hint.get("summary_text", "")) and bool(schedule_hint.get("read_order", []))
     daily_collaboration_pack = latest_payload.get("daily_collaboration_pack", {}) if isinstance(latest_payload, dict) else {}
@@ -168,12 +172,12 @@ def main() -> int:
         daily_collaboration_pack = run_status_payload.get("daily_collaboration_pack", {})
     if not isinstance(daily_collaboration_pack, dict) or not daily_collaboration_pack:
         daily_collaboration_pack = build_daily_collaboration_pack(
-            production_gate=latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {},
-            action_list=action_list if isinstance(action_list, dict) else {},
-            run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
-            prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
-            review_brief=review_brief if isinstance(review_brief, dict) else {},
-            schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
+            production_gate=_ensure_dict(latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {}),
+            action_list=_ensure_dict(action_list),
+            run_cadence=_ensure_dict(run_cadence),
+            prompt_context=_ensure_dict(prompt_context),
+            review_brief=_ensure_dict(review_brief),
+            schedule_hint=_ensure_dict(schedule_hint),
         )
     daily_collaboration_pack_ok = isinstance(daily_collaboration_pack, dict) and bool(daily_collaboration_pack.get("summary_text", "")) and bool(daily_collaboration_pack.get("read_order", []))
     daily_execution_brief = latest_payload.get("daily_execution_brief", {}) if isinstance(latest_payload, dict) else {}
@@ -181,13 +185,13 @@ def main() -> int:
         daily_execution_brief = run_status_payload.get("daily_execution_brief", {})
     if not isinstance(daily_execution_brief, dict) or not daily_execution_brief:
         daily_execution_brief = build_daily_execution_brief(
-            production_gate=latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {},
-            action_list=action_list if isinstance(action_list, dict) else {},
-            run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
-            review_brief=review_brief if isinstance(review_brief, dict) else {},
-            schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
-            daily_collaboration_pack=daily_collaboration_pack if isinstance(daily_collaboration_pack, dict) else {},
-            feedback_effect_brief=feedback_effect_brief if isinstance(feedback_effect_brief, dict) else {},
+            production_gate=_ensure_dict(latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {}),
+            action_list=_ensure_dict(action_list),
+            run_cadence=_ensure_dict(run_cadence),
+            review_brief=_ensure_dict(review_brief),
+            schedule_hint=_ensure_dict(schedule_hint),
+            daily_collaboration_pack=_ensure_dict(daily_collaboration_pack),
+            feedback_effect_brief=_ensure_dict(feedback_effect_brief),
         )
     daily_execution_brief_ok = isinstance(daily_execution_brief, dict) and bool(daily_execution_brief.get("summary_text", "")) and bool(daily_execution_brief.get("read_order", []))
 

@@ -1079,6 +1079,55 @@
 | 75.8 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE75_DAILY_EXECUTION_BRIEF.md` |
 | 75.9 | 更新路线图与任务清单 | P1 | ✅ | - | 固化第一屏阅读顺序 |
 
+## Phase 83: 投产门禁与关键简报透传修复
+
+**SDD规格文档**: `specs/SDD_PHASE83_GATE_AND_BRIEF_REPAIR.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 83.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE83_GATE_AND_BRIEF_REPAIR.md` |
+| 83.1 | 排查 `production_gate` 丢失路径 | P0 | ✅ | - | 从 daily run 到 latest.json 再到基线入口 |
+| 83.2 | 修复 `production_gate` 透传 | P0 | ✅ | - | 确保基线入口稳定可见 |
+| 83.3 | 排查 `daily_execution_brief` 丢失路径 | P0 | ✅ | - | 统一日常运行和留档口径 |
+| 83.4 | 修复 `daily_execution_brief` 透传 | P0 | ✅ | - | 确保基线入口稳定可见 |
+| 83.5 | 更新验收规则 | P0 | ✅ | - | 避免结构字段缺失误判 |
+| 83.6 | 补最小测试 | P1 | ✅ | - | 固定字段存在/缺失两种场景 |
+| 83.7 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE83_GATE_AND_BRIEF_REPAIR.md` |
+| 83.8 | 更新路线图与任务清单 | P1 | ✅ | - | 固化关键门禁口径 |
+
+---
+
+## 下一步行动
+
+1. **当前**: 以 `production_gate` + `daily_execution_brief` 作为默认日常查看顺序
+2. **随后**: 继续观察 `history_selected_provider` 和历史行情链路的可见性是否稳定
+3. **再后**: 再决定是否进入下一轮历史行情恢复专项
+4. **持续**: 观察 `schedule_hint`、`daily_collaboration_pack`、`daily_execution_brief`、`feedback_effect_brief`、覆盖摘要、投产基线和修复优先级是否稳定
+
+---
+
+## 风险和阻塞项
+
+| 风险/阻塞 | 影响 | 解决方案 |
+|----------|------|---------|
+| Cookie 过期 | 无法获取数据 | 定期更新 Cookie |
+| API 限流 | 请求失败 | 添加重试机制 |
+| 字段透传丢失 | 基线误判 | 保持最小透传修复并加回归测试 |
+
+---
+
+## 依赖的外部资源
+
+| 资源 | 用途 | 状态 |
+|------|------|------|
+| 东方财富 API | 数据获取 | ✅ 可用 |
+| akshare | 备用数据源 | ✅ 可用 |
+| TA-Lib | 技术指标 | ⬜ 待集成 |
+
+## 归档完成说明
+
+Phase 83 只修复关键门禁与关键简报透传，不引入新模型、不新增调度系统、不扩展新的分析层。
+
 ## Phase 76: 反馈效果驱动闭环
 
 **SDD规格文档**: `specs/SDD_PHASE76_FEEDBACK_EFFECT_CLOSURE.md` ✅ 已完成

@@ -71,6 +71,10 @@ def _load_json_payload(path: Path) -> dict[str, object]:
     return payload if isinstance(payload, dict) else {}
 
 
+def _ensure_dict(payload: object) -> dict[str, object]:
+    return payload if isinstance(payload, dict) else {}
+
+
 def main() -> int:
     args = build_parser().parse_args()
     daily_run_script = ROOT_DIR / "examples" / "daily_watchlist_daily_run.py"
@@ -134,47 +138,47 @@ def main() -> int:
         daily_run_status = str(daily_run_status_payload.get("status", "unknown"))
 
     production_gate = build_production_gate(
-        daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
+        daily_summary=_ensure_dict(daily_summary),
         diagnosis_evidence=diagnosis_evidence,
-        acceptance=acceptance_payload,
+        acceptance=_ensure_dict(acceptance_payload),
         health_items=health_items if isinstance(health_items, list) else [],
         daily_run_status=daily_run_status,
     )
     prompt_context = build_daily_prompt_context(
         production_gate=production_gate,
-        action_list=action_list if isinstance(action_list, dict) else {},
-        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
-        daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
+        action_list=_ensure_dict(action_list),
+        run_cadence=_ensure_dict(run_cadence),
+        daily_summary=_ensure_dict(daily_summary),
         diagnosis_evidence=diagnosis_evidence,
     )
     feedback_effects = _load_json_payload(ROOT_DIR / "logs" / "daily_watchlist_feedback_effects.json")
     review_brief = build_daily_review_brief(
-        daily_summary=daily_summary if isinstance(daily_summary, dict) else {},
+        daily_summary=_ensure_dict(daily_summary),
         production_gate=production_gate,
-        action_list=action_list if isinstance(action_list, dict) else {},
-        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        action_list=_ensure_dict(action_list),
+        run_cadence=_ensure_dict(run_cadence),
         prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
         feedback_effects=feedback_effects if isinstance(feedback_effects, dict) else {},
     )
     schedule_hint = build_schedule_hint(
         daily_run_status=daily_run_status,
         production_gate=production_gate,
-        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        run_cadence=_ensure_dict(run_cadence),
         prompt_context=prompt_context,
         review_brief=review_brief if isinstance(review_brief, dict) else {},
     )
     daily_collaboration_pack = build_daily_collaboration_pack(
         production_gate=production_gate,
-        action_list=action_list if isinstance(action_list, dict) else {},
-        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        action_list=_ensure_dict(action_list),
+        run_cadence=_ensure_dict(run_cadence),
         prompt_context=prompt_context if isinstance(prompt_context, dict) else {},
         review_brief=review_brief if isinstance(review_brief, dict) else {},
         schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
     )
     daily_execution_brief = build_daily_execution_brief(
         production_gate=production_gate,
-        action_list=action_list if isinstance(action_list, dict) else {},
-        run_cadence=run_cadence if isinstance(run_cadence, dict) else {},
+        action_list=_ensure_dict(action_list),
+        run_cadence=_ensure_dict(run_cadence),
         review_brief=review_brief if isinstance(review_brief, dict) else {},
         schedule_hint=schedule_hint if isinstance(schedule_hint, dict) else {},
         daily_collaboration_pack=daily_collaboration_pack if isinstance(daily_collaboration_pack, dict) else {},
