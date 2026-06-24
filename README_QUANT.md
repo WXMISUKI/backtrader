@@ -307,6 +307,14 @@ python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --
 python examples/daily_watchlist_archive_viewer.py --archive-dir logs/daily_watchlist_archive
 ```
 
+如果你想先快速判断今天整条日常链路能不能参考，可以跑：
+
+```bash
+python examples/daily_watchlist_production_baseline.py --archive-dir logs/daily_watchlist_archive
+```
+
+这个入口会优先告诉你今天卡在哪一层，再给下一步动作，不会让你在多个 JSON 里来回翻。
+
 如果你想看完整 Markdown 或 JSON，可以分别加上 `--show-markdown` 或 `--show-json`。
 
 如果你想直接做一次“预检 -> 执行 -> 留档 -> 查看”的日常运行，可以跑：

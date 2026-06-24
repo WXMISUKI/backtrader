@@ -1109,6 +1109,21 @@
 | 77.5 | 编写归档文档 | P1 | ✅ | - | 记录样本口径稳定化 |
 | 77.6 | 更新路线图与任务清单 | P1 | ✅ | - | 固化样本稳定性口径 |
 
+## Phase 78: 日常投产实跑基线与一键验收闭环
+
+**SDD规格文档**: `specs/SDD_PHASE78_DAILY_PRODUCTION_BASELINE.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 78.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE78_DAILY_PRODUCTION_BASELINE.md` |
+| 78.1 | 实现日常投产基线入口 | P0 | ✅ | - | `examples/daily_watchlist_production_baseline.py` |
+| 78.2 | 汇总预检、执行、回看、验收状态 | P0 | ✅ | - | 复用现有 JSON / 摘要 |
+| 78.3 | 输出失败阶段与下一步动作 | P0 | ✅ | - | 终端短报告 |
+| 78.4 | 透传关键证据 | P1 | ✅ | - | `production_gate` / `daily_execution_brief` / `feedback_effect_brief` / `schedule_hint` / `history_selected_provider` |
+| 78.5 | 在智能体提示词中识别基线入口 | P1 | ⬜ | - | `core/agent/client.py` |
+| 78.6 | 编写归档文档 | P1 | ⬜ | - | 记录基线闭环 |
+| 78.7 | 更新路线图与任务清单 | P1 | ⬜ | - | 固化投产基线口径 |
+
 ---
 
 ## 下一步行动
@@ -1118,7 +1133,7 @@
 3. **再后**: 以 `review_brief` 作为回看的第一眼摘要
 4. **历史行情链路**: 观察 Phase 74 的 provider 可见性在日常使用中是否稳定
 5. **当前重点**: 推进 Phase 76，把反馈效果压成稳定闭环信号
-6. **持续**: 观察 `schedule_hint`、`daily_collaboration_pack`、`daily_execution_brief`、`feedback_effect_brief` 和覆盖摘要是否稳定
+6. **持续**: 观察 `schedule_hint`、`daily_collaboration_pack`、`daily_execution_brief`、`feedback_effect_brief`、覆盖摘要和投产基线是否稳定
 
 ---
 
