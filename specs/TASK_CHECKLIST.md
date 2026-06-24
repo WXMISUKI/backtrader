@@ -1,6 +1,6 @@
 # 开发任务清单
 
-## 当前迭代: Phase 76 - 反馈效果驱动闭环
+## 当前迭代: Phase 87 - 自动回归门禁与一键验证闭环
 
 ### 任务状态说明
 - ⬜ 待开始
@@ -63,6 +63,20 @@
 | 4.6 | 集成风险控制 | P0 | ✅ | - | core.risk |
 | 4.7 | 实现 stock-advisor Skill | P0 | ✅ | - | __init__.py |
 | 4.8 | 编写集成测试 | P1 | ✅ | - | test_stock_analyzer.py (18 tests passed) |
+
+## Phase 87: 自动回归门禁与一键验证闭环 (当前)
+
+**SDD规格文档**: `specs/SDD_PHASE87_AUTOMATED_REGRESSION_GATE.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 87.0 | 编写 SDD 规格文档 | P0 | ✅ | - | SDD_PHASE87_AUTOMATED_REGRESSION_GATE.md |
+| 87.1 | 实现回归门禁入口 | P0 | ✅ | - | daily_watchlist_regression_gate.py |
+| 87.2 | 串联 daily_run / acceptance / baseline | P0 | ✅ | - | 薄门禁闭环 |
+| 87.3 | 回写回归结果 | P0 | ✅ | - | run_status / latest.json |
+| 87.4 | 编写回归测试 | P1 | ✅ | - | test_regression_gate.py |
+| 87.5 | 编写归档文档 | P1 | ✅ | - | ARCHIVE_PHASE87_AUTOMATED_REGRESSION_GATE.md |
+| 87.6 | 更新路线图与任务清单 | P1 | ✅ | - | 已更新 |
 
 ---
 

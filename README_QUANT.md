@@ -187,6 +187,12 @@ python examples/daily_watchlist_acceptance.py --output-json logs/daily_watchlist
 python examples/daily_watchlist_flow.py --watchlist config/watchlist.json --portfolio config/portfolio.json --archive-dir logs/daily_watchlist_archive --output-json logs/daily_watchlist_flow.json
 ```
 
+如果你想把日常运行、验收和基线收成一个自动回归门禁，可以跑：
+
+```bash
+python examples/daily_watchlist_regression_gate.py --watchlist config/watchlist.json --portfolio config/portfolio.json --archive-dir logs/daily_watchlist_archive
+```
+
 默认工作流现在会同时输出 `production_gate` 和 `action_list`，也就是先看今天能不能参考，再看今天先做什么。
 
 当前的 `action_list` 还会带更明确的 `action_hint`，方便你直接看“今天先怎么处理”。
