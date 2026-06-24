@@ -14,6 +14,8 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections import Counter
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +33,7 @@ DEFAULT_ACCEPTANCE_JSON = ROOT_DIR / "logs" / "daily_watchlist_acceptance.json"
 DEFAULT_PIPELINE_JSON = ROOT_DIR / "logs" / "daily_watchlist_pipeline.json"
 DEFAULT_FEEDBACK_JSON = ROOT_DIR / "logs" / "daily_watchlist_feedback_effects.json"
 DEFAULT_OUTPUT_JSON = ROOT_DIR / "logs" / "daily_watchlist_production_baseline.json"
+DEFAULT_HISTORY_JSON = ROOT_DIR / "logs" / "daily_watchlist_production_baseline_history.json"
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -42,6 +45,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pipeline-json", default=str(DEFAULT_PIPELINE_JSON), help="Pipeline JSON path.")
     parser.add_argument("--feedback-json", default=str(DEFAULT_FEEDBACK_JSON), help="Feedback effects JSON path.")
     parser.add_argument("--output-json", default=str(DEFAULT_OUTPUT_JSON), help="Baseline JSON output path.")
+    parser.add_argument("--history-json", default=str(DEFAULT_HISTORY_JSON), help="Baseline history JSON path.")
     parser.add_argument("--show-json", action="store_true", help="Print JSON payload.")
     return parser
 
@@ -61,6 +65,98 @@ def _exists_and_nonempty(path: Path) -> bool:
     return path.exists() and path.stat().st_size > 0
 
 
+def _load_history_entries(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            payload = json.load(f)
+    except Exception:
+        return []
+    if not isinstance(payload, list):
+        return []
+    return [item for item in payload if isinstance(item, dict)]
+
+
+def _build_recent_run_record(
+    *,
+    status: str,
+    failed_stage: str,
+    failure_class: str,
+    checks: dict[str, bool],
+) -> dict[str, Any]:
+    missing_required_checks = [
+        key
+        for key in ("run_status", "pipeline_json", "latest_json", "acceptance_json", "production_gate", "daily_execution_brief", "feedback_effect_brief")
+        if not checks.get(key, False)
+    ]
+    missing_optional_checks = [
+        key
+        for key in ("latest_md", "review_brief", "schedule_hint", "history_provider_visible")
+        if not checks.get(key, False)
+    ]
+    return {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "status": status,
+        "failed_stage": failed_stage,
+        "failure_class": failure_class,
+        "missing_required_checks": missing_required_checks,
+        "missing_optional_checks": missing_optional_checks,
+        "history_provider_visible": bool(checks.get("history_provider_visible", False)),
+    }
+
+
+def _build_baseline_observation(
+    *,
+    history_entries: list[dict[str, Any]],
+    current_record: dict[str, Any],
+    history_path: Path,
+    limit: int = 5,
+) -> dict[str, Any]:
+    recent_runs = (history_entries + [current_record])[-limit:]
+    failure_counts = Counter()
+    missing_counts = Counter()
+    provider_visible_count = 0
+
+    for item in recent_runs:
+        failure_class = str(item.get("failure_class", "") or "unknown")
+        failure_counts[failure_class] += 1
+        for key in item.get("missing_required_checks", []) or []:
+            missing_counts[str(key)] += 1
+        for key in item.get("missing_optional_checks", []) or []:
+            missing_counts[str(key)] += 1
+        if bool(item.get("history_provider_visible", False)):
+            provider_visible_count += 1
+
+    total_runs = len(recent_runs)
+    provider_visibility_rate = round(provider_visible_count / total_runs, 4) if total_runs else 0.0
+    top_missing_checks = [key for key, _ in missing_counts.most_common(5)]
+    failure_class_counts = dict(failure_counts.most_common())
+    if failure_class_counts:
+        recommended_fix_order = list(failure_class_counts.keys())
+    else:
+        recommended_fix_order = ["maintain_current_state"]
+
+    if total_runs == 0:
+        summary_text = "暂无历史基线记录，先从第一次运行开始观察。"
+    else:
+        top_failure_class = next(iter(failure_class_counts), "none")
+        summary_text = (
+            f"最近 {total_runs} 次基线中，最常见失败类是 {top_failure_class}，"
+            f"provider 可见性为 {provider_visibility_rate:.0%}。"
+        )
+
+    return {
+        "summary_text": summary_text,
+        "recent_runs": recent_runs,
+        "failure_class_counts": failure_class_counts,
+        "top_missing_checks": top_missing_checks,
+        "provider_visibility_rate": provider_visibility_rate,
+        "recommended_fix_order": recommended_fix_order,
+        "history_path": str(history_path),
+    }
+
+
 def _derive_status(checks: dict[str, bool]) -> str:
     required_failed = [
         "run_status",
@@ -75,6 +171,116 @@ def _derive_status(checks: dict[str, bool]) -> str:
     if not all(checks.get(key, False) for key in checks):
         return "caution"
     return "ready"
+
+
+def _derive_failure_stage(checks: dict[str, bool]) -> str:
+    if not checks.get("run_status", False):
+        return "run_status"
+    if not checks.get("pipeline_json", False):
+        return "pipeline"
+    if not checks.get("latest_json", False):
+        return "archive"
+    if not checks.get("acceptance_json", False):
+        return "acceptance"
+    if not checks.get("production_gate", False):
+        return "production_gate"
+    if not checks.get("daily_execution_brief", False):
+        return "daily_execution_brief"
+    if not checks.get("feedback_effect_brief", False):
+        return "feedback_effect_brief"
+    if not checks.get("history_provider_visible", False):
+        return "history_provider_visible"
+    return "none"
+
+
+def _derive_failure_class(checks: dict[str, bool], status: str, failed_stage: str) -> str:
+    if status == "ready":
+        return "none"
+    if failed_stage == "run_status":
+        return "precheck_missing"
+    if failed_stage == "pipeline":
+        return "execution_missing"
+    if failed_stage == "archive":
+        return "archive_missing"
+    if failed_stage == "acceptance":
+        return "acceptance_missing"
+    if failed_stage == "production_gate":
+        return "gate_missing"
+    if failed_stage == "daily_execution_brief":
+        return "execution_brief_missing"
+    if failed_stage == "feedback_effect_brief":
+        return "feedback_brief_missing"
+    if failed_stage == "history_provider_visible":
+        return "provider_visibility_missing"
+    if status == "caution":
+        missing_optional = [
+            key
+            for key in ("latest_md", "review_brief", "schedule_hint")
+            if not checks.get(key, False)
+        ]
+        if missing_optional:
+            return "partial_artifacts"
+        return "degraded_but_runnable"
+    return "unknown_failure"
+
+
+def _build_repair_hint(failure_class: str, failed_stage: str) -> str:
+    repair_map = {
+        "precheck_missing": "先补齐预检状态，再重新跑基线。",
+        "execution_missing": "先补齐执行产物，再重新跑基线。",
+        "archive_missing": "先检查归档目录是否写入完成，再重新跑基线。",
+        "acceptance_missing": "先补齐验收 JSON，再重新跑基线。",
+        "gate_missing": "先修复 production_gate，再重新跑基线。",
+        "execution_brief_missing": "先补齐 daily_execution_brief，再重新跑基线。",
+        "feedback_brief_missing": "先补齐 feedback_effect_brief，再重新跑基线。",
+        "provider_visibility_missing": "先确认历史 provider 是否已写入健康摘要，再重新跑基线。",
+        "partial_artifacts": "先补齐缺失的非阻断产物，再决定是否继续参考。",
+        "degraded_but_runnable": "链路可跑但存在降级，先复核后再动作。",
+    }
+    if failure_class in repair_map:
+        return repair_map[failure_class]
+    if failed_stage == "none":
+        return "当前无需修复，继续按日常节奏运行。"
+    return "先定位失败阶段，再逐层修复。"
+
+
+def _build_evidence_summary(checks: dict[str, bool], status: str, failed_stage: str, failure_class: str) -> dict[str, object]:
+    priority_read_order = [
+        "production_gate",
+        "daily_execution_brief",
+        "feedback_effect_brief",
+        "schedule_hint",
+        "history_selected_provider",
+        "review_brief",
+        "latest_json",
+        "acceptance_json",
+    ]
+    missing_required_checks = [
+        key
+        for key in ("run_status", "pipeline_json", "latest_json", "acceptance_json", "production_gate", "daily_execution_brief", "feedback_effect_brief")
+        if not checks.get(key, False)
+    ]
+    missing_optional_checks = [
+        key
+        for key in ("latest_md", "review_brief", "schedule_hint", "history_provider_visible")
+        if not checks.get(key, False)
+    ]
+    key_evidence_items = []
+    for key in priority_read_order:
+        if checks.get(key, False):
+            key_evidence_items.append(key)
+    if failed_stage != "none":
+        key_evidence_items.insert(0, f"failed_stage:{failed_stage}")
+    if failure_class != "none":
+        key_evidence_items.insert(1 if key_evidence_items else 0, f"failure_class:{failure_class}")
+    summary_text = f"status={status}; failed_stage={failed_stage}; failure_class={failure_class}; required_missing={len(missing_required_checks)}; optional_missing={len(missing_optional_checks)}"
+    return {
+        "summary_text": summary_text,
+        "priority_read_order": priority_read_order,
+        "missing_required_checks": missing_required_checks,
+        "missing_optional_checks": missing_optional_checks,
+        "key_evidence_items": key_evidence_items,
+    }
 
 
 def main() -> int:
@@ -92,6 +298,8 @@ def main() -> int:
     acceptance_payload = _load_json_payload(acceptance_path)
     pipeline_payload = _load_json_payload(pipeline_path)
     feedback_payload = _load_json_payload(feedback_path)
+    history_path = Path(args.history_json)
+    history_entries = _load_history_entries(history_path)
 
     latest_json = archive_dir / "latest.json"
     latest_md = archive_dir / "latest.md"
@@ -124,23 +332,21 @@ def main() -> int:
         ),
     }
     status = _derive_status(checks)
-    failed_stage = "none"
-    if not checks["run_status"]:
-        failed_stage = "run_status"
-    elif not checks["pipeline_json"]:
-        failed_stage = "pipeline"
-    elif not checks["latest_json"]:
-        failed_stage = "archive"
-    elif not checks["acceptance_json"]:
-        failed_stage = "acceptance"
-    elif not checks["production_gate"]:
-        failed_stage = "production_gate"
-    elif not checks["daily_execution_brief"]:
-        failed_stage = "daily_execution_brief"
-    elif not checks["feedback_effect_brief"]:
-        failed_stage = "feedback_effect_brief"
-    elif not checks["history_provider_visible"]:
-        failed_stage = "history_provider_visible"
+    failed_stage = _derive_failure_stage(checks)
+    failure_class = _derive_failure_class(checks, status, failed_stage)
+    repair_hint = _build_repair_hint(failure_class, failed_stage)
+    evidence_summary = _build_evidence_summary(checks, status, failed_stage, failure_class)
+    current_record = _build_recent_run_record(
+        status=status,
+        failed_stage=failed_stage,
+        failure_class=failure_class,
+        checks=checks,
+    )
+    baseline_observation = _build_baseline_observation(
+        history_entries=history_entries,
+        current_record=current_record,
+        history_path=history_path,
+    )
 
     if status == "ready":
         summary_text = "日常投产基线通过，主链路可完整参考。"
@@ -149,7 +355,7 @@ def main() -> int:
         summary_text = "日常投产基线可用，但存在部分非阻断缺口。"
         next_action = "先复核缺失入口，再决定是否继续参考。"
     else:
-        summary_text = "日常投产基线失败，当前不建议直接参考。"
+        summary_text = f"日常投产基线失败（{failure_class}），当前不建议直接参考。"
         next_action = "先修复失败阶段，再重新跑基线。"
 
     evidence = {
@@ -163,15 +369,20 @@ def main() -> int:
         "review_brief": review_brief,
         "schedule_hint": schedule_hint,
         "feedback_effect_brief": feedback_effect_brief,
+        "baseline_observation_history": history_entries,
     }
 
     payload = {
         "status": status,
         "summary_text": summary_text,
         "failed_stage": failed_stage,
+        "failure_class": failure_class,
+        "repair_hint": repair_hint,
+        "evidence_summary": evidence_summary,
         "next_action": next_action,
         "checks": checks,
         "evidence": evidence,
+        "baseline_observation": baseline_observation,
         "generated_at": __import__("datetime").datetime.now().isoformat(timespec="seconds"),
     }
 
@@ -179,15 +390,24 @@ def main() -> int:
     with output_path.open("w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2, default=str)
 
+    history_entries = (history_entries + [current_record])[-30:]
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    with history_path.open("w", encoding="utf-8") as f:
+        json.dump(history_entries, f, ensure_ascii=False, indent=2, default=str)
+
     print("== 自选股日常投产基线 ==")
     print(f"状态: {status}")
     print(f"结论: {summary_text}")
     print(f"失败阶段: {failed_stage}")
+    print(f"失败分类: {failure_class}")
+    print(f"修复提示: {repair_hint}")
+    print(f"摘要: {evidence_summary['summary_text']}")
     print(f"下一步: {next_action}")
     print(f"production_gate: {'存在' if checks['production_gate'] else '缺失'}")
     print(f"daily_execution_brief: {'存在' if checks['daily_execution_brief'] else '缺失'}")
     print(f"feedback_effect_brief: {'存在' if checks['feedback_effect_brief'] else '缺失'}")
     print(f"history_provider_visible: {'存在' if checks['history_provider_visible'] else '缺失'}")
+    print(f"baseline_observation: {baseline_observation['summary_text']}")
     print(f"验收JSON: {'存在' if checks['acceptance_json'] else '缺失'}")
     print(f"输出JSON: {output_path}")
 

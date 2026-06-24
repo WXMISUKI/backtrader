@@ -1120,9 +1120,49 @@
 | 78.2 | 汇总预检、执行、回看、验收状态 | P0 | ✅ | - | 复用现有 JSON / 摘要 |
 | 78.3 | 输出失败阶段与下一步动作 | P0 | ✅ | - | 终端短报告 |
 | 78.4 | 透传关键证据 | P1 | ✅ | - | `production_gate` / `daily_execution_brief` / `feedback_effect_brief` / `schedule_hint` / `history_selected_provider` |
-| 78.5 | 在智能体提示词中识别基线入口 | P1 | ⬜ | - | `core/agent/client.py` |
-| 78.6 | 编写归档文档 | P1 | ⬜ | - | 记录基线闭环 |
-| 78.7 | 更新路线图与任务清单 | P1 | ⬜ | - | 固化投产基线口径 |
+| 78.5 | 在智能体提示词中识别基线入口 | P1 | ✅ | - | `core/agent/client.py` |
+| 78.6 | 编写归档文档 | P1 | ✅ | - | 记录基线闭环 |
+| 78.7 | 更新路线图与任务清单 | P1 | ✅ | - | 固化投产基线口径 |
+
+## Phase 79: 日常投产基线失败分层与修复提示收敛
+
+**SDD规格文档**: `specs/SDD_PHASE79_DAILY_PRODUCTION_FAILURE_CLASSIFICATION.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 79.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE79_DAILY_PRODUCTION_FAILURE_CLASSIFICATION.md` |
+| 79.1 | 在基线入口中增加失败分类 | P0 | ✅ | - | `examples/daily_watchlist_production_baseline.py` |
+| 79.2 | 增加修复提示输出 | P0 | ✅ | - | `examples/daily_watchlist_production_baseline.py` |
+| 79.3 | 保持现有门禁语义不变 | P0 | ✅ | - | 不改主链路 |
+| 79.4 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE79_DAILY_PRODUCTION_FAILURE_CLASSIFICATION.md` |
+| 79.5 | 更新路线图与任务清单 | P1 | ✅ | - | 固化失败分类口径 |
+
+## Phase 80: 日常投产基线机器可读摘要收口
+
+**SDD规格文档**: `specs/SDD_PHASE80_DAILY_PRODUCTION_EVIDENCE_SUMMARY.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 80.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE80_DAILY_PRODUCTION_EVIDENCE_SUMMARY.md` |
+| 80.1 | 在基线入口中增加机器可读摘要 | P0 | ✅ | - | `examples/daily_watchlist_production_baseline.py` |
+| 80.2 | 输出关键证据优先级 | P0 | ✅ | - | 先看什么、后看什么 |
+| 80.3 | 输出缺失项列表 | P0 | ✅ | - | 必须补齐 / 可选补齐 |
+| 80.4 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE80_DAILY_PRODUCTION_EVIDENCE_SUMMARY.md` |
+| 80.5 | 更新路线图与任务清单 | P1 | ✅ | - | 固化摘要口径 |
+
+## Phase 81: 日常投产基线实跑观测与高频故障闭环
+
+**SDD规格文档**: `specs/SDD_PHASE81_DAILY_BASELINE_OBSERVABILITY.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 81.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE81_DAILY_BASELINE_OBSERVABILITY.md` |
+| 81.1 | 在基线入口中增加历史观测摘要 | P0 | ✅ | - | `examples/daily_watchlist_production_baseline.py` |
+| 81.2 | 增加最近 N 次运行留档 | P0 | ✅ | - | 轻量 JSON 列表 |
+| 81.3 | 输出失败类别和缺失项统计 | P0 | ✅ | - | 高频故障闭环 |
+| 81.4 | 输出 provider 可见性趋势 | P1 | ✅ | - | 观察历史路由稳定性 |
+| 81.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE81_DAILY_BASELINE_OBSERVABILITY.md` |
+| 81.6 | 更新路线图与任务清单 | P1 | ✅ | - | 固化观测口径 |
 
 ---
 
@@ -1132,7 +1172,7 @@
 2. **随后**: 以 `prompt_context` 作为日常提示词和 Skill 的共享语境
 3. **再后**: 以 `review_brief` 作为回看的第一眼摘要
 4. **历史行情链路**: 观察 Phase 74 的 provider 可见性在日常使用中是否稳定
-5. **当前重点**: 推进 Phase 76，把反馈效果压成稳定闭环信号
+5. **当前重点**: 推进 Phase 81，把日常投产基线再收成观测层和高频故障闭环
 6. **持续**: 观察 `schedule_hint`、`daily_collaboration_pack`、`daily_execution_brief`、`feedback_effect_brief`、覆盖摘要和投产基线是否稳定
 
 ---

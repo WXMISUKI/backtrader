@@ -240,6 +240,14 @@ python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --
 
 留档查看入口也会展示同一份 `diagnosis_evidence`，方便回看时和验收入口对齐。
 
+现在新增的日常投产基线入口会进一步给出 `baseline_observation`，把最近几次运行里的高频失败、缺失项和 `history_selected_provider` 稳定性收成一层更薄的观测摘要。推荐阅读顺序也可以更新为：
+
+1. `production_gate`
+2. `action_list`
+3. `daily_execution_brief`
+4. `feedback_effect_brief`
+5. `baseline_observation`
+
 默认日常流程现在还会输出统一的 `production_gate`，你每天优先看它就行：`pass` 表示可以参考，`warn` 表示谨慎参考，`block` 表示先别拿来做交易判断。
 
 如果你想进一步看明白为什么会被降级，还可以看日常摘要里的可信度分布和平均可信度，它会把 `data_confidence`、低可信样本和主要降级原因一起收进来。
@@ -311,6 +319,9 @@ python examples/daily_watchlist_archive_viewer.py --archive-dir logs/daily_watch
 
 ```bash
 python examples/daily_watchlist_production_baseline.py --archive-dir logs/daily_watchlist_archive
+python examples/daily_watchlist_production_baseline.py --show-json
+
+Phase 79 之后，基线输出会额外包含 `failure_class` 和 `repair_hint`，用于把失败直接压成可执行修复建议。
 ```
 
 这个入口会优先告诉你今天卡在哪一层，再给下一步动作，不会让你在多个 JSON 里来回翻。
