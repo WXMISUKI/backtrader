@@ -548,6 +548,39 @@ def _build_stage_report(reports: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _build_history_provider_overview(health_items: list[dict[str, Any]]) -> dict[str, Any]:
+    visible_items: list[dict[str, Any]] = []
+    selected_providers: list[str] = []
+    for item in health_items:
+        if not isinstance(item, dict):
+            continue
+        provider = str(item.get("history_selected_provider", "") or "").strip()
+        if not provider:
+            continue
+        selected_providers.append(provider)
+        visible_items.append(
+            {
+                "stock_code": str(item.get("stock_code", "")).strip(),
+                "name": str(item.get("name", "")).strip(),
+                "history_selected_provider": provider,
+                "history_provider_summary": str(item.get("history_provider_summary", "")).strip(),
+            }
+        )
+
+    unique_providers = list(dict.fromkeys(selected_providers))
+    summary_text = "历史 provider 暂未显性透传。"
+    if visible_items:
+        summary_text = f"历史 provider 已显性透传 {len(visible_items)} 只，覆盖 {', '.join(unique_providers)}。"
+
+    return {
+        "status": "visible" if visible_items else "missing",
+        "summary_text": summary_text,
+        "selected_providers": unique_providers,
+        "visible_items": visible_items[:5],
+        "visible_count": len(visible_items),
+    }
+
+
 def _build_archive_package(
     *,
     archive_name: str,
@@ -964,6 +997,7 @@ def main() -> int:
 
     print("\n== 数据健康预检 ==")
     print(f"总计: {len(health_items)} 只，完全可用 {len(health_groups['完全可用'])}，部分降级 {len(health_groups['部分降级'])}，明显降级 {len(health_groups['明显降级'])}")
+    print(f"provider 概览: {history_provider_overview['summary_text']}")
     for title, items in health_groups.items():
         print(f"\n-- {title} ({len(items)}) --")
         for item in items[:5]:
@@ -1008,6 +1042,7 @@ def main() -> int:
         "health": {"items": health_items, "groups": health_groups},
         "decision": {"items": decision_items, "groups": decision_groups},
         "daily_summary": daily_summary,
+        "history_provider_overview": history_provider_overview,
         "action_list": action_list,
         "run_cadence": run_cadence,
         "prompt_context": prompt_context,
