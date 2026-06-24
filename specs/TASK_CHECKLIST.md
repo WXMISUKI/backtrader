@@ -1164,6 +1164,20 @@
 | 81.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE81_DAILY_BASELINE_OBSERVABILITY.md` |
 | 81.6 | 更新路线图与任务清单 | P1 | ✅ | - | 固化观测口径 |
 
+## Phase 82: 日常投产基线修复优先级与执行提示收敛
+
+**SDD规格文档**: `specs/SDD_PHASE82_BASELINE_REPAIR_PRIORITY.md` ✅ 已完成
+
+| # | 任务 | 优先级 | 状态 | 负责 | 备注 |
+|---|------|--------|------|------|------|
+| 82.0 | 编写 SDD 规格文档 | P0 | ✅ | - | `specs/SDD_PHASE82_BASELINE_REPAIR_PRIORITY.md` |
+| 82.1 | 在基线入口中增加修复优先级输出 | P0 | ✅ | - | `examples/daily_watchlist_production_baseline.py` |
+| 82.2 | 根据高频故障生成修复排序 | P0 | ✅ | - | 复用 `baseline_observation` |
+| 82.3 | 输出修复原因和验证提示 | P0 | ✅ | - | `repair_priority.items` |
+| 82.4 | 保持现有门禁语义不变 | P0 | ✅ | - | 不改主链路 |
+| 82.5 | 编写归档文档 | P1 | ✅ | - | `specs/ARCHIVE_PHASE82_BASELINE_REPAIR_PRIORITY.md` |
+| 82.6 | 更新路线图与任务清单 | P1 | ✅ | - | 固化修复排序口径 |
+
 ---
 
 ## 下一步行动
@@ -1172,8 +1186,8 @@
 2. **随后**: 以 `prompt_context` 作为日常提示词和 Skill 的共享语境
 3. **再后**: 以 `review_brief` 作为回看的第一眼摘要
 4. **历史行情链路**: 观察 Phase 74 的 provider 可见性在日常使用中是否稳定
-5. **当前重点**: 推进 Phase 81，把日常投产基线再收成观测层和高频故障闭环
-6. **持续**: 观察 `schedule_hint`、`daily_collaboration_pack`、`daily_execution_brief`、`feedback_effect_brief`、覆盖摘要和投产基线是否稳定
+5. **当前重点**: 推进 Phase 82，把日常投产基线再收成修复优先级和执行提示
+6. **持续**: 观察 `schedule_hint`、`daily_collaboration_pack`、`daily_execution_brief`、`feedback_effect_brief`、覆盖摘要、投产基线和修复优先级是否稳定
 
 ---
 

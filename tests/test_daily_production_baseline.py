@@ -6,6 +6,7 @@ import json
 from examples.daily_watchlist_production_baseline import (
     _build_baseline_observation,
     _build_recent_run_record,
+    _build_repair_priority,
     _derive_failure_class,
     _derive_failure_stage,
     _derive_status,
@@ -178,3 +179,51 @@ def test_failure_classification_helpers_still_align() -> None:
     assert failed_stage == "production_gate"
     assert failure_class == "gate_missing"
     assert _derive_status(checks) == "failed"
+
+
+def test_repair_priority_prefers_blocking_items() -> None:
+    baseline_observation = {
+        "summary_text": "最近 3 次基线中，最常见失败类是 gate_missing，provider 可见性为 0%。",
+        "recent_runs": [],
+        "failure_class_counts": {
+            "gate_missing": 2,
+            "provider_visibility_missing": 1,
+            "partial_artifacts": 1,
+        },
+        "top_missing_checks": ["production_gate", "history_selected_provider", "daily_execution_brief"],
+        "provider_visibility_rate": 0.0,
+        "recommended_fix_order": ["gate_missing", "provider_visibility_missing", "partial_artifacts"],
+        "history_path": "tmp/history.json",
+    }
+    repair_priority = _build_repair_priority(
+        baseline_observation=baseline_observation,
+        status="failed",
+        failed_stage="production_gate",
+        failure_class="gate_missing",
+    )
+
+    assert repair_priority["top_target"] == "production_gate"
+    assert repair_priority["items"][0]["failure_class"] == "gate_missing"
+    assert repair_priority["items"][0]["priority"] == 0
+    assert repair_priority["items"][0]["verify_hint"]
+
+
+def test_repair_priority_degrades_to_observation_when_ready() -> None:
+    baseline_observation = {
+        "summary_text": "最近 2 次基线都稳定。",
+        "recent_runs": [],
+        "failure_class_counts": {},
+        "top_missing_checks": [],
+        "provider_visibility_rate": 1.0,
+        "recommended_fix_order": ["maintain_current_state"],
+        "history_path": "tmp/history.json",
+    }
+    repair_priority = _build_repair_priority(
+        baseline_observation=baseline_observation,
+        status="ready",
+        failed_stage="none",
+        failure_class="none",
+    )
+
+    assert repair_priority["top_target"] == "maintain_current_state"
+    assert repair_priority["items"][0]["failure_class"] == "none"

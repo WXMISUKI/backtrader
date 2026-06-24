@@ -157,6 +157,163 @@ def _build_baseline_observation(
     }
 
 
+def _build_repair_priority(
+    *,
+    baseline_observation: dict[str, Any],
+    status: str,
+    failed_stage: str,
+    failure_class: str,
+) -> dict[str, Any]:
+    failure_class_counts = baseline_observation.get("failure_class_counts", {})
+    top_missing_checks = baseline_observation.get("top_missing_checks", [])
+    provider_visibility_rate = float(baseline_observation.get("provider_visibility_rate", 0.0) or 0.0)
+    recommended_fix_order = list(baseline_observation.get("recommended_fix_order", []) or [])
+
+    items: list[dict[str, Any]] = []
+
+    def add_item(
+        *,
+        target: str,
+        matched_failure_class: str,
+        priority: int,
+        reason: str,
+        command_hint: str,
+        verify_hint: str,
+    ) -> None:
+        items.append(
+            {
+                "target": target,
+                "failure_class": matched_failure_class,
+                "priority": priority,
+                "reason": reason,
+                "command_hint": command_hint,
+                "verify_hint": verify_hint,
+            }
+        )
+
+    if status == "ready":
+        add_item(
+            target="maintain_current_state",
+            matched_failure_class="none",
+            priority=1,
+            reason="当前链路已可稳定参考，优先保持现状并继续观察。",
+            command_hint="继续按日常节奏运行基线入口。",
+            verify_hint="下次运行确认仍然是 ready，且 baseline_observation 没有新增高频缺口。",
+        )
+    else:
+        priority_map = {
+            "gate_missing": 1,
+            "execution_missing": 1,
+            "provider_visibility_missing": 1,
+            "acceptance_missing": 2,
+            "execution_brief_missing": 2,
+            "feedback_brief_missing": 2,
+            "archive_missing": 3,
+            "precheck_missing": 3,
+            "partial_artifacts": 4,
+            "degraded_but_runnable": 5,
+        }
+        target_map = {
+            "gate_missing": "production_gate",
+            "execution_missing": "pipeline_outputs",
+            "provider_visibility_missing": "history_selected_provider",
+            "acceptance_missing": "acceptance_json",
+            "execution_brief_missing": "daily_execution_brief",
+            "feedback_brief_missing": "feedback_effect_brief",
+            "archive_missing": "latest_json",
+            "precheck_missing": "run_status",
+            "partial_artifacts": "optional_artifacts",
+            "degraded_but_runnable": "review_and_observe",
+        }
+        reason_map = {
+            "gate_missing": "门禁缺失会直接阻断日常参考，应优先修复。",
+            "execution_missing": "执行产物缺失说明主链路没有完整产出，应先修复执行层。",
+            "provider_visibility_missing": "provider 透传缺失会影响数据可追踪性，应优先修复。",
+            "acceptance_missing": "验收产物缺失会影响闭环判断，但通常次于门禁和执行层。",
+            "execution_brief_missing": "执行简报缺失会削弱第一屏判断，但不一定阻断主链路。",
+            "feedback_brief_missing": "反馈效果缺失会影响闭环评估，通常次于执行层。",
+            "archive_missing": "留档缺失会影响回看，不一定阻断本次执行。",
+            "precheck_missing": "预检缺失会影响运行前判断，但优先级通常低于门禁和执行层。",
+            "partial_artifacts": "当前主要是非阻断产物缺失，先补齐常用摘要。",
+            "degraded_but_runnable": "链路可跑但仍存在降级，先观察高频缺口。",
+        }
+        command_map = {
+            "gate_missing": "先检查 daily_watchlist_flow.py 输出是否包含 production_gate。",
+            "execution_missing": "先检查 daily_watchlist_daily_run.py 和 latest.json 是否已写入执行结果。",
+            "provider_visibility_missing": "先检查健康摘要和 latest.json 是否透传 history_selected_provider。",
+            "acceptance_missing": "先重新生成 acceptance JSON。",
+            "execution_brief_missing": "先补齐 daily_execution_brief 的生成与透传。",
+            "feedback_brief_missing": "先补齐 feedback_effect_brief 的生成与透传。",
+            "archive_missing": "先检查 archive/latest.json 是否成功落盘。",
+            "precheck_missing": "先检查 run_status 是否成功生成。",
+            "partial_artifacts": "先补齐缺失的非阻断摘要，再决定是否继续参考。",
+            "degraded_but_runnable": "先复核高频缺口，不要把降级结果当成强信号。",
+        }
+        verify_map = {
+            "gate_missing": "重新运行基线入口，确认 production_gate 变为存在。",
+            "execution_missing": "重新运行日常流程，确认 latest.json 中有执行产物。",
+            "provider_visibility_missing": "重新运行健康预检，确认 history_selected_provider 可见。",
+            "acceptance_missing": "重新运行验收，确认 acceptance JSON 存在。",
+            "execution_brief_missing": "重新运行日常运行，确认 daily_execution_brief 存在。",
+            "feedback_brief_missing": "重新运行反馈效果链路，确认 feedback_effect_brief 存在。",
+            "archive_missing": "重新运行归档后，确认 latest.json 已写入。",
+            "precheck_missing": "重新运行预检，确认 run_status 存在。",
+            "partial_artifacts": "确认补齐后的摘要字段已进入 baseline_observation。",
+            "degraded_but_runnable": "确认高频缺口数下降，且最近 N 次没有持续同类失败。",
+        }
+
+        ordered_classes = list(dict.fromkeys(
+            [failure_class] + list(recommended_fix_order)
+        ))
+        seen_targets = set()
+        for idx, cls in enumerate(ordered_classes, start=1):
+            if cls in seen_targets or cls == "none":
+                continue
+            seen_targets.add(cls)
+            base_priority = priority_map.get(cls, 9)
+            if cls == failure_class:
+                base_priority = 0
+            elif cls in failure_class_counts and failure_class_counts.get(cls, 0) > failure_class_counts.get(failure_class, 0):
+                base_priority = max(1, base_priority - 1)
+            if cls == "provider_visibility_missing" and provider_visibility_rate < 0.5:
+                base_priority = 1
+            add_item(
+                target=target_map.get(cls, cls),
+                matched_failure_class=cls,
+                priority=base_priority,
+                reason=reason_map.get(cls, "根据最近观测结果调整优先级。"),
+                command_hint=command_map.get(cls, "先按当前基线入口检查对应产物。"),
+                verify_hint=verify_map.get(cls, "重新运行基线入口确认该项已恢复。"),
+            )
+
+        if not items:
+            add_item(
+                target="review_and_observe",
+                matched_failure_class=failure_class or "unknown",
+                priority=1,
+                reason="当前没有可排序的明确修复项，先保持观察。",
+                command_hint="先检查最近一次运行结果和缺失项摘要。",
+                verify_hint="确认下一次运行没有新增阻断。",
+            )
+
+    items = sorted(
+        items,
+        key=lambda item: (
+            int(item.get("priority", 9)),
+            0 if item.get("failure_class") == failure_class else 1,
+            str(item.get("target", "")),
+        ),
+    )
+    top_target = str(items[0].get("target", "unknown")) if items else "unknown"
+    summary_text = f"当前优先修复 {top_target}，再按优先级顺序处理其余缺口。"
+    return {
+        "summary_text": summary_text,
+        "items": items,
+        "top_target": top_target,
+        "history_path": str(baseline_observation.get("history_path", "")),
+    }
+
+
 def _derive_status(checks: dict[str, bool]) -> str:
     required_failed = [
         "run_status",
@@ -347,6 +504,12 @@ def main() -> int:
         current_record=current_record,
         history_path=history_path,
     )
+    repair_priority = _build_repair_priority(
+        baseline_observation=baseline_observation,
+        status=status,
+        failed_stage=failed_stage,
+        failure_class=failure_class,
+    )
 
     if status == "ready":
         summary_text = "日常投产基线通过，主链路可完整参考。"
@@ -383,6 +546,7 @@ def main() -> int:
         "checks": checks,
         "evidence": evidence,
         "baseline_observation": baseline_observation,
+        "repair_priority": repair_priority,
         "generated_at": __import__("datetime").datetime.now().isoformat(timespec="seconds"),
     }
 
@@ -408,6 +572,7 @@ def main() -> int:
     print(f"feedback_effect_brief: {'存在' if checks['feedback_effect_brief'] else '缺失'}")
     print(f"history_provider_visible: {'存在' if checks['history_provider_visible'] else '缺失'}")
     print(f"baseline_observation: {baseline_observation['summary_text']}")
+    print(f"repair_priority: {repair_priority['summary_text']}")
     print(f"验收JSON: {'存在' if checks['acceptance_json'] else '缺失'}")
     print(f"输出JSON: {output_path}")
 
