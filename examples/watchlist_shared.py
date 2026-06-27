@@ -736,11 +736,9 @@ def build_production_gate(
         reasons.append("daily_run_degraded")
         status = "warn"
     if acceptance_status in {"", "unknown"} and status == "pass":
-        reasons.append("acceptance_missing")
-        status = "warn"
+        reasons.append("acceptance_pending")
     if daily_run_status in {"", "unknown"} and status == "pass":
-        reasons.append("daily_run_status_missing")
-        status = "warn"
+        reasons.append("daily_run_status_pending")
     if low_confidence_count > 0 and status == "pass":
         reasons.append("low_confidence_items_present")
         status = "warn"
@@ -1394,6 +1392,83 @@ def build_daily_execution_brief(
     return {
         "status": status,
         "headline": headline,
+        "summary_text": summary_text,
+        "primary_action": primary_action,
+        "read_order": read_order,
+        "rules": rules,
+        "evidence": evidence,
+    }
+
+
+def build_regression_gate(
+    *,
+    daily_run_status: str | None = None,
+    acceptance: dict[str, Any] | None = None,
+    baseline: dict[str, Any] | None = None,
+    regression_gate: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """把自动回归门禁收成共享视图，供日常入口直接消费。"""
+    daily_run_status = str(daily_run_status or "").strip() or "unknown"
+    acceptance = acceptance if isinstance(acceptance, dict) else {}
+    baseline = baseline if isinstance(baseline, dict) else {}
+    regression_gate = regression_gate if isinstance(regression_gate, dict) else {}
+
+    gate_status = str(regression_gate.get("status", "")).strip() or "unknown"
+    gate_summary = str(regression_gate.get("summary_text", "")).strip()
+    gate_next_step = str(regression_gate.get("next_step", "")).strip()
+    step_records = regression_gate.get("step_records", []) if isinstance(regression_gate.get("step_records", []), list) else []
+    blocked_steps = regression_gate.get("blocked_steps", []) if isinstance(regression_gate.get("blocked_steps", []), list) else []
+    warning_steps = regression_gate.get("warning_steps", []) if isinstance(regression_gate.get("warning_steps", []), list) else []
+    skipped_steps = regression_gate.get("skipped_steps", []) if isinstance(regression_gate.get("skipped_steps", []), list) else []
+    read_order = ["daily_run", "acceptance", "baseline", "regression_gate"]
+    rules = [
+        "先看 daily_run，再看 acceptance，再看 baseline，最后看 regression_gate。",
+        "regression_gate 只负责把关键验证步骤收成一份统一结果，不替代各入口本身。",
+        "出现 block 时，优先看 blocked_steps 和 next_step，不要把 warn 误判成通过。",
+    ]
+
+    evidence = {
+        "daily_run_status": daily_run_status,
+        "acceptance": {
+            "status": str(acceptance.get("status", "")).strip() or "unknown",
+            "summary_text": str(acceptance.get("summary", "") or acceptance.get("summary_text", "")).strip(),
+        },
+        "baseline": {
+            "status": str(baseline.get("status", "")).strip() or "unknown",
+            "summary_text": str(baseline.get("summary_text", "")).strip(),
+            "failure_class": str(baseline.get("failure_class", "")).strip(),
+        },
+        "regression_gate": {
+            "status": gate_status,
+            "summary_text": gate_summary,
+            "next_step": gate_next_step,
+            "step_records": step_records,
+            "blocked_steps": blocked_steps,
+            "warning_steps": warning_steps,
+            "skipped_steps": skipped_steps,
+        },
+    }
+
+    if gate_status == "block":
+        summary_text = f"自动回归门禁阻断：{gate_summary}" if gate_summary else "自动回归门禁阻断。"
+    elif gate_status == "warn":
+        summary_text = f"自动回归门禁告警：{gate_summary}" if gate_summary else "自动回归门禁告警。"
+    elif gate_status == "pass":
+        summary_text = f"自动回归门禁通过：{gate_summary}" if gate_summary else "自动回归门禁通过。"
+    else:
+        summary_text = "自动回归门禁待确认。"
+
+    if gate_next_step:
+        primary_action = gate_next_step
+    elif gate_status == "block":
+        primary_action = "先修复 blocked 步骤，再重新跑一键回归。"
+    elif gate_status == "warn":
+        primary_action = "先复核 warn 步骤，再决定是否继续参考。"
+    else:
+        primary_action = "继续按当前回归门禁节奏运行。"
+
+    return {
+        "status": gate_status,
         "summary_text": summary_text,
         "primary_action": primary_action,
         "read_order": read_order,

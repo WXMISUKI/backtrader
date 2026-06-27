@@ -24,7 +24,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from examples.env_guard import build_env_guard
-from examples.watchlist_shared import build_feedback_effect_brief
+from examples.watchlist_shared import build_feedback_effect_brief, build_regression_gate
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
@@ -470,9 +470,17 @@ def main() -> int:
     daily_execution_brief = latest_payload.get("daily_execution_brief", {}) if isinstance(latest_payload, dict) else {}
     review_brief = latest_payload.get("review_brief", {}) if isinstance(latest_payload, dict) else {}
     schedule_hint = latest_payload.get("schedule_hint", {}) if isinstance(latest_payload, dict) else {}
+    regression_gate = latest_payload.get("regression_gate", {}) if isinstance(latest_payload, dict) else {}
     feedback_effect_brief = feedback_payload.get("feedback_effect_brief", {}) if isinstance(feedback_payload, dict) else {}
     if not isinstance(feedback_effect_brief, dict) or not feedback_effect_brief:
         feedback_effect_brief = build_feedback_effect_brief(feedback_effects=feedback_payload if isinstance(feedback_payload, dict) else {})
+    if not isinstance(regression_gate, dict) or not regression_gate:
+        regression_gate = build_regression_gate(
+            daily_run_status=str(run_status_payload.get("status", "unknown")) if isinstance(run_status_payload, dict) else "unknown",
+            acceptance=acceptance_payload if isinstance(acceptance_payload, dict) else {},
+            baseline={},
+            regression_gate=_ensure_dict(latest_payload.get("regression_gate", {}) if isinstance(latest_payload, dict) else {}),
+        )
 
     checks = {
         "run_status": _exists_and_nonempty(run_status_path),
@@ -485,6 +493,7 @@ def main() -> int:
         "review_brief": bool(isinstance(review_brief, dict) and review_brief.get("summary_text", "")),
         "schedule_hint": bool(isinstance(schedule_hint, dict) and schedule_hint.get("summary_text", "")),
         "feedback_effect_brief": bool(isinstance(feedback_effect_brief, dict) and feedback_effect_brief.get("summary_text", "")),
+        "regression_gate": bool(isinstance(regression_gate, dict) and regression_gate.get("summary_text", "")),
         "history_provider_visible": any(
             isinstance(item, dict) and bool(item.get("history_selected_provider"))
             for item in (latest_payload.get("health", {}).get("items", []) if isinstance(latest_payload, dict) else [])
@@ -535,6 +544,7 @@ def main() -> int:
         "review_brief": review_brief,
         "schedule_hint": schedule_hint,
         "feedback_effect_brief": feedback_effect_brief,
+        "regression_gate": regression_gate,
         "env_guard": env_guard,
         "baseline_observation_history": history_entries,
     }
@@ -574,6 +584,7 @@ def main() -> int:
     print(f"production_gate: {'存在' if checks['production_gate'] else '缺失'}")
     print(f"daily_execution_brief: {'存在' if checks['daily_execution_brief'] else '缺失'}")
     print(f"feedback_effect_brief: {'存在' if checks['feedback_effect_brief'] else '缺失'}")
+    print(f"regression_gate: {'存在' if checks['regression_gate'] else '缺失'}")
     print(f"history_provider_visible: {'存在' if checks['history_provider_visible'] else '缺失'}")
     print(f"env_guard: {'存在' if checks['env_guard'] else '缺失'}")
     print(f"baseline_observation: {baseline_observation['summary_text']}")

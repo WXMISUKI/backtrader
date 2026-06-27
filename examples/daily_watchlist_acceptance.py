@@ -23,7 +23,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from examples.env_guard import build_env_guard
-from examples.watchlist_shared import build_daily_collaboration_pack, build_daily_execution_brief, build_daily_review_brief, build_diagnosis_evidence, build_feedback_effect_brief, build_schedule_hint
+from examples.watchlist_shared import build_daily_collaboration_pack, build_daily_execution_brief, build_daily_review_brief, build_diagnosis_evidence, build_feedback_effect_brief, build_schedule_hint, build_regression_gate
 
 
 DEFAULT_ARCHIVE_DIR = ROOT_DIR / "logs" / "daily_watchlist_archive"
@@ -151,6 +151,7 @@ def main() -> int:
         feedback_effect_brief = build_feedback_effect_brief(feedback_effects=feedback_effects if isinstance(feedback_effects, dict) else {})
     feedback_effect_brief_ok = isinstance(feedback_effect_brief, dict) and bool(feedback_effect_brief.get("summary_text", "")) and bool(feedback_effect_brief.get("read_order", []))
     feedback_coverage_ok = isinstance(feedback_effect_brief, dict) and bool(feedback_effect_brief.get("coverage_summary", ""))
+    regression_gate = _ensure_dict(latest_payload.get("regression_gate", {}) if isinstance(latest_payload, dict) else {})
     review_brief = build_daily_review_brief(
         daily_summary=_ensure_dict(daily_summary),
         production_gate=_ensure_dict(latest_payload.get("production_gate", {}) if isinstance(latest_payload, dict) else {}),
@@ -162,6 +163,16 @@ def main() -> int:
     )
     review_brief_ok = isinstance(review_brief, dict) and bool(review_brief.get("summary_text", "")) and bool(review_brief.get("read_order", []))
     run_status_payload = _load_json_payload(run_status_path) if run_status_path.exists() else {}
+    if (not isinstance(regression_gate, dict) or not regression_gate) and isinstance(run_status_payload, dict):
+        regression_gate = _ensure_dict(run_status_payload.get("regression_gate", {}))
+    if not isinstance(regression_gate, dict) or not regression_gate:
+        regression_gate = build_regression_gate(
+            daily_run_status=str(run_status_payload.get("status", "unknown")) if isinstance(run_status_payload, dict) else "unknown",
+            acceptance=latest_payload if isinstance(latest_payload, dict) else {},
+            baseline={},
+            regression_gate={},
+        )
+    regression_gate_ok = isinstance(regression_gate, dict) and bool(regression_gate.get("summary_text", "")) and bool(regression_gate.get("read_order", []))
     schedule_hint = _ensure_dict(latest_payload.get("schedule_hint", {}) if isinstance(latest_payload, dict) else {})
     if (not isinstance(schedule_hint, dict) or not schedule_hint) and isinstance(run_status_payload, dict):
         schedule_hint = _ensure_dict(run_status_payload.get("schedule_hint", {}))
@@ -217,6 +228,7 @@ def main() -> int:
         "schedule_hint": schedule_hint_ok,
         "daily_collaboration_pack": daily_collaboration_pack_ok,
         "daily_execution_brief": daily_execution_brief_ok,
+        "regression_gate": regression_gate_ok,
         "review_brief": review_brief_ok,
         "feedback_effect_brief": feedback_effect_brief_ok,
         "feedback_coverage": feedback_coverage_ok,
@@ -248,11 +260,12 @@ def main() -> int:
         "data": {
             "latest_payload": latest_payload,
             "run_status_payload": _load_json_payload(run_status_path),
-            "feedback_records": len(_load_jsonl_payload(feedback_file)),
-            "env_guard": env_guard,
-            "review_output": review_output.strip(),
-            "insights_output": insights_output.strip(),
-        },
+        "feedback_records": len(_load_jsonl_payload(feedback_file)),
+        "env_guard": env_guard,
+        "regression_gate": regression_gate,
+        "review_output": review_output.strip(),
+        "insights_output": insights_output.strip(),
+    },
     }
 
     acceptance_path.parent.mkdir(parents=True, exist_ok=True)
@@ -275,6 +288,7 @@ def main() -> int:
     print(f"schedule_hint: {'存在' if checks['schedule_hint'] else '缺失'}")
     print(f"daily_collaboration_pack: {'存在' if checks['daily_collaboration_pack'] else '缺失'}")
     print(f"daily_execution_brief: {'存在' if checks['daily_execution_brief'] else '缺失'}")
+    print(f"regression_gate: {'存在' if checks['regression_gate'] else '缺失'}")
     print(f"review_brief: {'存在' if checks['review_brief'] else '缺失'}")
     print(f"feedback_effect_brief: {'存在' if checks['feedback_effect_brief'] else '缺失'}")
     print(f"feedback_coverage: {'存在' if checks['feedback_coverage'] else '缺失'}")

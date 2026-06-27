@@ -238,6 +238,44 @@ python examples/daily_watchlist_decision.py --watchlist config/watchlist.json --
 python examples/daily_watchlist_pipeline.py --watchlist config/watchlist.json --portfolio config/portfolio.json --output-json logs/daily_watchlist_pipeline.json
 ```
 
+如果你想先看“今天应该怎么用这个项目”，可以直接跑使用指南：
+
+```bash
+python examples/daily_watchlist_usage_guide.py
+```
+
+## 日常使用测试建议
+
+如果你现在是想开始“每天都能用”的测试，推荐按这个顺序走：
+
+1. 先跑 `examples/watchlist_data_health.py`
+2. 再跑 `examples/daily_watchlist_decision.py`
+3. 然后看 `examples/daily_watchlist_review.py`
+4. 接着跑 `examples/daily_watchlist_acceptance.py`
+5. 最后跑 `examples/daily_watchlist_regression_gate.py`
+
+这条顺序对应的是“先看数据能不能用，再看今天能不能参考，最后看门禁和回归是否稳定”。
+
+## 对话式入口现状
+
+当前项目**没有独立的前端对话 AI 页面**。
+
+如果你想做交互式使用，现阶段最接近入口的是：
+
+- `python tools/agent-api.py --host 127.0.0.1 --port 8000`
+- `python examples/api_demo.py --host 127.0.0.1 --port 8000`
+
+如果你接下来要推进最有投产价值的交互方向，建议优先做“对话式入口产品化”：
+
+1. 先统一对话协议
+2. 再做最小 CLI 聊天壳
+3. 然后收口 HTTP 对话入口
+4. 最后再考虑 WebUI
+
+这条路径比继续扩展零散脚本更适合快速投产，也更符合日常聊天式使用习惯。
+
+也就是说，现在是 **CLI + HTTP API + 日常脚本** 的形态，不是 Web Chat UI。
+
 如果你想在日常结果里顺手看出“为什么会降级”，可以重点看健康摘要里的 `diagnosis`，默认工作流 JSON 里的 `diagnosis_counts`，以及总览里的降级原因统计。
 
 日常总览现在由公共摘要模板统一生成，`daily_watchlist_pipeline.py` 只是把健康分组和决策分组喂进去。

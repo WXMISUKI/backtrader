@@ -144,6 +144,9 @@ def _build_history_summary(*, raw: dict[str, Any], stock_code: str, stock_name: 
         "name": stock_name,
         "status": health["status"],
         "health_score": health["health_score"],
+        "data_confidence": health.get("data_confidence", 0.0),
+        "confidence_level": health.get("confidence_level", "low"),
+        "confidence_breakdown": health.get("confidence_breakdown", {}),
         "history_source": health["history_source"],
         "fundamental_source": health["fundamental_source"],
         "history_quality": health["history_quality"],
@@ -720,7 +723,7 @@ def _write_daily_artifacts(
         shutil.copyfile(json_path, latest_json)
         if export_markdown:
             latest_md = archive_dir / "latest.md"
-            shutil.copyfile(run_dir / "daily_watchlist_pipeline.md", latest_md)
+            shutil.copyfile(md_path_obj, latest_md)
 
     if source_json_path is not None and source_json_path != json_path:
         source_json_path.parent.mkdir(parents=True, exist_ok=True)
@@ -858,6 +861,7 @@ def main() -> int:
         "部分降级": [item for item in health_items if item.get("status") == "部分降级"],
         "明显降级": [item for item in health_items if item.get("status") == "明显降级"],
     }
+    history_provider_overview = _build_history_provider_overview(health_items)
     decision_groups = {
         "重点关注": [item for item in decision_items if item.get("group") == "重点关注"],
         "继续观察": [item for item in decision_items if item.get("group") == "继续观察"],

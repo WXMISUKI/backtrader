@@ -24,7 +24,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from examples.env_guard import build_env_guard
-from examples.watchlist_shared import build_daily_execution_brief, build_daily_prompt_context, build_daily_review_brief, build_daily_collaboration_pack, build_feedback_effect_brief, build_schedule_hint
+from examples.watchlist_shared import build_daily_execution_brief, build_daily_prompt_context, build_daily_review_brief, build_daily_collaboration_pack, build_feedback_effect_brief, build_schedule_hint, build_regression_gate
 
 
 DEFAULT_WATCHLIST_PATH = ROOT_DIR / "config" / "watchlist.json"
@@ -252,6 +252,7 @@ def main() -> int:
     schedule_hint = _ensure_dict(pipeline_payload.get("schedule_hint", {}) if isinstance(pipeline_payload, dict) else {})
     daily_collaboration_pack = _ensure_dict(pipeline_payload.get("daily_collaboration_pack", {}) if isinstance(pipeline_payload, dict) else {})
     daily_execution_brief = _ensure_dict(pipeline_payload.get("daily_execution_brief", {}) if isinstance(pipeline_payload, dict) else {})
+    regression_gate = _ensure_dict(pipeline_payload.get("regression_gate", {}) if isinstance(pipeline_payload, dict) else {})
     feedback_effects = _load_json_payload(ROOT_DIR / "logs" / "daily_watchlist_feedback_effects.json")
     feedback_effect_brief = build_feedback_effect_brief(feedback_effects=feedback_effects if isinstance(feedback_effects, dict) else {})
     if not prompt_context:
@@ -305,6 +306,13 @@ def main() -> int:
             daily_collaboration_pack=daily_collaboration_pack if isinstance(daily_collaboration_pack, dict) else {},
             feedback_effect_brief=feedback_effect_brief if isinstance(feedback_effect_brief, dict) else {},
         )
+    if not regression_gate:
+        regression_gate = build_regression_gate(
+            daily_run_status=status,
+            acceptance={},
+            baseline={},
+            regression_gate={},
+        )
 
     run_status = {
         "status": status,
@@ -343,6 +351,7 @@ def main() -> int:
         "schedule_hint": schedule_hint,
         "daily_collaboration_pack": daily_collaboration_pack,
         "daily_execution_brief": daily_execution_brief,
+        "regression_gate": regression_gate,
         "outputs": {
             "preflight_output": preflight_output.strip(),
             "pipeline_output": pipeline_output.strip(),
@@ -361,18 +370,22 @@ def main() -> int:
     print(f"归档目录: {archive_dir}")
     print(f"运行状态: {run_status_path}")
     print(f"查看入口: {viewer_script}")
-    print(f"运行节奏: {run_cadence['summary_text']}")
-    print(f"提示语境: {prompt_context['summary_text']}")
-    print(f"回看摘要: {review_brief['summary_text']}")
-    print(f"反馈覆盖: {feedback_effect_brief['coverage_summary']}")
-    print(f"反馈稳定性: {feedback_effect_brief['stability_note']}")
-    print(f"反馈效果: {feedback_effect_brief['summary_text']}")
-    print(f"调度准备: {schedule_hint['summary_text']}")
-    print(f"协作总包: {daily_collaboration_pack['summary_text']}")
-    print(f"执行简报: {daily_execution_brief['headline']} / {daily_execution_brief['summary_text']}")
-    print(f"下一步: {run_cadence['next_step']}")
-    print(f"下次运行模式: {schedule_hint['next_run_mode']}")
-    print(f"下次运行窗口: {schedule_hint['next_run_window']}")
+    print(f"运行节奏: {run_cadence.get('summary_text', '')}")
+    print(f"提示语境: {prompt_context.get('summary_text', '')}")
+    print(f"回看摘要: {review_brief.get('summary_text', '')}")
+    print(f"反馈覆盖: {feedback_effect_brief.get('coverage_summary', '')}")
+    print(f"反馈稳定性: {feedback_effect_brief.get('stability_note', '')}")
+    print(f"反馈效果: {feedback_effect_brief.get('summary_text', '')}")
+    print(f"调度准备: {schedule_hint.get('summary_text', '')}")
+    print(f"协作总包: {daily_collaboration_pack.get('summary_text', '')}")
+    print(
+        f"执行简报: {daily_execution_brief.get('headline', '')} / "
+        f"{daily_execution_brief.get('summary_text', '')}"
+    )
+    print(f"回归门禁: {regression_gate.get('summary_text', '')}")
+    print(f"下一步: {run_cadence.get('next_step', '')}")
+    print(f"下次运行模式: {schedule_hint.get('next_run_mode', '')}")
+    print(f"下次运行窗口: {schedule_hint.get('next_run_window', '')}")
 
     if not args.skip_view and archive_ok:
         print("\n== 留档查看 ==")
